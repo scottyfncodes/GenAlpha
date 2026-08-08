@@ -233,7 +233,7 @@ export const LOCATIONS: OverworldLocation[] = [
     language: 'B',
     x: 776, y: 96, w: 72, h: 72,
     color: '#e6402a',
-    blurb: 'Two cables where the diagram shows one. Someone painted over something here.',
+    blurb: 'FLACK stamped on the housing in letters too small to read from the ground. Two cables where the diagram shows one. Someone painted over something here.',
     ambient: {
       watched: 'The grey paint has been touched up again. Neatly, this time.',
       flagged: 'There’s a second housing on the pole now, higher up, pointing down the street.',

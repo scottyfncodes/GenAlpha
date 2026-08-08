@@ -39,7 +39,7 @@ const B1_OPEN: Scene = {
       lines: [
         { text: 'The family computer lives in the hallway, which is Mom’s rule for a reason nobody has to say out loud.' },
         {
-          text: 'BELLHAVEN LOCAL — COUNCIL APPROVES FULL ROLLOUT OF SAFETY GRANT CAMERAS, PHASE TWO ON TRACK FOR SUMMER',
+          text: 'BELLHAVEN LOCAL — COUNCIL APPROVES FULL ROLLOUT OF FLACK SAFETY CAMERAS, PHASE TWO ON TRACK FOR SUMMER',
           readout: true,
         },
         { text: 'SHDW/USD 3.18, up 4% overnight. Nobody you know owns any.', readout: true },
