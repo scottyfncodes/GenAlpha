@@ -1,7 +1,8 @@
-import { Fragment, useState } from 'react';
+import { Fragment, useEffect, useRef, useState } from 'react';
 import { RiskMeter } from './RiskMeter';
+import { Glitch } from './Glitch';
 import { useGame, useSave } from '../state/GameContext';
-import { tierLabel } from '../systems/heat';
+import { tierLabel, TIER_ORDER } from '../systems/heat';
 import { progressOf } from '../systems/mentors';
 import { MENTORS } from '../content/mentors';
 import './hud.css';
@@ -25,12 +26,36 @@ export function Hud({
   const [open, setOpen] = useState(false);
   const { current, threshold_tier } = save.heat;
 
+  /*
+   * Build Addendum Module 9, Part B.3: the Glitch effect is built once and
+   * reused everywhere, and a Heat tier climbing is one of the three places
+   * Style Guide 07 names for it. This fires the rupture on the *crossing*,
+   * not on every render at that tier — the ambient edge-glitch already
+   * drawn on Language A buildings at flagged+ (world/draw.ts) is the
+   * continuous tell; this is the one sharp moment underneath it, the instant
+   * the tier actually changes. Tier dropping (decay, lying low) is a relief,
+   * not a rupture, so only an increase fires it.
+   */
+  const prevTier = useRef(threshold_tier);
+  const [tierUp, setTierUp] = useState(false);
+  useEffect(() => {
+    if (TIER_ORDER.indexOf(threshold_tier) > TIER_ORDER.indexOf(prevTier.current)) {
+      setTierUp(true);
+      const id = window.setTimeout(() => setTierUp(false), 50);
+      prevTier.current = threshold_tier;
+      return () => window.clearTimeout(id);
+    }
+    prevTier.current = threshold_tier;
+  }, [threshold_tier]);
+
   return (
     <div className="hud">
-      <div className={`hud__heat hud__heat--${threshold_tier}`}>
-        <RiskMeter label="Heat" value={current} max={100} status={threshold_tier} compact />
-        <p className="hud__tierline">{tierLabel(threshold_tier)}</p>
-      </div>
+      <Glitch active={tierUp} intensity={1}>
+        <div className={`hud__heat hud__heat--${threshold_tier}`}>
+          <RiskMeter label="Heat" value={current} max={100} status={threshold_tier} compact />
+          <p className="hud__tierline">{tierLabel(threshold_tier)}</p>
+        </div>
+      </Glitch>
 
       <div className="hud__bar">
         {/* Only offered once there is somebody on it. Before the first mentor

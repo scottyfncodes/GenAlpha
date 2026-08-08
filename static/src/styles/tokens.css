@@ -50,6 +50,18 @@
   --radius-a: 12px; /* A is friendly and rounded */
   --radius-b: 0px;  /* B is cut by hand, not designed */
   --step: 8px;
+
+  /*
+    Motion, split the same way everything else here is (Build Addendum
+    Module 9, Part B.4). A is frictionless and eases like it has nothing to
+    hide; B is hand-assembled and cuts rather than glides. `--ease` is what
+    components actually read — `.lang-a`/`.lang-b` below repoint it, so a
+    button doesn't need to know which language it's in, only which token to
+    ask for.
+  */
+  --ease-a: cubic-bezier(0.22, 0.61, 0.36, 1);
+  --ease-b: steps(3, end);
+  --ease: var(--ease-a);
 }
 
 /* Scope helpers — wrap any surface in one of these to put it in a language. */
@@ -59,6 +71,7 @@
   font-family: var(--font-a);
   border: 1px solid var(--a-line);
   border-radius: var(--radius-a);
+  --ease: var(--ease-a);
 }
 
 .lang-b {
@@ -68,11 +81,22 @@
   font-family: var(--font-b-body);
   border: 2px solid var(--b-red);
   border-radius: var(--radius-b);
-  /* halftone grain + slight misregistration, the riso tells */
-  background-image: radial-gradient(var(--b-red) 0.5px, transparent 0.6px);
-  background-size: 4px 4px;
-  background-blend-mode: soft-light;
+  /*
+    Riso grain, two halftone layers a pixel apart so the dots don't quite
+    register on top of each other — a real riso print's colour separations
+    never quite line up either. This is the single texture toggle Build
+    Addendum Module 9 (Part B.1) asks for: it lives on `.lang-b` itself, which
+    every Language B surface already wraps in, so there is nothing further to
+    apply per-screen.
+  */
+  background-image:
+    radial-gradient(var(--b-red) 0.5px, transparent 0.6px),
+    radial-gradient(var(--b-spot) 0.5px, transparent 0.6px);
+  background-size: 4px 4px, 4px 4px;
+  background-position: 0 0, 1px 1px;
+  background-blend-mode: soft-light, soft-light;
   letter-spacing: 0.02em;
+  --ease: var(--ease-b);
 }
 
 /*
@@ -87,4 +111,18 @@
 .lang-b .display {
   font-family: var(--font-b);
   letter-spacing: 0.04em;
+}
+
+/*
+  Colour-layer misregistration on the display face only — headings and
+  buttons are the "printed plate" of a Language B surface, so they're what
+  carries the riso tell. A static red/blue ghost offset by a hair, not
+  animated: a print artifact stays put, it doesn't flicker (that register is
+  `.glitch`'s, and the two must not compete for the same surface).
+*/
+.lang-b h1,
+.lang-b h2,
+.lang-b h3,
+.lang-b .display {
+  text-shadow: 0.5px 0 var(--b-red), -0.5px 0 var(--b-spot);
 }
