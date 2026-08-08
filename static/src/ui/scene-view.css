@@ -116,10 +116,12 @@
 /*
  * A readout — a headline, a price, a thread title on a screen the
  * protagonist is looking at rather than a person talking. Neither language:
- * a device shows the same ugly monospace regardless of which world it sits
+ * a device shows the same green phosphor regardless of which world it sits
  * in, so this doesn't take the scene's A/B styling the way speech does.
- */
-/*
+ * Hackers (1995) rather than Style Guide 07 on purpose — the one place in
+ * the game that's explicitly a screen is the one place that gets to look
+ * like one.
+ *
  * `.scene__line.scene__line--readout` (both classes), not just the modifier
  * alone — `.lang-a .scene__line` / `.lang-b .scene__line` above are also
  * two classes deep, and the language rule was quietly winning the
@@ -128,15 +130,56 @@
  * in the file is what actually wins it.
  */
 .scene__line.scene__line--readout {
+  position: relative;
+  overflow: hidden;
   font-style: normal;
   font-family: var(--font-mono);
   font-size: 13px;
   letter-spacing: 0.02em;
   line-height: 1.4;
-  background: var(--b-ink);
-  color: var(--b-paper);
-  border-color: var(--b-red);
+  background: var(--term-bg);
+  color: var(--term-text);
+  border-color: var(--term-dim);
   border-radius: 2px;
+  text-shadow: 0 0 6px rgba(61, 255, 154, 0.45);
+}
+
+.scene__line.scene__line--readout::before {
+  content: '> ';
+  color: var(--term-dim);
+}
+
+/* Scanlines: a static overlay, not an animation — the CRT texture should
+   read instantly and never compete with the rarer, sharper Glitch effect. */
+.scene__line.scene__line--readout::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: repeating-linear-gradient(
+    to bottom,
+    rgba(0, 0, 0, 0.25) 0,
+    rgba(0, 0, 0, 0.25) 1px,
+    transparent 1px,
+    transparent 3px
+  );
+  pointer-events: none;
+}
+
+/* The one thing on the whole screen allowed to blink, because a cursor is
+   supposed to. Reduced-motion already zeroes every animation's duration
+   (global.css), which turns this into a steady, unblinking cursor instead
+   of removing it outright. */
+.scene__cursor {
+  display: inline-block;
+  width: 0.55em;
+  margin-left: 2px;
+  background: var(--term-text);
+  animation: term-blink 1s steps(1, end) infinite;
+}
+
+@keyframes term-blink {
+  0%, 49% { opacity: 1; }
+  50%, 100% { opacity: 0; }
 }
 
 .scene__foot { padding-top: var(--step); }

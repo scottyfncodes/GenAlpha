@@ -62,6 +62,18 @@
   --ease-a: cubic-bezier(0.22, 0.61, 0.36, 1);
   --ease-b: steps(3, end);
   --ease: var(--ease-a);
+
+  /*
+    A third register, deliberately outside the A/B split: a device screen.
+    Neither the official world nor the resistance's own printed voice — a
+    terminal looks like this everywhere, which is the point. Green phosphor,
+    scanlines, a blinking cursor: Hackers (1995) rather than Style Guide 07,
+    used only for `.scene__line--readout` where the protagonist is reading a
+    screen rather than being read to.
+  */
+  --term-bg: #04120a;
+  --term-text: #3dff9a;
+  --term-dim: #1f8f52;
 }
 
 /* Scope helpers — wrap any surface in one of these to put it in a language. */

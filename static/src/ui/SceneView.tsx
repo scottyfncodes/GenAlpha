@@ -293,6 +293,7 @@ function Dialogue({
             <p className={`${lineClass(line)} scene__line--now`}>
               {line.speaker && <span className="scene__speaker">{line.speaker}</span>}
               {full.slice(0, chars)}
+              {line.readout && <span className="scene__cursor" aria-hidden="true" />}
             </p>
           </Glitch>
         )}
