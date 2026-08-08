@@ -7,6 +7,8 @@ import {
   visibleLocations,
   type OverworldLocation,
 } from './locations';
+import { OBSTACLES } from './obstacles';
+import { PATROL_ROUTES, activeRoutes, patrolTuning, type PatrolRoute } from './patrols';
 import { useGame, useSave } from '../state/GameContext';
 import type { ThresholdTier } from '../state/schema';
 import { LIE_LOW_DECAY, lieLowBlocked } from '../systems/heat';
@@ -24,6 +26,65 @@ const SPEED = 110; // world units per second
 const PLAYER_W = 12;
 const PLAYER_H = 18;
 const SCALE = 2; // pixel-art integer scale
+
+/** Position along a patrol route: which leg (the segment between two
+ * consecutive waypoints), how far into it (0..1), and — for a there-and-back
+ * route — which direction it's currently walking that leg in. Loop routes
+ * never reverse; `dir` only matters for `loop: false` routes. */
+interface PatrolState {
+  leg: number;
+  t: number;
+  dir: 1 | -1;
+}
+
+function legEndpoints(route: PatrolRoute, leg: number) {
+  const n = route.points.length;
+  return [route.points[leg], route.points[(leg + 1) % n]] as const;
+}
+
+function stepPatrol(route: PatrolRoute, state: PatrolState, distance: number): PatrolState {
+  const legCount = route.loop ? route.points.length : route.points.length - 1;
+  let { leg, t, dir } = state;
+  let remaining = distance;
+  // A handful of legs at most, walked a few px per frame — this converges
+  // immediately in practice, the cap just rules out an infinite loop if a
+  // route were ever authored with a zero-length leg.
+  for (let guard = 0; guard < 64 && remaining > 0; guard++) {
+    const [a, b] = legEndpoints(route, leg);
+    const legLen = Math.hypot(b.x - a.x, b.y - a.y) || 1;
+    const toEdge = (dir === 1 ? 1 - t : t) * legLen;
+    if (remaining < toEdge) {
+      t += (dir * remaining) / legLen;
+      remaining = 0;
+    } else {
+      remaining -= toEdge;
+      if (route.loop) {
+        leg = (leg + 1) % legCount;
+        t = 0;
+      } else if (dir === 1) {
+        if (leg + 1 < legCount) {
+          leg += 1;
+          t = 0;
+        } else {
+          dir = -1;
+          t = 1;
+        }
+      } else if (leg - 1 >= 0) {
+        leg -= 1;
+        t = 1;
+      } else {
+        dir = 1;
+        t = 0;
+      }
+    }
+  }
+  return { leg, t, dir };
+}
+
+function patrolPosition(route: PatrolRoute, state: PatrolState): { x: number; y: number } {
+  const [a, b] = legEndpoints(route, state.leg);
+  return { x: a.x + (b.x - a.x) * state.t, y: a.y + (b.y - a.y) * state.t };
+}
 
 /**
  * The overworld: sprite, movement, placeholder-rectangle locations, and the
@@ -43,6 +104,8 @@ export function Overworld() {
    */
   const [active, setActive] = useState<Scene | null>(null);
   const [market, setMarket] = useState(false);
+  /** A brief line when a patrol clocks you — Heat that's shown, not hidden. */
+  const [spotted, setSpotted] = useState<string | null>(null);
 
   /*
    * The draw loop runs off refs rather than closing over state, so the
@@ -102,6 +165,19 @@ export function Overworld() {
   /** True while a scene or location card owns the screen. */
   const blockedRef = useRef(false);
 
+  /*
+   * Every route keeps moving all the time, even the ones Heat hasn't turned
+   * on yet — so when a fifth van comes online at `hunted` it's mid-beat like
+   * the rest of them, not spawning fresh at its own start point. Only the
+   * ones `activeRoutes(tier)` currently includes get drawn or checked for a
+   * sighting. Per-route cooldown timestamps live alongside so one van can't
+   * charge Heat every single frame it happens to be standing on the player.
+   */
+  const patrolStateRef = useRef<Map<string, PatrolState>>(
+    new Map(PATROL_ROUTES.map((r) => [r.id, { leg: 0, t: 0, dir: 1 as const }])),
+  );
+  const patrolCooldownRef = useRef<Map<string, number>>(new Map());
+
   enterRef.current = enter;
   blockedRef.current = Boolean(open);
 
@@ -146,12 +222,15 @@ export function Overworld() {
        * they spawned in, or the one their last scene closed on) stays
        * passable for this frame — otherwise a save that opens dead centre on
        * a location's rectangle would find that same rectangle unwalkable and
-       * be stuck. Every other visible building blocks. Movement resolves one
-       * axis at a time so the player slides along a wall rather than
-       * stopping dead on a diagonal approach.
+       * be stuck. Every other visible building blocks, and so does every
+       * maze filler — those have no "already inside" case since nothing ever
+       * spawns inside one. Movement resolves one axis at a time so the
+       * player slides along a wall rather than stopping dead on a diagonal
+       * approach.
        */
       const visible = visibleLocations(flagsRef.current);
-      const solid = visible.filter((l) => !overlapsBuilding(pos.current.x, pos.current.y, l));
+      const blockers: { x: number; y: number; w: number; h: number }[] = [...visible, ...OBSTACLES];
+      const solid = blockers.filter((l) => !overlapsBuilding(pos.current.x, pos.current.y, l));
 
       const nx = clamp(pos.current.x + (dx / len) * SPEED * dt, 8, MAP_WIDTH - 8);
       if (!solid.some((l) => overlapsBuilding(nx, pos.current.y, l))) pos.current.x = nx;
@@ -166,6 +245,42 @@ export function Overworld() {
         if (here) dispatch({ type: 'SET_LOCATION', locationId: here.id });
       }
 
+      /*
+       * Patrols. Every route keeps walking regardless of tier; only the
+       * active subset is drawn or checked against the player, and each has
+       * its own cooldown so standing in one van's radius can't machine-gun
+       * Heat every frame. The Heat cost is small and ambient on purpose —
+       * this is background pressure from wandering, not a mission charge.
+       */
+      const tuning = patrolTuning(tierRef.current);
+      const active = new Set(activeRoutes(tierRef.current).map((r) => r.id));
+      const patrolDraw: { x: number; y: number; radius: number }[] = [];
+      for (const route of PATROL_ROUTES) {
+        const prev = patrolStateRef.current.get(route.id)!;
+        const next = stepPatrol(route, prev, tuning.speed * dt);
+        patrolStateRef.current.set(route.id, next);
+        if (!active.has(route.id)) continue;
+
+        const p = patrolPosition(route, next);
+        patrolDraw.push({ x: p.x, y: p.y, radius: tuning.detectionRadius });
+
+        const dist = Math.hypot(p.x - pos.current.x, p.y - pos.current.y);
+        if (dist < tuning.detectionRadius) {
+          const lastHit = patrolCooldownRef.current.get(route.id) ?? -Infinity;
+          if (now - lastHit > tuning.cooldownMs) {
+            patrolCooldownRef.current.set(route.id, now);
+            dispatch({
+              type: 'ADD_HEAT',
+              eventId: `patrol_spotted_${route.id}`,
+              delta: tuning.heatOnSpot,
+              logToHistory: false,
+            });
+            setSpotted('A Helio van slows near you.');
+            window.setTimeout(() => setSpotted((m) => (m === null ? m : null)), 1800);
+          }
+        }
+      }
+
       drawTown(
         ctx,
         canvas,
@@ -176,6 +291,8 @@ export function Overworld() {
         tierRef.current,
         SCALE,
         { w: PLAYER_W, h: PLAYER_H },
+        OBSTACLES,
+        patrolDraw,
       );
       raf = requestAnimationFrame(frame);
     };
@@ -223,6 +340,12 @@ export function Overworld() {
   return (
     <div className="overworld">
       <canvas ref={canvasRef} className="overworld__canvas" aria-label="Bellhaven, evening" />
+
+      {spotted && (
+        <p className="overworld__spotted" role="status">
+          {spotted}
+        </p>
+      )}
 
       {nearby && !open && (
         <button className="overworld__prompt" onClick={() => enter(nearby)}>
@@ -329,7 +452,7 @@ function clamp(n: number, min: number, max: number) {
 const FEET_W = 10;
 const FEET_H = 8;
 
-function overlapsBuilding(x: number, y: number, loc: OverworldLocation): boolean {
+function overlapsBuilding(x: number, y: number, loc: { x: number; y: number; w: number; h: number }): boolean {
   const left = x - FEET_W / 2;
   const right = x + FEET_W / 2;
   const top = y - FEET_H / 2;

@@ -12,6 +12,26 @@
   image-rendering: pixelated;
 }
 
+/* Ambient warning, not a game-over screen: a patrol clocked you, Heat moved,
+   and the line says so instead of the number just changing off-screen. Sits
+   above the "look around" bubble so the two never compete for the same line. */
+.overworld__spotted {
+  position: absolute;
+  left: 50%;
+  top: calc(var(--step) * 8);
+  transform: translateX(-50%);
+  margin: 0;
+  background: rgba(230, 64, 42, 0.85);
+  color: var(--b-paper);
+  border: 1px solid var(--b-ink);
+  padding: 6px 14px;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+  pointer-events: none;
+}
+
 .overworld__prompt {
   position: absolute;
   left: 50%;

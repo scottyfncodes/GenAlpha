@@ -1,4 +1,5 @@
 import { MAP_HEIGHT, MAP_WIDTH, visibleLocations, type OverworldLocation } from './locations';
+import type { Obstacle } from './obstacles';
 import type { ThresholdTier } from '../state/schema';
 import { mulberry32, seedFrom } from '../systems/rng';
 
@@ -52,6 +53,12 @@ const PALETTE = {
   spriteSkin: '#e8c8a8',
   spriteShirt: '#ece2d0',
   outline: '#20262f',
+  fillerWall: '#3f4a5c',
+  fillerRoof: '#2a3444',
+  patrolBody: '#e6402a',
+  patrolCab: '#100e0d',
+  patrolLight: '#f0c07a',
+  patrolRing: 'rgba(230, 64, 42, 0.22)',
 } as const;
 
 const px = Math.round;
@@ -71,6 +78,8 @@ export function drawTown(
   tier: ThresholdTier,
   scale: number,
   playerSize: { w: number; h: number },
+  obstacles: Obstacle[],
+  patrols: { x: number; y: number; radius: number }[],
 ) {
   const vw = canvas.clientWidth;
   const vh = canvas.clientHeight;
@@ -94,11 +103,77 @@ export function drawTown(
   // Warm pockets first, under everything, so the light sits on the street.
   for (const loc of locations) if (loc.language === 'B') drawGlow(ctx, loc);
 
+  for (const obstacle of obstacles) drawObstacle(ctx, obstacle);
   for (const loc of locations) drawBuilding(ctx, loc, here?.id === loc.id, tier);
+
+  // Detection rings under the vans, so a van sitting still doesn't visually
+  // "arrive" on top of its own danger zone.
+  for (const patrol of patrols) drawPatrolRing(ctx, patrol);
+  for (const patrol of patrols) drawPatrol(ctx, patrol);
 
   drawPlayer(ctx, player, facing, playerSize);
 
   ctx.restore();
+}
+
+/**
+ * Maze filler: a body, a flat roof, a few windows, no glow, no name, no
+ * "you are here" outline — it is scenery a real building would generate as a
+ * side effect, not a place. Style Guide 07's warm/cool split doesn't apply;
+ * this is neither language, just the town being a town.
+ */
+function drawObstacle(ctx: CanvasRenderingContext2D, obstacle: Obstacle) {
+  const roofH = 12;
+  ctx.fillStyle = PALETTE.fillerWall;
+  ctx.fillRect(obstacle.x, obstacle.y + roofH, obstacle.w, obstacle.h - roofH);
+  ctx.fillStyle = PALETTE.fillerRoof;
+  ctx.fillRect(obstacle.x + 3, obstacle.y, obstacle.w - 6, roofH);
+
+  const rand = noise(`obstacle:${obstacle.id}`);
+  const w = 7, h = 8, gap = 9;
+  const top = obstacle.y + roofH + 6;
+  const cols = Math.max(1, Math.floor((obstacle.w - gap) / (w + gap)));
+  const rows = Math.max(1, Math.floor((obstacle.h - roofH - 14) / (h + gap)));
+  const startX = obstacle.x + px((obstacle.w - (cols * (w + gap) - gap)) / 2);
+  for (let r = 0; r < rows; r++) {
+    for (let c = 0; c < cols; c++) {
+      ctx.fillStyle = rand() < 0.4 ? PALETTE.windowLit : PALETTE.windowDark;
+      ctx.fillRect(startX + c * (w + gap), top + r * (h + gap), w, h);
+    }
+  }
+}
+
+/**
+ * The danger zone, shown rather than hidden — Heat System guardrail 2 says
+ * nothing charges Heat without showing it first, and a patrol's radius is
+ * exactly that kind of cost. A soft filled disc, not an outline, so it reads
+ * as "ground you're visible from" rather than a targeting reticle.
+ */
+function drawPatrolRing(ctx: CanvasRenderingContext2D, patrol: { x: number; y: number; radius: number }) {
+  ctx.fillStyle = PALETTE.patrolRing;
+  ctx.beginPath();
+  ctx.arc(patrol.x, patrol.y, patrol.radius, 0, Math.PI * 2);
+  ctx.fill();
+}
+
+/** A Helio van: a body, a darker cab end, two headlights. Small and flat,
+ * matching the sprite budget everything else here keeps to. */
+function drawPatrol(ctx: CanvasRenderingContext2D, patrol: { x: number; y: number }) {
+  const w = 16, h = 10;
+  const x = px(patrol.x - w / 2);
+  const y = px(patrol.y - h / 2);
+
+  ctx.fillStyle = PALETTE.patrolBody;
+  ctx.fillRect(x, y, w, h);
+  ctx.fillStyle = PALETTE.patrolCab;
+  ctx.fillRect(x + w - 5, y, 5, h);
+  ctx.fillStyle = PALETTE.patrolLight;
+  ctx.fillRect(x, y + 1, 2, 2);
+  ctx.fillRect(x, y + h - 3, 2, 2);
+
+  ctx.strokeStyle = PALETTE.outline;
+  ctx.lineWidth = 1;
+  ctx.strokeRect(x - 0.5, y - 0.5, w + 1, h + 1);
 }
 
 /**
