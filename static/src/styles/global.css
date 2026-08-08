@@ -1,0 +1,50 @@
+@import './tokens.css';
+
+* { box-sizing: border-box; }
+
+html, body, #root {
+  height: 100%;
+  margin: 0;
+}
+
+body {
+  background: var(--b-bg);
+  color: var(--a-text);
+  font-family: var(--font-a);
+  -webkit-font-smoothing: antialiased;
+  overscroll-behavior: none;
+}
+
+button {
+  font: inherit;
+  cursor: pointer;
+}
+
+:focus-visible {
+  outline: 3px solid var(--b-orange);
+  outline-offset: 2px;
+}
+
+/* In-game equivalent of the OS setting, for players who can't change the OS
+   setting. Same suppression, player-controlled. */
+[data-reduced-flicker='true'] .glitch.is-glitching,
+[data-reduced-flicker='true'] .glitch__scan,
+[data-reduced-flicker='true'] .hud__heat {
+  animation: none !important;
+}
+
+[data-reduced-flicker='true'] .glitch.is-glitching > *:not(.glitch__scan) {
+  text-shadow: none !important;
+}
+
+/* Quality floor: the glitch effect is a flicker effect, so it must be
+   suppressible. Everything decorative that moves checks this. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
+}

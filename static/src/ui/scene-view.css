@@ -1,0 +1,145 @@
+.scene {
+  position: absolute;
+  inset: 0;
+  z-index: 15;
+  display: flex;
+  flex-direction: column;
+  padding: calc(var(--step) * 2);
+  overflow: hidden;
+}
+
+.scene.lang-a {
+  background: var(--a-bg);
+  border: none;
+  border-radius: 0;
+}
+
+.scene.lang-b { border: none; }
+
+.scene__body {
+  flex: 1;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  gap: 10px;
+  padding-bottom: var(--step);
+  cursor: pointer;
+}
+
+/* Inherits from the scene's language class: rounded sans in an official
+   scene, photocopied mono in a resistance one. It used to force the official
+   face in both, which meant the resistance never got to sound like itself. */
+.scene__line {
+  margin: 0;
+  font-size: 16px;
+  line-height: 1.55;
+  max-width: 46ch;
+  opacity: 0.55;
+}
+
+.scene__line--now { opacity: 1; }
+
+.scene__line--said b {
+  display: block;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  opacity: 0.7;
+  margin-bottom: 2px;
+  font-weight: 400;
+}
+
+.scene__foot { padding-top: var(--step); }
+
+.scene__choices {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.scene__choices button {
+  width: 100%;
+  text-align: left;
+  background: none;
+  border: 2px solid currentColor;
+  color: inherit;
+  padding: 11px 13px;
+  font-size: 15px;
+  line-height: 1.4;
+}
+
+.scene__next {
+  background: none;
+  border: 2px solid currentColor;
+  color: inherit;
+  padding: 10px 18px;
+  font-weight: 700;
+  min-width: 120px;
+}
+
+.scene__stage {
+  position: absolute;
+  inset: 0;
+  z-index: 15;
+  display: grid;
+  place-items: center;
+  overflow: auto;
+  padding: var(--step);
+  background: var(--a-bg);
+}
+
+/* An exit from every scene. Effects fire on node entry, so leaving mid-scene
+   keeps what already happened and simply doesn't mark the scene complete —
+   the player can walk back and pick it up again. */
+.scene__leave {
+  position: absolute;
+  top: var(--step);
+  right: var(--step);
+  background: transparent;
+  color: inherit;
+  border: 1px solid currentColor;
+  border-radius: var(--radius-b);
+  opacity: 0.6;
+  padding: 4px 10px;
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.scene__leave:hover,
+.scene__leave:focus-visible {
+  opacity: 1;
+}
+
+/* An elective Heat cost, stated on the button that charges it. Deliberately
+   plain: this is information, not a warning label. */
+.scene__cost {
+  display: block;
+  margin-top: 4px;
+  font-family: var(--font-b);
+  font-size: 12px;
+  font-style: normal;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  opacity: 0.65;
+}
+
+/* The broadcast frame. Given room and nothing else on the screen with it. */
+.scene__mark {
+  display: flex;
+  justify-content: center;
+  padding: calc(var(--step) * 2) 0;
+}
+
+.scene__mark .gen-a {
+  animation: gen-a-cut 1500ms steps(1, end) 1;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .scene__mark .gen-a { animation: none; }
+}

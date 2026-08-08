@@ -1,0 +1,102 @@
+.risk {
+  font-family: var(--font-a);
+  color: var(--b-paper);
+  width: 100%;
+}
+
+.risk__head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: var(--step);
+  margin-bottom: 4px;
+}
+
+.risk__label {
+  font-size: 11px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  opacity: 0.75;
+}
+
+.risk__value {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+}
+
+.risk__pending {
+  color: var(--b-orange);
+  font-style: normal;
+}
+
+.risk__tightened {
+  font-family: var(--font-a);
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--b-orange);
+  border: 1px solid currentColor;
+  padding: 0 4px;
+}
+
+.risk__track.is-tightened {
+  border-color: var(--b-orange);
+}
+
+.risk__status {
+  font-family: var(--font-a);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  opacity: 0.7;
+}
+
+.risk__bed {
+  position: relative;
+  /* The lost span of a tightened budget stays visible as empty ground, so a
+     shorter track reads as "they took some away", not as a smaller widget. */
+  background: repeating-linear-gradient(
+    45deg,
+    rgba(236, 226, 208, 0.1) 0 3px,
+    transparent 3px 6px
+  );
+}
+
+.risk__track {
+  position: relative;
+  transition: width 260ms steps(4, end);
+  height: 10px;
+  background: rgba(236, 226, 208, 0.16);
+  border: 1px solid rgba(236, 226, 208, 0.35);
+  overflow: hidden;
+}
+
+.risk__fill {
+  height: 100%;
+  background: var(--b-red);
+  transition: width 220ms steps(6, end);
+}
+
+.risk__preview {
+  position: absolute;
+  top: 0;
+  height: 100%;
+  background: repeating-linear-gradient(
+    45deg,
+    var(--b-orange) 0 4px,
+    transparent 4px 8px
+  );
+}
+
+.risk__tick {
+  position: absolute;
+  top: 0;
+  width: 1px;
+  height: 100%;
+  background: rgba(236, 226, 208, 0.4);
+}
+
+.risk--compact .risk__track { height: 7px; }

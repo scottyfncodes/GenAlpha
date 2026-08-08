@@ -1,0 +1,109 @@
+.title {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: calc(var(--step) * 2);
+  padding: calc(var(--step) * 3);
+  text-align: center;
+  transition: background-color 260ms steps(3, end), color 260ms steps(3, end);
+}
+
+/* LANGUAGE A: soft, cool, frictionless — an onboarding screen that means well. */
+.title--official,
+.title--rupture {
+  background: var(--a-bg);
+  color: var(--a-text);
+  font-family: var(--font-a);
+}
+
+.title--official .title__word,
+.title--rupture .title__word {
+  font-family: var(--font-a);
+  font-weight: 800;
+  letter-spacing: 0.32em;
+  color: var(--a-accent);
+  font-size: clamp(38px, 13vw, 92px);
+  margin: 0;
+}
+
+/* LANGUAGE B: cut by hand, printed badly, urgent. */
+.title--claimed {
+  background: var(--b-bg);
+  color: var(--b-paper);
+  background-image: radial-gradient(rgba(230, 64, 42, 0.55) 0.6px, transparent 0.7px);
+  background-size: 5px 5px;
+}
+
+.title--claimed .title__word {
+  font-family: var(--font-b);
+  font-size: clamp(46px, 17vw, 128px);
+  letter-spacing: -0.02em;
+  margin: 0;
+  color: var(--b-paper);
+  text-shadow: 3px 3px 0 var(--b-red), -2px -1px 0 var(--b-spot); /* misregistration */
+  transform: rotate(-1.2deg);
+}
+
+.title__tag {
+  margin: 0;
+  max-width: 30ch;
+  font-family: var(--font-a);
+  font-size: 14px;
+  line-height: 1.5;
+  opacity: 0.85;
+}
+
+.title--official .title__tag { color: var(--a-muted); }
+
+.title__menu {
+  display: flex;
+  flex-direction: column;
+  gap: var(--step);
+  margin-top: var(--step);
+  width: min(280px, 80vw);
+}
+
+.title__btn {
+  background: transparent;
+  color: var(--b-paper);
+  border: 2px solid var(--b-paper);
+  padding: 12px 16px;
+  font-family: var(--font-a);
+  font-weight: 700;
+  letter-spacing: 0.06em;
+}
+
+.title__btn--primary {
+  background: var(--b-red);
+  border-color: var(--b-red);
+}
+
+.title__btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+.title__naming {
+  display: flex;
+  flex-direction: column;
+  gap: var(--step);
+  font-family: var(--font-a);
+}
+
+.title__naming label { font-size: 13px; opacity: 0.8; }
+
+.title__naming input {
+  background: rgba(236, 226, 208, 0.08);
+  border: 2px solid rgba(236, 226, 208, 0.5);
+  color: var(--b-paper);
+  padding: 10px 12px;
+  font: inherit;
+  text-align: center;
+}
+
+/* Mark and wordmark as one lockup, so they turn over together. */
+.title__lockup {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: calc(var(--step) * 2);
+}

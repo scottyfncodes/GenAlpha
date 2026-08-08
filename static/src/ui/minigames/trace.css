@@ -1,0 +1,108 @@
+.trace {
+  padding: calc(var(--step) * 2);
+  width: min(460px, 94vw);
+  display: flex;
+  flex-direction: column;
+  gap: var(--step);
+}
+
+.trace__head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: var(--step);
+}
+
+.trace__framing {
+  margin: 0;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  opacity: 0.7;
+}
+
+.trace__title {
+  margin: 2px 0 0;
+  font-size: 18px;
+}
+
+.trace__pulses {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  white-space: nowrap;
+  opacity: 0.8;
+}
+
+.trace__grid {
+  display: grid;
+  gap: 4px;
+  margin: var(--step) 0;
+}
+
+.node {
+  aspect-ratio: 1;
+  border: 1px solid rgba(236, 226, 208, 0.25);
+  background: rgba(236, 226, 208, 0.06);
+  color: inherit;
+  font-family: var(--font-mono);
+  font-size: 13px;
+  padding: 0;
+  transition: transform 80ms steps(2, end);
+}
+
+.lang-a .node {
+  border-color: rgba(38, 49, 63, 0.18);
+  background: rgba(47, 124, 246, 0.06);
+}
+
+.node--reachable {
+  border-color: var(--b-orange);
+  border-width: 2px;
+}
+
+.lang-a .node--reachable { border-color: var(--a-accent); }
+
+.node--safe { background: rgba(43, 78, 216, 0.28); }
+.node--dead_end { background: rgba(236, 226, 208, 0.03); opacity: 0.45; }
+.node--trap,
+.node--spent { background: var(--b-red); color: var(--b-paper); }
+
+.node--current {
+  background: var(--b-paper);
+  color: var(--b-ink);
+  transform: scale(1.06);
+}
+
+.node--target { outline: 2px solid var(--b-orange); outline-offset: -4px; }
+
+.node:disabled { cursor: default; }
+
+.trace__event {
+  margin: 0;
+  min-height: 2.4em;
+  font-family: var(--font-a);
+  font-size: 13px;
+  opacity: 0.85;
+}
+
+.trace__bail,
+.trace__go {
+  border: 2px solid currentColor;
+  background: none;
+  color: inherit;
+  padding: 10px;
+  font-family: var(--font-a);
+  font-weight: 700;
+}
+
+.trace__result {
+  border-top: 2px solid currentColor;
+  padding-top: var(--step);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.trace__result h3 { margin: 0; font-size: 18px; }
+.trace__result p { margin: 0; font-family: var(--font-a); font-size: 13px; line-height: 1.5; }

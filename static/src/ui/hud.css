@@ -1,0 +1,92 @@
+.hud {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  padding: var(--step);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  pointer-events: none;
+  z-index: 5;
+}
+
+.hud > * { pointer-events: auto; }
+
+.hud__heat {
+  background: rgba(16, 14, 13, 0.72);
+  border: 1px solid rgba(236, 226, 208, 0.28);
+  padding: 8px 10px;
+  max-width: 320px;
+}
+
+/* Heat escalation glitches Language A's calm at flagged+, per Style Guide 07. */
+.hud__heat--flagged { animation: hud-flicker 4.5s steps(1, end) infinite; }
+.hud__heat--hunted { animation: hud-flicker 1.8s steps(1, end) infinite; border-color: var(--b-red); }
+
+@keyframes hud-flicker {
+  0%, 96% { opacity: 1; }
+  97% { opacity: 0.55; }
+  98% { opacity: 1; }
+  99% { opacity: 0.7; }
+}
+
+.hud__tierline {
+  margin: 6px 0 0;
+  font-size: 11px;
+  color: var(--b-paper);
+  opacity: 0.6;
+  font-family: var(--font-a);
+}
+
+.hud__bar {
+  display: flex;
+  gap: 6px;
+}
+
+.hud__toggle {
+  align-self: flex-start;
+  background: rgba(16, 14, 13, 0.72);
+  color: var(--b-paper);
+  border: 1px solid rgba(236, 226, 208, 0.28);
+  padding: 4px 10px;
+  font-size: 11px;
+  font-family: var(--font-mono);
+}
+
+.hud__debug {
+  background: rgba(16, 14, 13, 0.9);
+  border: 1px solid var(--b-orange);
+  padding: var(--step);
+  max-width: 340px;
+  font-family: var(--font-mono);
+  color: var(--b-paper);
+}
+
+.hud__row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 6px;
+}
+
+.hud__row button {
+  background: transparent;
+  color: var(--b-paper);
+  border: 1px solid rgba(236, 226, 208, 0.4);
+  padding: 5px 9px;
+  font-size: 12px;
+  font-family: var(--font-mono);
+}
+
+.hud__state {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 2px 10px;
+  margin: 0;
+  font-size: 11px;
+  opacity: 0.75;
+}
+
+.hud__state dt { opacity: 0.6; }
+.hud__state dd { margin: 0; }
