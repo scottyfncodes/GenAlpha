@@ -53,12 +53,20 @@ const PALETTE = {
   spriteSkin: '#e8c8a8',
   spriteShirt: '#ece2d0',
   outline: '#20262f',
-  fillerWall: '#3f4a5c',
-  fillerRoof: '#2a3444',
   patrolBody: '#e6402a',
   patrolCab: '#100e0d',
   patrolLight: '#f0c07a',
   patrolRing: 'rgba(230, 64, 42, 0.22)',
+  camera: '#3f7fe0',
+  cameraDark: '#1f3d73',
+  treeTrunk: '#3a2c22',
+  treeCanopyDark: '#33513c',
+  treeCanopy: '#456b4f',
+  bush: '#3c5844',
+  rockDark: '#454e5c',
+  rockLight: '#5c6577',
+  hedgeDark: '#38513e',
+  hedge: '#48684f',
 } as const;
 
 const px = Math.round;
@@ -101,10 +109,15 @@ export function drawTown(
   const locations = visibleLocations(flags);
 
   // Warm pockets first, under everything, so the light sits on the street.
-  for (const loc of locations) if (loc.language === 'B') drawGlow(ctx, loc);
+  // A camera doesn't get one — it isn't a place the crew built, it's the
+  // thing they're building around.
+  for (const loc of locations) if (loc.language === 'B' && loc.render !== 'camera') drawGlow(ctx, loc);
 
   for (const obstacle of obstacles) drawObstacle(ctx, obstacle);
-  for (const loc of locations) drawBuilding(ctx, loc, here?.id === loc.id, tier);
+  for (const loc of locations) {
+    if (loc.render === 'camera') drawCamera(ctx, loc, here?.id === loc.id);
+    else drawBuilding(ctx, loc, here?.id === loc.id, tier);
+  }
 
   // Detection rings under the vans, so a van sitting still doesn't visually
   // "arrive" on top of its own danger zone.
@@ -117,29 +130,105 @@ export function drawTown(
 }
 
 /**
- * Maze filler: a body, a flat roof, a few windows, no glow, no name, no
- * "you are here" outline — it is scenery a real building would generate as a
- * side effect, not a place. Style Guide 07's warm/cool split doesn't apply;
- * this is neither language, just the town being a town.
+ * Maze filler: terrain, not architecture — no name, no lit windows, no "you
+ * are here" outline, because it isn't a place, it's the town's edges. This
+ * used to be drawn as a small unnamed building, which read as a mistake
+ * (a house nobody lives in, never lit) rather than as scenery. `kind`
+ * dispatches to one of four cheap, flat shapes, matching the sprite budget
+ * everything else on this canvas keeps to.
  */
 function drawObstacle(ctx: CanvasRenderingContext2D, obstacle: Obstacle) {
-  const roofH = 12;
-  ctx.fillStyle = PALETTE.fillerWall;
-  ctx.fillRect(obstacle.x, obstacle.y + roofH, obstacle.w, obstacle.h - roofH);
-  ctx.fillStyle = PALETTE.fillerRoof;
-  ctx.fillRect(obstacle.x + 3, obstacle.y, obstacle.w - 6, roofH);
+  switch (obstacle.kind) {
+    case 'tree':
+      return drawTree(ctx, obstacle);
+    case 'bush':
+      return drawBush(ctx, obstacle);
+    case 'rock':
+      return drawRock(ctx, obstacle);
+    case 'hedge':
+      return drawHedge(ctx, obstacle);
+  }
+}
 
-  const rand = noise(`obstacle:${obstacle.id}`);
-  const w = 7, h = 8, gap = 9;
-  const top = obstacle.y + roofH + 6;
-  const cols = Math.max(1, Math.floor((obstacle.w - gap) / (w + gap)));
-  const rows = Math.max(1, Math.floor((obstacle.h - roofH - 14) / (h + gap)));
-  const startX = obstacle.x + px((obstacle.w - (cols * (w + gap) - gap)) / 2);
-  for (let r = 0; r < rows; r++) {
-    for (let c = 0; c < cols; c++) {
-      ctx.fillStyle = rand() < 0.4 ? PALETTE.windowLit : PALETTE.windowDark;
-      ctx.fillRect(startX + c * (w + gap), top + r * (h + gap), w, h);
-    }
+/** Trunk, then a canopy as two overlapping discs so it doesn't read as a
+ * perfect ball. */
+function drawTree(ctx: CanvasRenderingContext2D, o: Obstacle) {
+  const cx = o.x + o.w / 2;
+  const trunkW = Math.max(4, o.w * 0.14);
+  const trunkH = o.h * 0.32;
+
+  ctx.fillStyle = PALETTE.treeTrunk;
+  ctx.fillRect(px(cx - trunkW / 2), px(o.y + o.h - trunkH), px(trunkW), px(trunkH));
+
+  const r = o.w / 2;
+  const cy = o.y + o.h - trunkH - r * 0.55;
+  ctx.fillStyle = PALETTE.treeCanopyDark;
+  ctx.beginPath();
+  ctx.arc(cx, cy, r, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.fillStyle = PALETTE.treeCanopy;
+  ctx.beginPath();
+  ctx.arc(cx - r * 0.28, cy - r * 0.22, r * 0.68, 0, Math.PI * 2);
+  ctx.fill();
+}
+
+/** A cluster of overlapping blobs, seeded per-obstacle so it doesn't
+ * reshuffle every frame but still varies from one bush to the next. */
+function drawBush(ctx: CanvasRenderingContext2D, o: Obstacle) {
+  const rand = noise(`bush:${o.id}`);
+  ctx.fillStyle = PALETTE.bush;
+  for (let i = 0; i < 5; i++) {
+    const bx = o.x + o.w * (0.18 + 0.64 * rand());
+    const by = o.y + o.h * (0.35 + 0.55 * rand());
+    const r = Math.min(o.w, o.h) * (0.24 + 0.14 * rand());
+    ctx.beginPath();
+    ctx.arc(bx, by, r, 0, Math.PI * 2);
+    ctx.fill();
+  }
+}
+
+/** An irregular polygon rather than a circle — a rock is the one shape here
+ * that should not read as a soft blob. */
+function drawRock(ctx: CanvasRenderingContext2D, o: Obstacle) {
+  const rand = noise(`rock:${o.id}`);
+  const cx = o.x + o.w / 2;
+  const cy = o.y + o.h * 0.62;
+  const spikes = 7;
+
+  ctx.fillStyle = PALETTE.rockDark;
+  ctx.beginPath();
+  for (let i = 0; i < spikes; i++) {
+    const angle = (i / spikes) * Math.PI * 2;
+    const r = (Math.min(o.w, o.h) / 2) * (0.7 + 0.3 * rand());
+    const x = cx + Math.cos(angle) * r;
+    const y = cy + Math.sin(angle) * r * 0.7;
+    if (i === 0) ctx.moveTo(x, y);
+    else ctx.lineTo(x, y);
+  }
+  ctx.closePath();
+  ctx.fill();
+
+  ctx.fillStyle = PALETTE.rockLight;
+  ctx.beginPath();
+  ctx.arc(cx - o.w * 0.16, cy - o.h * 0.18, Math.min(o.w, o.h) * 0.16, 0, Math.PI * 2);
+  ctx.fill();
+}
+
+/** A trimmed, flat-topped row — the one obstacle shape that's deliberately
+ * architectural in silhouette (a straight edge), since a hedge is planted in
+ * a line on purpose. */
+function drawHedge(ctx: CanvasRenderingContext2D, o: Obstacle) {
+  ctx.fillStyle = PALETTE.hedgeDark;
+  ctx.fillRect(o.x, o.y, o.w, o.h);
+  ctx.fillStyle = PALETTE.hedge;
+  ctx.fillRect(o.x, o.y, o.w, px(o.h * 0.4));
+
+  const rand = noise(`hedge:${o.id}`);
+  ctx.fillStyle = PALETTE.hedgeDark;
+  for (let i = 0; i < Math.floor(o.w / 12); i++) {
+    const dx = o.x + rand() * o.w;
+    const dy = o.y + o.h * 0.5 + rand() * o.h * 0.4;
+    ctx.fillRect(px(dx), px(dy), 2, 2);
   }
 }
 
@@ -285,6 +374,32 @@ function drawBuilding(
     ctx.strokeStyle = PALETTE.spriteShirt;
     ctx.lineWidth = 2;
     ctx.strokeRect(loc.x - 2, loc.y - 2, loc.w + 4, loc.h + 4);
+  }
+}
+
+/**
+ * A camera: a fixed 2x2-tile blue box on its post, nothing more — per the
+ * build note, a camera is a post with a lens on it, not a building with a
+ * different paint job. Drawn at a fixed size centred in the location's own
+ * (larger) rect, so the interaction radius and collision footprint —
+ * unchanged, still the full rect — stay generous even though the thing the
+ * player actually sees is small.
+ */
+function drawCamera(ctx: CanvasRenderingContext2D, loc: OverworldLocation, isHere: boolean) {
+  const size = 16; // two of drawGround's 8px tiles, on each side
+  const x = px(loc.x + loc.w / 2 - size / 2);
+  const y = px(loc.y + loc.h / 2 - size / 2);
+
+  ctx.fillStyle = PALETTE.camera;
+  ctx.fillRect(x, y, size, size);
+  ctx.strokeStyle = PALETTE.cameraDark;
+  ctx.lineWidth = 1;
+  ctx.strokeRect(x - 0.5, y - 0.5, size + 1, size + 1);
+
+  if (isHere) {
+    ctx.strokeStyle = PALETTE.spriteShirt;
+    ctx.lineWidth = 2;
+    ctx.strokeRect(x - 4, y - 4, size + 8, size + 8);
   }
 }
 

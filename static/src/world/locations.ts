@@ -51,6 +51,14 @@ export interface OverworldLocation {
    * town's background chatter and is never announced.
    */
   trustAmbient?: { above: number; text: string }[];
+  /**
+   * How this location is drawn. Defaults to a building. `'camera'` is a
+   * small fixed-size box instead of scaling to fill the location's own
+   * rect — a camera isn't a building with a different paint job, it's a
+   * post with a lens on it, and the previous full-size-building render
+   * said otherwise.
+   */
+  render?: 'building' | 'camera';
 }
 
 export const MAP_WIDTH = 960;
@@ -231,6 +239,7 @@ export const LOCATIONS: OverworldLocation[] = [
     id: 'camera_pole_5th',
     label: 'Pole 5-C',
     language: 'B',
+    render: 'camera',
     x: 776, y: 96, w: 72, h: 72,
     color: '#e6402a',
     blurb: 'FLACK stamped on the housing in letters too small to read from the ground. Two cables where the diagram shows one. Someone painted over something here.',
