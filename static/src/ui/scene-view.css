@@ -40,15 +40,37 @@
 
 .scene__line--now { opacity: 1; }
 
+/*
+ * A line with nobody's name on it is the narrator describing the room, not
+ * somebody talking in it — that distinction used to be carried by a speaker
+ * tag's presence alone, easy to miss at a glance. Narration reads in italic
+ * so the two registers are visually different even before the words sink in.
+ */
+.scene__line:not(.scene__line--said) {
+  font-style: italic;
+}
+
+/*
+ * The speaker tag used to be the same faint weight as everything else on the
+ * screen, which is exactly backwards for the one word answering "who is
+ * saying this". Full opacity, a size step up, and an accent colour pulled
+ * from whichever language the scene is already in — Language A's onboarding
+ * blue or Language B's resistance red — so it reads as a name, not a caption.
+ */
 .scene__line--said b {
   display: block;
   font-family: var(--font-mono);
-  font-size: 11px;
+  font-size: 12px;
   letter-spacing: 0.14em;
   text-transform: uppercase;
-  opacity: 0.7;
-  margin-bottom: 2px;
-  font-weight: 400;
+  opacity: 1;
+  margin-bottom: 3px;
+  font-weight: 700;
+  color: var(--a-accent);
+}
+
+.lang-b .scene__line--said b {
+  color: var(--b-red);
 }
 
 .scene__foot { padding-top: var(--step); }

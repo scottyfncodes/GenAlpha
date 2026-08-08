@@ -18,6 +18,17 @@ body {
 button {
   font: inherit;
   cursor: pointer;
+  /*
+   * iOS Safari treats a held touch as "select this text" by default and pops
+   * up its Copy/Look Up/Translate callout over it — harmless on a link, but
+   * exactly what happens when the d-pad is held to move, since holding is the
+   * whole interaction. Every button in the game is something you press, never
+   * something you'd want to select, so this is safe everywhere rather than a
+   * per-component fix.
+   */
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  user-select: none;
 }
 
 /*

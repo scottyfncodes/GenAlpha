@@ -251,13 +251,28 @@ export function visibleLocations(flags: Record<string, unknown>): OverworldLocat
   return LOCATIONS.filter((l) => !l.requiresFlag || Boolean(flags[l.requiresFlag]));
 }
 
+/**
+ * Buildings are now solid (see Overworld's collision), so the player's centre
+ * point stops just outside a building's exact rectangle rather than ever
+ * standing inside one. Padding the check outward keeps "you're at this
+ * location" true right where collision leaves you — home is still an
+ * exception in practice, since the player spawns dead centre in whichever
+ * location they last stood in and collision only engages once they've left.
+ */
+const INTERACT_PAD = 10;
+
 export function locationAt(
   x: number,
   y: number,
   flags: Record<string, unknown> = {},
 ): OverworldLocation | null {
   return (
-    visibleLocations(flags).find((l) => x >= l.x && x <= l.x + l.w && y >= l.y && y <= l.y + l.h) ??
-    null
+    visibleLocations(flags).find(
+      (l) =>
+        x >= l.x - INTERACT_PAD &&
+        x <= l.x + l.w + INTERACT_PAD &&
+        y >= l.y - INTERACT_PAD &&
+        y <= l.y + l.h + INTERACT_PAD,
+    ) ?? null
   );
 }

@@ -4,6 +4,7 @@ import {
   MAP_HEIGHT,
   MAP_WIDTH,
   locationAt,
+  visibleLocations,
   type OverworldLocation,
 } from './locations';
 import { useGame, useSave } from '../state/GameContext';
@@ -138,8 +139,25 @@ export function Overworld() {
       if (dx !== 0 || dy !== 0) facing.current = { x: Math.sign(dx), y: Math.sign(dy) };
 
       const len = Math.hypot(dx, dy) || 1;
-      pos.current.x = clamp(pos.current.x + (dx / len) * SPEED * dt, 8, MAP_WIDTH - 8);
-      pos.current.y = clamp(pos.current.y + (dy / len) * SPEED * dt, 8, MAP_HEIGHT - 8);
+
+      /*
+       * Buildings are solid: the player can no longer walk through or over
+       * one. Whichever building the player is already standing in (the one
+       * they spawned in, or the one their last scene closed on) stays
+       * passable for this frame — otherwise a save that opens dead centre on
+       * a location's rectangle would find that same rectangle unwalkable and
+       * be stuck. Every other visible building blocks. Movement resolves one
+       * axis at a time so the player slides along a wall rather than
+       * stopping dead on a diagonal approach.
+       */
+      const visible = visibleLocations(flagsRef.current);
+      const solid = visible.filter((l) => !overlapsBuilding(pos.current.x, pos.current.y, l));
+
+      const nx = clamp(pos.current.x + (dx / len) * SPEED * dt, 8, MAP_WIDTH - 8);
+      if (!solid.some((l) => overlapsBuilding(nx, pos.current.y, l))) pos.current.x = nx;
+
+      const ny = clamp(pos.current.y + (dy / len) * SPEED * dt, 8, MAP_HEIGHT - 8);
+      if (!solid.some((l) => overlapsBuilding(pos.current.x, ny, l))) pos.current.y = ny;
 
       const here = locationAt(pos.current.x, pos.current.y, flagsRef.current);
       if (here?.id !== nearbyRef.current?.id) {
@@ -304,6 +322,19 @@ function locationLabel(locationId: string): string {
 
 function clamp(n: number, min: number, max: number) {
   return Math.max(min, Math.min(max, n));
+}
+
+/** A small footprint at the player's feet, not the full sprite — a building
+ * blocks where you'd stand, not where your head would be if this were 3D. */
+const FEET_W = 10;
+const FEET_H = 8;
+
+function overlapsBuilding(x: number, y: number, loc: OverworldLocation): boolean {
+  const left = x - FEET_W / 2;
+  const right = x + FEET_W / 2;
+  const top = y - FEET_H / 2;
+  const bottom = y + FEET_H / 2;
+  return left < loc.x + loc.w && right > loc.x && top < loc.y + loc.h && bottom > loc.y;
 }
 
 /**
