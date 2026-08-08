@@ -206,6 +206,11 @@ export function SceneView({ scene, onClose }: { scene: Scene; onClose: () => voi
   );
 }
 
+function lineClass(l: SceneLine): string {
+  if (l.readout) return 'scene__line scene__line--readout';
+  return `scene__line ${l.speaker ? 'scene__line--said' : ''}`;
+}
+
 function Dialogue({
   lines,
   choices,
@@ -278,15 +283,15 @@ function Dialogue({
     <>
       <div className="scene__body">
         {lines.slice(0, index).map((l, i) => (
-          <p key={i} className={`scene__line ${l.speaker ? 'scene__line--said' : ''}`}>
-            {l.speaker && <b>{l.speaker}</b>}
+          <p key={i} className={lineClass(l)}>
+            {l.speaker && <span className="scene__speaker">{l.speaker}</span>}
             {renderText(l.text)}
           </p>
         ))}
         {line && (
           <Glitch active={Boolean(line.glitch) && !typing}>
-            <p className={`scene__line scene__line--now ${line.speaker ? 'scene__line--said' : ''}`}>
-              {line.speaker && <b>{line.speaker}</b>}
+            <p className={`${lineClass(line)} scene__line--now`}>
+              {line.speaker && <span className="scene__speaker">{line.speaker}</span>}
               {full.slice(0, chars)}
             </p>
           </Glitch>

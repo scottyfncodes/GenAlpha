@@ -108,6 +108,13 @@ export interface SceneLine {
   minTier?: ThresholdTier;
   /** Inverse: the line drops away once Heat reaches this tier. */
   maxTier?: ThresholdTier;
+  /**
+   * ADDED for the terminal-check opening beat. A line of screen text — a
+   * headline, a price, a thread title — rather than narration or speech.
+   * Rendered in its own monospace strip so a scrolled feed doesn't read as
+   * something a person said. Never carries a `speaker`.
+   */
+  readout?: boolean;
 }
 
 export interface SceneChoice {

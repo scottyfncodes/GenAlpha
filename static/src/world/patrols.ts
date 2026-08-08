@@ -84,8 +84,17 @@ export interface PatrolTuning {
   heatOnSpot: number;
 }
 
+/**
+ * `clear` runs zero active routes on purpose — per the build note, dodging
+ * surveillance doesn't start until the plot thickens. A brand-new save is
+ * always at `clear`, so the opening of the game (the terminal check, the
+ * walk to school, beat one and two) plays with an empty street. The vans are
+ * still there, still walking their beats underneath, so the transition into
+ * `watched` doesn't spawn them fresh — the town was already like this, the
+ * player just hadn't given it a reason to look yet.
+ */
 const TUNING: Record<ThresholdTier, PatrolTuning> = {
-  clear: { activeRoutes: 2, speed: 40, detectionRadius: 28, cooldownMs: 6000, heatOnSpot: 1 },
+  clear: { activeRoutes: 0, speed: 40, detectionRadius: 28, cooldownMs: 6000, heatOnSpot: 1 },
   watched: { activeRoutes: 3, speed: 55, detectionRadius: 36, cooldownMs: 5000, heatOnSpot: 2 },
   flagged: { activeRoutes: 4, speed: 70, detectionRadius: 44, cooldownMs: 4000, heatOnSpot: 3 },
   hunted: { activeRoutes: 5, speed: 85, detectionRadius: 52, cooldownMs: 3000, heatOnSpot: 4 },

@@ -17,8 +17,37 @@ const B1_OPEN: Scene = {
   hook: 'Get up. It’s Tuesday.',
   language: 'A',
   requires: { chapter: 'act1_glitch_01' },
-  start: 'kitchen',
+  start: 'wake',
   nodes: {
+    /*
+     * The opening beat, ahead of the kitchen. Per the build note: the player
+     * should get the world before they get the plot — a headline, a price, a
+     * thread nobody's answering seriously yet — so the Helio rollout and the
+     * SHDW economy both exist as ambient fact before either one matters to
+     * the story. None of it is explained, per Style Guide 07: the reader
+     * notices a headline the way the protagonist does, which is to say barely.
+     */
+    wake: {
+      id: 'wake',
+      lines: [
+        { text: 'The alarm goes off twice before you believe it. Tuesday, same as every other one, right up until it isn’t.' },
+      ],
+      next: 'terminal_check',
+    },
+    terminal_check: {
+      id: 'terminal_check',
+      lines: [
+        { text: 'The family computer lives in the hallway, which is Mom’s rule for a reason nobody has to say out loud.' },
+        {
+          text: 'BELLHAVEN LOCAL — COUNCIL APPROVES FULL ROLLOUT OF SAFETY GRANT CAMERAS, PHASE TWO ON TRACK FOR SUMMER',
+          readout: true,
+        },
+        { text: 'SHDW/USD 3.18, up 4% overnight. Nobody you know owns any.', readout: true },
+        { text: '“anyone else notice they swapped the ones on Fifth” — 40 replies, most of them “lol no”', readout: true },
+        { text: 'None of it means anything yet. It’s just Tuesday morning noise, the kind you scroll past and forget by the driveway.' },
+      ],
+      next: 'kitchen',
+    },
     kitchen: {
       id: 'kitchen',
       lines: [

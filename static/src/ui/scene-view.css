@@ -27,50 +27,116 @@
   cursor: pointer;
 }
 
-/* Inherits from the scene's language class: rounded sans in an official
-   scene, photocopied mono in a resistance one. It used to force the official
-   face in both, which meant the resistance never got to sound like itself. */
+/*
+ * Comic-panel treatment: every line of narration or speech sits in its own
+ * bordered box rather than floating loose on the background, and a speech
+ * box carries a name tag that overlaps its top edge like a caption tab —
+ * the two comic-book conventions the build note asked for. Inherits from
+ * the scene's language class: rounded panels with a pill tag in an official
+ * scene, square-cut panels with a flush tab in a resistance one, the same
+ * A/B split every other surface here already makes.
+ */
 .scene__line {
   margin: 0;
+  padding: 11px 15px;
   font-size: 16px;
   line-height: 1.55;
   max-width: 46ch;
   opacity: 0.55;
+  border: 2px solid currentColor;
 }
 
 .scene__line--now { opacity: 1; }
 
+.lang-a .scene__line {
+  background: rgba(38, 49, 63, 0.05);
+  border-radius: var(--radius-a);
+}
+
+.lang-b .scene__line {
+  background: rgba(236, 226, 208, 0.05);
+  border-radius: var(--radius-b);
+}
+
 /*
  * A line with nobody's name on it is the narrator describing the room, not
- * somebody talking in it — that distinction used to be carried by a speaker
- * tag's presence alone, easy to miss at a glance. Narration reads in italic
- * so the two registers are visually different even before the words sink in.
+ * somebody talking in it — a caption box, not a speech panel. Dashed, unfilled
+ * and italic, so the two registers are visually different even before the
+ * words sink in, and a caption never gets mistaken for a name tag it doesn't
+ * carry.
  */
-.scene__line:not(.scene__line--said) {
+.scene__line:not(.scene__line--said):not(.scene__line--readout) {
   font-style: italic;
+  background: none;
+  border-style: dashed;
+  border-color: currentColor;
+  opacity: 0.5;
+}
+
+.scene__line--now:not(.scene__line--said):not(.scene__line--readout) { opacity: 0.85; }
+
+/* Room at the top of a speech panel for the name tag to overlap into. */
+.scene__line--said {
+  position: relative;
+  margin-top: 14px;
 }
 
 /*
- * The speaker tag used to be the same faint weight as everything else on the
- * screen, which is exactly backwards for the one word answering "who is
- * saying this". Full opacity, a size step up, and an accent colour pulled
- * from whichever language the scene is already in — Language A's onboarding
- * blue or Language B's resistance red — so it reads as a name, not a caption.
+ * The name tag. It used to be the same faint weight as everything else on
+ * the screen, which is exactly backwards for the one word answering "who is
+ * saying this" — now it's a filled tab overlapping the panel's top edge,
+ * full opacity regardless of the line's own fade, coloured per language
+ * (Language A's onboarding blue, Language B's resistance red) so it reads as
+ * a name, not a caption.
  */
-.scene__line--said b {
-  display: block;
+.scene__speaker {
+  position: absolute;
+  top: -13px;
+  left: 12px;
+  display: inline-block;
   font-family: var(--font-mono);
-  font-size: 12px;
-  letter-spacing: 0.14em;
+  font-size: 11px;
+  letter-spacing: 0.1em;
   text-transform: uppercase;
-  opacity: 1;
-  margin-bottom: 3px;
   font-weight: 700;
-  color: var(--a-accent);
+  padding: 3px 10px;
+  background: var(--a-accent);
+  color: #fff;
+  opacity: 1;
 }
 
-.lang-b .scene__line--said b {
-  color: var(--b-red);
+.lang-a .scene__speaker { border-radius: 999px; }
+.lang-b .scene__speaker { border-radius: 0; }
+
+.lang-b .scene__speaker {
+  background: var(--b-red);
+  color: var(--b-paper);
+}
+
+/*
+ * A readout — a headline, a price, a thread title on a screen the
+ * protagonist is looking at rather than a person talking. Neither language:
+ * a device shows the same ugly monospace regardless of which world it sits
+ * in, so this doesn't take the scene's A/B styling the way speech does.
+ */
+/*
+ * `.scene__line.scene__line--readout` (both classes), not just the modifier
+ * alone — `.lang-a .scene__line` / `.lang-b .scene__line` above are also
+ * two classes deep, and the language rule was quietly winning the
+ * background and radius here on specificity, leaving a readout with pale
+ * text on a near-transparent panel. Tying the specificity and coming later
+ * in the file is what actually wins it.
+ */
+.scene__line.scene__line--readout {
+  font-style: normal;
+  font-family: var(--font-mono);
+  font-size: 13px;
+  letter-spacing: 0.02em;
+  line-height: 1.4;
+  background: var(--b-ink);
+  color: var(--b-paper);
+  border-color: var(--b-red);
+  border-radius: 2px;
 }
 
 .scene__foot { padding-top: var(--step); }
