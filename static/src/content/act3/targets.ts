@@ -16,7 +16,7 @@ import { ALERTNESS_BUDGET } from '../tiers';
  * expressed as a rule rather than as a speech.
  *
  * Balances are narratively scaled and the jump from the Phase 5 heist is the
- * point — Files said it in the summer, about eight and a half thousand dollars:
+ * point — Aaron said it in the summer, about eight and a half thousand dollars:
  * "It's their float. Money-money's further up."
  */
 
@@ -154,7 +154,7 @@ export const UPLINK_CABINET: SabotageConfig = {
     },
     {
       id: 'inside',
-      prompt: 'Ninety seconds inside a cabinet, and Files on the phone in your pocket.',
+      prompt: 'Ninety seconds inside a cabinet, and Aaron on the phone in your pocket.',
       seconds: 12,
       options: [
         { id: 'diagram', text: 'Go straight to the port the diagram gets wrong', risk: 0, requiresCasingDetail: 'schematic', outcome: 'Third from the left, not fourth. Twenty-two seconds and you are done.' },

@@ -131,7 +131,7 @@ describe('the act plays through', () => {
   it('reaches Act 3 having failed every minigame in it', () => {
     const end = runAct2(afterTheCrew(), ['Show him'], false);
     expect(end.player.currentChapter).toBe('act3_01');
-    // The answer still arrives — Files finishes the quarterly overnight.
+    // The answer still arrives — Aaron finishes the quarterly overnight.
     expect(end.player.flags.casey_answer_found).toBe(true);
   });
 
@@ -224,7 +224,7 @@ describe('the betrayal', () => {
   });
 });
 
-describe('Nova', () => {
+describe('Ellen', () => {
   it('grants nothing mechanical, ever — she is not a mentor', () => {
     const effects = ACT2_SCENES.flatMap((s) =>
       Object.values(s.nodes).flatMap((n) => [
@@ -253,7 +253,7 @@ describe('Nova', () => {
     const base = clean.relationships.nova?.trust ?? 0;
 
     clean = play(clean, byId('act2_4_the_easy_way'), ['Do it the long way']);
-    used = play(used, byId('act2_4_the_easy_way'), ['Ask Nova']);
+    used = play(used, byId('act2_4_the_easy_way'), ['Ask Ellen']);
 
     expect(used.player.flags.used_nova_access).toBe(true);
     expect(clean.player.flags.used_nova_access).toBeUndefined();

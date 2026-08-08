@@ -8,7 +8,7 @@ const THE_ASK: Scene = {
   id: 'act3_1_the_ask',
   beat: 1,
   locationId: 'nova_house',
-  hook: 'You have to go and ask Nova for four hundred thousand people.',
+  hook: 'You have to go and ask Ellen for four hundred thousand people.',
   language: 'A',
   requires: { flags: ['crew_independent'], mission: { id: 'act3', beat: 1 } },
   start: 'door',
@@ -37,7 +37,7 @@ const THE_ASK: Scene = {
       lines: [
         { text: 'You have never taken anything of hers. Not in June when it would have saved nine days, not once.' },
         { text: 'So when you ask, it is a question, and it lands like one, and she takes it seriously because it has been made possible to take seriously.' },
-        { speaker: 'Nova', text: 'You could have just used it, you know. In the summer. I’d never have known.' },
+        { speaker: 'Ellen', text: 'You could have just used it, you know. In the summer. I’d never have known.' },
         { speaker: 'You', text: '“I know.”' },
       ],
       next: 'terms',
@@ -47,9 +47,9 @@ const THE_ASK: Scene = {
       lines: [
         { text: 'You used the archive in June. She said it was fine. She has said everything was fine since she was three years old.' },
         { text: 'So you say that part first — that you took something without asking, that she told you it was fine, and that you are not going to treat this the same way.' },
-        { speaker: 'Nova', text: 'Oh.' },
+        { speaker: 'Ellen', text: 'Oh.' },
         { text: 'She puts the bowl down. Nobody has ever unpicked one of her yeses in front of her before, and she does not have anywhere to put it.' },
-        { speaker: 'Nova', text: 'You’re allowed to just — ask me. Like a normal — you can just ask me.' },
+        { speaker: 'Ellen', text: 'You’re allowed to just — ask me. Like a normal — you can just ask me.' },
       ],
       next: 'terms',
     },
@@ -57,8 +57,8 @@ const THE_ASK: Scene = {
       id: 'terms',
       lines: [
         { text: 'She says yes. She says it quickly and then, unusually, she says something after it.' },
-        { speaker: 'Nova', text: 'Live. Once. I’m not sending it to Mum first and I’m not doing a second take and I’m not doing a thumbnail.' },
-        { speaker: 'Nova', text: 'And then I’m done. Not — not with you. With it.' },
+        { speaker: 'Ellen', text: 'Live. Once. I’m not sending it to Mum first and I’m not doing a second take and I’m not doing a thumbnail.' },
+        { speaker: 'Ellen', text: 'And then I’m done. Not — not with you. With it.' },
         { text: 'She has never made a condition before. She does not present it as one. She presents it the way you would mention the weather, because she has had no practice at wanting things out loud.' },
       ],
       effects: [
@@ -86,7 +86,7 @@ const THREE_NAMES: Scene = {
       lines: [
         { text: 'You had expected something hidden. A room. A person at the top of it who knows.' },
         { text: 'What is actually there is a cap table, a council vote, and a services contract, all three of which are a matter of public record and none of which anybody has ever read in the same afternoon.' },
-        { speaker: 'Files', text: 'It’s three.' },
+        { speaker: 'Aaron', text: 'It’s three.' },
       ],
       next: 'names',
     },
@@ -203,7 +203,7 @@ const WHO_THEY_ARE: Scene = {
         { text: 'You expect a bribe. You spend two days looking for a bribe. There is no bribe.' },
         { text: 'There is a consultancy retainer to a firm her brother-in-law is a partner in, declared on the correct form, in the correct month, filed publicly, and available to anyone.' },
         { speaker: 'Milo', text: 'That’s legal.' },
-        { speaker: 'Files', text: 'Vote was 7–2.' },
+        { speaker: 'Aaron', text: 'Vote was 7–2.' },
         { text: 'Both of those are true at the same time and it turns out that is the whole trick — not that it was hidden, but that it was allowed.' },
       ],
       effects: [
@@ -218,7 +218,7 @@ const WHO_THEY_ARE: Scene = {
       id: 'merrow',
       lines: [
         { text: 'Merrow has no office you could stand outside. It has a floor of a building in a city none of you have been to and a website with a photograph of a bridge on it.' },
-        { text: 'What Files finds is a tier sheet. Bellhaven is a row on it.' },
+        { text: 'What Aaron finds is a tier sheet. Bellhaven is a row on it.' },
         { text: 'There is a per-child annual figure. There is a volume discount that applies above eight thousand children. Bellhaven qualifies, and somebody has written *nice* in a comment next to that.' },
       ],
       effects: [
@@ -279,7 +279,7 @@ const THE_UPLINK: Scene = {
     ready: {
       id: 'ready',
       lines: [
-        { text: 'Everything Vetter Field puts on that screen on Saturday will go through a thing that Files can talk to.' },
+        { text: 'Everything Vetter Field puts on that screen on Saturday will go through a thing that Aaron can talk to.' },
         { text: 'Walking out you pass the bleachers. Somebody’s little brother is hitting a ball off a tee at the far end, badly, over and over, for no reason at all.' },
       ],
       effects: [

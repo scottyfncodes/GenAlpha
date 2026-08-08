@@ -1,7 +1,7 @@
 import type { Scene } from '../../systems/scenes';
 
 /**
- * NOVA (skeleton beats 3 and 4).
+ * ELLEN (skeleton beats 3 and 4).
  *
  * She is not a mentor and never becomes one. Module 06 keeps her outside the
  * template deliberately, so her thread sits on the Act 2 cursor with everything
@@ -9,7 +9,7 @@ import type { Scene } from '../../systems/scenes';
  *
  * Beat 4 is the load-bearing one, and it is built on Milo's Beat 3 structure on
  * purpose: a visible easy path, a harder clean one, and somebody watching. The
- * repetition is the argument — the AI shortcut and using Nova are the same
+ * repetition is the argument — the AI shortcut and using Ellen are the same
  * temptation, and the game never says so out loud.
  *
  * Neither path is blocked, neither is scored, and the cost of the easy one does
@@ -20,7 +20,7 @@ const SCHEDULE: Scene = {
   id: 'act2_3_on_a_schedule',
   beat: 3,
   locationId: 'nova_house',
-  hook: 'Nova wants you in something. It’s two minutes. You’ve done it before.',
+  hook: 'Ellen wants you in something. It’s two minutes. You’ve done it before.',
   language: 'A',
   requires: { mission: { id: 'act2', beat: 3 } },
   start: 'kitchen',
@@ -29,7 +29,7 @@ const SCHEDULE: Scene = {
       id: 'kitchen',
       lines: [
         { text: 'The ring light is already up when you get there, which means it was up before she asked you.' },
-        { speaker: 'Nova', text: 'It’s literally two minutes. We do the thing with the cereal. You did it at Christmas and it was so funny.' },
+        { speaker: 'Ellen', text: 'It’s literally two minutes. We do the thing with the cereal. You did it at Christmas and it was so funny.' },
         { text: 'It was funny at Christmas. You remember it being funny. You remember laughing so hard you had to sit on the floor.' },
       ],
       next: 'fridge',
@@ -39,7 +39,7 @@ const SCHEDULE: Scene = {
       lines: [
         { text: 'On the fridge there is a laminated month. Wednesday has a slot at 4:30 that says FRIEND CONTENT — CEREAL BIT (REDO).' },
         { text: 'Redo. So you did it at Christmas and it did not do the number it was supposed to do, and it has been on a fridge since January waiting for you to come round.' },
-        { text: 'Nova follows your eyes to the laminated month and does not react to it at all, because to her it is just where the month lives.', glitch: true },
+        { text: 'Ellen follows your eyes to the laminated month and does not react to it at all, because to her it is just where the month lives.', glitch: true },
       ],
       choices: [
         { text: 'Do the cereal bit.', goto: 'do_it' },
@@ -49,7 +49,7 @@ const SCHEDULE: Scene = {
     do_it: {
       id: 'do_it',
       lines: [
-        { text: 'You do it. It takes eleven minutes and four takes, and on the third one her mum says “bigger” from behind the light, and Nova gets bigger, instantly, like a dial being turned.' },
+        { text: 'You do it. It takes eleven minutes and four takes, and on the third one her mum says “bigger” from behind the light, and Ellen gets bigger, instantly, like a dial being turned.' },
         { text: 'Then it is done and the light goes off and she is herself again, and she flops onto the counter and says that was so funny, and means it, and you cannot tell any more which of the two of you is right about that.' },
         { text: 'She is your friend. She was your friend the whole time. That is not the part that has changed.' },
       ],
@@ -93,23 +93,23 @@ const EASY_WAY: Scene = {
       id: 'problem',
       lines: [
         { text: 'The dataset is tiered, and to prove what the tiers *are* you need to match them against something true — years of who was actually standing next to whom, from before anyone was being careful.' },
-        { speaker: 'Files', text: 'Nine years. Tagged. Searchable.' },
+        { speaker: 'Aaron', text: 'Nine years. Tagged. Searchable.' },
         { text: 'Nobody says the name. Everybody is thinking the name.' },
         { speaker: 'Deja', text: 'Say it properly if you’re going to say it.' },
-        { speaker: 'Files', text: 'The channel archive.' },
+        { speaker: 'Aaron', text: 'The channel archive.' },
       ],
       next: 'weighing',
     },
     weighing: {
       id: 'weighing',
       lines: [
-        { text: 'Nova would give you the login in about four seconds. She would not ask why. She has offered it before, unprompted, the way other people offer you a lift.' },
+        { text: 'Ellen would give you the login in about four seconds. She would not ask why. She has offered it before, unprompted, the way other people offer you a lift.' },
         { text: 'The other way is a Tier 3 trace against a records host that has actual money spent on it, plus about a week of standing outside places with a notebook.' },
         { speaker: 'Milo', text: 'Both work.' },
         { text: 'That is the entire contribution Milo makes to this conversation, and he makes it while looking at you.' },
       ],
       choices: [
-        { text: 'Ask Nova for the login.', goto: 'easy' },
+        { text: 'Ask Ellen for the login.', goto: 'easy' },
         { text: 'Do it the long way.', goto: 'long' },
       ],
     },
@@ -126,7 +126,7 @@ const EASY_WAY: Scene = {
       id: 'found_out',
       lines: [
         { text: 'She works out what you used it for about a week later. Not because you told her.' },
-        { speaker: 'Nova', text: 'Oh — no, that’s fine! That’s literally what it’s for. That’s the only thing it’s good for.' },
+        { speaker: 'Ellen', text: 'Oh — no, that’s fine! That’s literally what it’s for. That’s the only thing it’s good for.' },
         { text: 'She says it brightly and she means it and she is not upset, and you stand in her kitchen and understand, all at once, that you have just done the thing her mother does. You did it faster and with better reasons.' },
         { speaker: 'Milo', text: 'You’ll get there.' },
       ],
@@ -157,7 +157,7 @@ const EASY_WAY: Scene = {
       lines: [
         { text: 'What you end up with is worse than the archive would have been. It is patchy in 2019 and useless for anyone who moved here after Year 7.' },
         { text: 'It is enough. It took nine days and it is enough.' },
-        { text: 'You never mention to Nova that there was a faster way, which is not the same as her not knowing, and about a month later she says thanks — for nothing in particular, just thanks — and changes the subject.' },
+        { text: 'You never mention to Ellen that there was a faster way, which is not the same as her not knowing, and about a month later she says thanks — for nothing in particular, just thanks — and changes the subject.' },
       ],
       effects: [
         { kind: 'trust', npcId: 'nova', delta: 5 },

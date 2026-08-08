@@ -296,7 +296,7 @@ const LOW_FILES: Scene = {
   id: 'act2_8b_files',
   beat: 8,
   locationId: 'fenwick_lot',
-  hook: 'Files is deleting things.',
+  hook: 'Aaron is deleting things.',
   language: 'B',
   requires: floorGate('act2_floor_files'),
   start: 'wall',
@@ -304,10 +304,10 @@ const LOW_FILES: Scene = {
     wall: {
       id: 'wall',
       lines: [
-        { text: 'Everything you built on their infrastructure. The shared drops. The relay. The thing Files spent a fortnight on in July and was quietly, visibly proud of.' },
+        { text: 'Everything you built on their infrastructure. The shared drops. The relay. The thing Aaron spent a fortnight on in July and was quietly, visibly proud of.' },
         { text: 'Gone, methodically, one at a time, without anybody asking and without any announcement that it was happening.' },
         { text: 'You sit on the wall next to them for about twenty minutes and neither of you says anything, and that is the conversation.' },
-        { speaker: 'Files', text: 'Wasn’t ours.' },
+        { speaker: 'Aaron', text: 'Wasn’t ours.' },
       ],
       effects: [
         { kind: 'flag', key: 'low_point_files' },
@@ -444,7 +444,7 @@ const DECISION: Scene = {
       id: 'table',
       lines: [
         { text: 'Ines lets you have the table after she has packed up, which is the closest thing to a headquarters any of you are going to get.' },
-        { text: 'The plan takes about an hour and is mostly Deja and Files disagreeing about timing.' },
+        { text: 'The plan takes about an hour and is mostly Deja and Aaron disagreeing about timing.' },
         { text: 'Not a fight. Not a leak to a journalist who will run it past a legal team for four months. All of it, at once, in the middle of something the whole town is already watching — and the money moved in the same minute, so there is no window in which to hide it.' },
       ],
       next: 'gap',
@@ -454,8 +454,8 @@ const DECISION: Scene = {
       lines: [
         { text: 'You have the data. You have the wallets. You have, thanks to a twelve-year-old with a bedroom and a grudge, every door the adults spent eleven years building.' },
         { text: 'What you do not have is anybody who will watch it.' },
-        { text: 'It sits there for a while. Everyone gets there at the same time and nobody wants to be the one who says it, and then Files says it, because Files says the number.' },
-        { speaker: 'Files', text: 'Nova’s got four hundred thousand people.' },
+        { text: 'It sits there for a while. Everyone gets there at the same time and nobody wants to be the one who says it, and then Aaron says it, because Aaron says the number.' },
+        { speaker: 'Aaron', text: 'Ellen’s got four hundred thousand people.' },
       ],
       choices: [
         {

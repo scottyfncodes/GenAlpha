@@ -16,7 +16,7 @@ export interface CasingDetail {
   label: string;
   /** What examining it tells the player, in fiction. */
   finding: string;
-  /** Hidden until Files' hacking is used to prep (Tier 4 cross-module hook). */
+  /** Hidden until Aaron's hacking is used to prep (Tier 4 cross-module hook). */
   hiddenUnlessPrepped?: boolean;
 }
 

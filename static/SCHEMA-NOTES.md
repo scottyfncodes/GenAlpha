@@ -18,13 +18,13 @@ proposed and why.
 `missions.<id>.beat` was documented as an integer from 1 to 4. Phase 4 broke
 that in two directions and both are deliberate:
 
-- **Branch beats above 4.** Files' recovery path runs 4 -> 5 -> 6, because
+- **Branch beats above 4.** Aaron's recovery path runs 4 -> 5 -> 6, because
   failing his trust test has to cost something without locking hacking away for
   the rest of the game. The template is four beats; a mentor is allowed more.
 - **A done sentinel at 0.** A finished mission has to park somewhere no scene
   gates on. "One past the last beat" won't do it, because the last beat isn't
   the same number for every mentor — a completed Deja parking on 5 would sit
-  exactly where Files' recovery scene lives. `MENTOR_DONE = 0` is checked by
+  exactly where Aaron's recovery scene lives. `MENTOR_DONE = 0` is checked by
   `validateMentor`, which rejects any scene gating on it.
 
 No migration. A 0.3.0 save has no mentor beats in it at all, because Phase 4
@@ -159,7 +159,7 @@ buyable, which the whole design refuses.
 
 - `skills.sabotage.tier` maxes at 3 while sabotage missions go to Tier 4 — skill
   tier 3 *grants access to* mission tier 4.
-- Nova has no entry in `skills` — she's parallel story content, deliberately
+- Ellen has no entry in `skills` — she's parallel story content, deliberately
   outside the mentor template.
 - `relationships` as `additionalProperties` — lets Acts 2/3 add named NPCs with
   no schema change.

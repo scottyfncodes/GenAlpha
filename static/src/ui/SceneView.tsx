@@ -14,6 +14,7 @@ import { Redistribution } from './Redistribution';
 import { GenAMark, markStateFor } from './GenAMark';
 import type { RunOutcome } from '../systems/missions';
 import { SKINS, type SkinId } from '../content/skins';
+import { speakerColor } from '../content/characters';
 import './scene-view.css';
 
 const CHARS_PER_TICK: Record<string, number> = { slow: 1, normal: 2, fast: 4 };
@@ -211,6 +212,21 @@ function lineClass(l: SceneLine): string {
   return `scene__line ${l.speaker ? 'scene__line--said' : ''}`;
 }
 
+/**
+ * The name tag. A recognised character gets their own colour (content/
+ * characters.ts) regardless of which language scope the line's in; anyone
+ * else falls through to scene-view.css's per-language default, which is
+ * exactly right for a one-line walk-on nobody needs to recognise on sight.
+ */
+function SpeakerTag({ name }: { name: string }) {
+  const color = speakerColor(name);
+  return (
+    <span className="scene__speaker" style={color ? { background: color } : undefined}>
+      {name}
+    </span>
+  );
+}
+
 function Dialogue({
   lines,
   choices,
@@ -284,14 +300,14 @@ function Dialogue({
       <div className="scene__body">
         {lines.slice(0, index).map((l, i) => (
           <p key={i} className={lineClass(l)}>
-            {l.speaker && <span className="scene__speaker">{l.speaker}</span>}
+            {l.speaker && <SpeakerTag name={l.speaker} />}
             {renderText(l.text)}
           </p>
         ))}
         {line && (
           <Glitch active={Boolean(line.glitch) && !typing}>
             <p className={`${lineClass(line)} scene__line--now`}>
-              {line.speaker && <span className="scene__speaker">{line.speaker}</span>}
+              {line.speaker && <SpeakerTag name={line.speaker} />}
               {full.slice(0, chars)}
               {line.readout && <span className="scene__cursor" aria-hidden="true" />}
             </p>

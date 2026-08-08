@@ -112,13 +112,13 @@ export const LOCATIONS: OverworldLocation[] = [
   },
   {
     id: 'nova_house',
-    label: 'Nova',
+    label: 'Ellen',
     language: 'A',
     x: 176, y: 176, w: 128, h: 104,
     color: '#b7c7dd',
     blurb: 'Ring light in the front window. It’s always on, even when nobody’s home.',
     ambient: {
-      watched: 'Nova waves from the window mid-take, and doesn’t stop the take.',
+      watched: 'Ellen waves from the window mid-take, and doesn’t stop the take.',
       flagged: 'The curtains are shut. That’s never happened before.',
     },
   },

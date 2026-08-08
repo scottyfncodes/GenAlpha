@@ -11,7 +11,7 @@ import type { Scene } from '../../systems/scenes';
  * to be the cheapest thing the player ever got.
  *
  * Bishop's warmth is a structural clue, not a plot hole. Deja made you cover
- * for her. Files handed you a live wire and watched. Milo told you not to come
+ * for her. Aaron handed you a live wire and watched. Milo told you not to come
  * back. Bishop is delighted with you on sight and never asks for anything —
  * and per the module's guardrail, exactly one detail gets planted here: he
  * deflects a question about money, played as a throwaway line, unremarked by

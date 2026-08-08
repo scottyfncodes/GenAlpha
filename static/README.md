@@ -35,7 +35,7 @@ mostly set off by the player's own jobs — a clean sabotage downtown puts gear
 up for three days. There is exactly one source of money in the game that isn't
 theft: a $41 tin, once, in the scene that opens the table.
 
-**The mentors** open once Act 1 closes. Deja, Files and Milo can be done in any
+**The mentors** open once Act 1 closes. Deja, Aaron and Milo can be done in any
 order; Bishop won't appear until two of the others are finished, because his
 arc costs more when there's a crew to lose. Each runs the same four beats —
 Contact, The Ask, The Trust Mission, The Unlock — and each ends with a skill.
@@ -43,7 +43,7 @@ Contact, The Ask, The Trust Mission, The Unlock — and each ends with a skill.
 **Act 2** opens once all four mentors are done, on its own mission cursor so
 the market, the heist and any unfinished mentor content stay open alongside it.
 Ten beats: the crew existing, what the cameras are actually for (and what
-happened to Casey), Nova's thread, the midpoint, and the betrayal. See
+happened to Casey), Ellen's thread, the midpoint, and the betrayal. See
 `docs/09-content-skeleton-act2.md` — the skeleton was written and argued with
 before any of it became scene data.
 
@@ -55,7 +55,7 @@ rehearsal, and Founders' Day. See `docs/10-content-skeleton-act3.md`.
 Hacking or Sabotage depending on the approach the player found a way into, and
 the drain ends on a split slider with no correct answer. It is deliberately not
 the Act 3 heist — see the note at the top of `src/content/heist.ts`.
-Deja's trust mission hands off to Sabotage, Files' has no minigame in it at
+Deja's trust mission hands off to Sabotage, Aaron's has no minigame in it at
 all, and Milo's is a single choice.
 
 ## Act 1, in detail
@@ -157,7 +157,7 @@ runs in about four:
 - `mentors.test.ts` — the template's invariants, each broken one at a time:
   unreachable beats, stranded scenes, missions with no way to finish, skills
   granted early
-- `content/mentors.test.ts` — plays all four missions through, including Files'
+- `content/mentors.test.ts` — plays all four missions through, including Aaron's
   failing branch and Milo's shortcut, and asserts on the save that comes out
 - `schema.test.ts` — a 0.1.0 save migrates forward losing nothing, and comes
   out with whole subtrees rather than the keys that happened to be asserted
@@ -174,7 +174,7 @@ runs in about four:
 - `content/act2/act2.test.ts` — the act plays through on every route including
   one where every minigame in it fails; the betrayal flips on both the told and
   the withheld path; Bishop's trust does not move in the scene itself; beat 9
-  waits for all four floor scenes in any order; Nova's cost changes the final
+  waits for all four floor scenes in any order; Ellen's cost changes the final
   ask rather than gating it
 - `content/act3/act3.test.ts` — the ending is reached even having failed every
   minigame in the act; all three wallets are discovered together and drained

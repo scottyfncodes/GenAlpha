@@ -40,7 +40,7 @@ const OPENING: Scene = {
       lines: [
         { text: 'A folding table between the bins, a bike light clipped to it for a lamp, and eleven people standing around like they all just happen to be here.' },
         { text: 'Nothing is priced. Nothing is displayed. There is a shoebox.' },
-        { speaker: 'Ines', text: 'You’re Files’ friend. Sit down or move along, you’re blocking the bit where people pretend to be leaving.' },
+        { speaker: 'Ines', text: 'You’re Aaron’s friend. Sit down or move along, you’re blocking the bit where people pretend to be leaving.' },
         { text: 'She is fifteen, has a maths textbook open in front of her that she is genuinely doing, and does not look up.' },
       ],
       choices: [

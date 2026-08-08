@@ -20,7 +20,7 @@ export function createNewSave(name: string): SaveState {
       aiToolAccess: { unlocked: false, mentor: 'milo', trustedMode: false },
       resistanceIntel: { unlocked: false, mentor: 'bishop', compromised: false },
     },
-    // Nova is already the protagonist's friend at game start (Act 1, beat 1) —
+    // Ellen is already the protagonist's friend at game start (Act 1, beat 1) —
     // the one relationship that exists before the player earns any others.
     relationships: { nova: { trust: 35, metAt: 'act1_glitch_01' } },
     economy: {

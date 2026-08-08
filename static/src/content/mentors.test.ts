@@ -119,8 +119,8 @@ describe('mentor missions are well formed', () => {
   });
 
   /*
-   * Deja and Files both seed their Contact at the school. `sceneAt` returns
-   * only the first offered scene at a location, so Files was invisible until
+   * Deja and Aaron both seed their Contact at the school. `sceneAt` returns
+   * only the first offered scene at a location, so Aaron was invisible until
    * Deja's Contact was finished — a hard ordering gate, when module 06 says
    * mentor order is player-directed except for Bishop, and the content's own
    * comment says nothing gates it but Bishop's skill count.
@@ -141,7 +141,7 @@ describe('mentor missions are well formed', () => {
     expect(reachable.size).toBe(open.length);
   });
 
-  it('lets the player approach Deja or Files first, as module 06 intends', () => {
+  it('lets the player approach Deja or Aaron first, as module 06 intends', () => {
     const save = afterAct1();
     const school = scenesAt(save, ALL_SCENES, 'school').map((s) => s.id);
     expect(school).toContain('mentor_deja_1_contact');
@@ -153,7 +153,7 @@ describe('playing them', () => {
   it('unlocks all four skills on the default path', () => {
     let save = afterAct1();
     // Bishop's gate means he can't come first, which is the point of the gate.
-    // Files gets an explicit chooser because index 0 at his test is the trade,
+    // Aaron gets an explicit chooser because index 0 at his test is the trade,
     // and this test is about the path where the player passes it.
     for (const mission of MENTORS) {
       save = runMission(save, mission, pickByText('mine to give'));
@@ -183,7 +183,7 @@ describe('playing them', () => {
     expect(MENTORS[3].scenes.some((s) => offered(two, s))).toBe(true);
   });
 
-  it('still reaches hacking when the player fails Files’ test', () => {
+  it('still reaches hacking when the player fails Aaron’s test', () => {
     const traded = runMission(afterAct1(), MENTORS[1], pickByText('brother at the annex'));
 
     expect(traded.player.flags.files_traded_it).toBe(true);
@@ -288,7 +288,7 @@ describe('system touches', () => {
      * Structural, not decorative. The tell isn't that Bishop ends up liked —
      * it's that he hands over more trust in Contact and The Ask, before the
      * player has done a single thing for him, than any other mentor does. Deja
-     * makes you cover for her. Files hands you a live wire and watches. Bishop
+     * makes you cover for her. Aaron hands you a live wire and watches. Bishop
      * is delighted with you on sight. If a later content pass evens the four
      * out for pacing, the betrayal loses its setup, so this is pinned.
      */

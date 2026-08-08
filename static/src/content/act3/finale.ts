@@ -34,7 +34,7 @@ const REHEARSAL: Scene = {
     wall: {
       id: 'wall',
       lines: [
-        { text: 'Files has worked out that ninety seconds is about a hundred and eighty words each if all five of you talk, so nobody is allowed to talk for that long.' },
+        { text: 'Aaron has worked out that ninety seconds is about a hundred and eighty words each if all five of you talk, so nobody is allowed to talk for that long.' },
         { text: 'You do it sitting on the wall behind the Fenwick shops with a phone propped on a brick, which is not how anybody would have planned it, and is the only place all five of you have ever been at once.' },
       ],
       next: 'milo',
@@ -69,8 +69,8 @@ const REHEARSAL: Scene = {
     files: {
       id: 'files',
       lines: [
-        { text: 'Then Files takes the phone off the brick, holds it, and says a sentence out loud.' },
-        { speaker: 'Files', text: 'I’m eleven. You’ve got four thousand pages about me and none of it is me.' },
+        { text: 'Then Aaron takes the phone off the brick, holds it, and says a sentence out loud.' },
+        { speaker: 'Aaron', text: 'I’m eleven. You’ve got four thousand pages about me and none of it is me.' },
         { text: 'Deja looks up. Then she puts her head back down.' },
         { text: 'Nobody says anything about it. That is the correct response and everyone somehow arrives at it at the same time.' },
       ],
@@ -81,7 +81,7 @@ const REHEARSAL: Scene = {
       lines: [
         { text: 'Yours is last, and it is the only one with a name in it.' },
         { text: 'You say that a kid called Casey went to your school and then did not, and that there is a form with a tick-box on it that says the matter is closed, and that you are going to keep saying his name until somebody who signed it has to hear it.' },
-        { text: 'Files stops the recording. Ninety-one seconds.' },
+        { text: 'Aaron stops the recording. Ninety-one seconds.' },
       ],
       effects: [
         { kind: 'flag', key: 'voices_recorded' },
@@ -106,9 +106,9 @@ const FOUNDERS_DAY: Scene = {
       id: 'bleachers',
       lines: [
         { text: 'It is a nice afternoon. There is a queue for the concession stand and a man two rows down explaining the infield fly rule to a child who does not care.' },
-        { text: 'Nova is under the stand with a phone and a battery pack and no ring light, waiting to go live to four hundred thousand people without asking anyone first.' },
+        { text: 'Ellen is under the stand with a phone and a battery pack and no ring light, waiting to go live to four hundred thousand people without asking anyone first.' },
         { text: 'Deja is by the third-base stand. Bishop has the wallets. Milo has, for reasons nobody has questioned, brought sandwiches.' },
-        { speaker: 'Files', text: 'Bottom of the fifth.' },
+        { speaker: 'Aaron', text: 'Bottom of the fifth.' },
       ],
       next: 'window',
     },
@@ -132,7 +132,7 @@ const FOUNDERS_DAY: Scene = {
     ugly: {
       id: 'ugly',
       lines: [
-        { text: 'It does not go the way it went in the practice runs. Something drops, and Files says a word you have never heard them say, and for nine entire seconds nothing is on the screen at all.' },
+        { text: 'It does not go the way it went in the practice runs. Something drops, and Aaron says a word you have never heard them say, and for nine entire seconds nothing is on the screen at all.' },
         { text: 'Then it comes back, and it is not clean, and it is up.' },
       ],
       effects: [{ kind: 'heat', eventId: 'act3:messy_broadcast', delta: 8, log: true }],
@@ -213,7 +213,7 @@ const SLOW: Scene = {
       lines: [
         { text: 'Monday: a stock halt, and a phrase on a news ticker that says Helio is “reviewing its municipal partnerships.”' },
         { text: 'Wednesday: Reyes announces she will not seek re-election, for family reasons, in a statement that is much better lawyered than Sorrell’s.' },
-        { text: 'Thursday: a subpoena that Files finds before the newspapers do and does not post anywhere, because Files has never posted anything.' },
+        { text: 'Thursday: a subpoena that Aaron finds before the newspapers do and does not post anywhere, because Aaron has never posted anything.' },
       ],
       next: 'sorrell',
     },
@@ -246,7 +246,7 @@ const NOVA_AFTER: Scene = {
   id: 'act3_8_nova_after',
   beat: 8,
   locationId: 'nova_house',
-  hook: 'Nova is deleting nine years.',
+  hook: 'Ellen is deleting nine years.',
   language: 'A',
   requires: { mission: { id: 'act3', beat: 8 } },
   start: 'afternoon',
@@ -256,7 +256,7 @@ const NOVA_AFTER: Scene = {
       lines: [
         { text: 'It takes an afternoon. She does it herself, on the sofa, with the laptop on a cushion and the television on in the background showing something she is not watching.' },
         { text: 'She does not film it. She does not announce it. She does not do a final video, and the fact that this is a remarkable act of restraint is the saddest available fact about the last nine years.' },
-        { speaker: 'Nova', text: 'There’s a bit where it asks if you’re sure and then a bit where it asks if you’re *really* sure.' },
+        { speaker: 'Ellen', text: 'There’s a bit where it asks if you’re sure and then a bit where it asks if you’re *really* sure.' },
         { text: 'Her mum is going to find out on Thursday. That is going to be its own whole thing, and it is not yours, and she has not asked you to be in the room for it.' },
       ],
       effects: [
@@ -297,7 +297,7 @@ const THE_QUIET: Scene = {
       id: 'outside',
       lines: [
         { text: 'Kids are outside a lot this summer. Not because of anything anyone said. There is just less to look at indoors, and the bit of the world that was pointing at them stopped.' },
-        { text: 'Files is learning to skate, extremely badly, in a car park behind some shops, and has broken a wrist doing it, and is delighted.' },
+        { text: 'Aaron is learning to skate, extremely badly, in a car park behind some shops, and has broken a wrist doing it, and is delighted.' },
       ],
       next: 'field',
     },
@@ -306,7 +306,7 @@ const THE_QUIET: Scene = {
       lines: [
         { text: 'Vetter Field, first Saturday in June. Somebody’s little brother is up to bat and has been up to bat for a while.' },
         { text: 'On the big screen, small and off to one side and turned down, a court feed is running. It has been running all week. There is a verdict due today or tomorrow or next week.' },
-        { text: 'Deja is arguing with Milo about the infield fly rule. Bishop is asleep. Nova is here and is not filming, which is now just a thing that is true and not a thing anybody notices.' },
+        { text: 'Deja is arguing with Milo about the infield fly rule. Bishop is asleep. Ellen is here and is not filming, which is now just a thing that is true and not a thing anybody notices.' },
       ],
       next: 'last',
     },

@@ -110,7 +110,7 @@ export function Hud({
           </div>
           <div className="hud__row">
             <button onClick={onOpenWorkbench}>Workbench</button>
-            <button onClick={() => dispatch({ type: 'SET_TRUST', npcId: 'nova', delta: 10 })}>Nova trust +10</button>
+            <button onClick={() => dispatch({ type: 'SET_TRUST', npcId: 'nova', delta: 10 })}>Ellen trust +10</button>
             <button onClick={deleteSave}>Wipe save</button>
           </div>
           <dl className="hud__state">

@@ -47,7 +47,7 @@ scene written for a player who still trusts the adult resistance survives the
 moment they stop. The mechanism shipped in 0.5.0 and is tested; this is the
 content that uses it.
 
-### 3. Nova's arc runs on the same shape as Milo's test, on purpose.
+### 3. Ellen's arc runs on the same shape as Milo's test, on purpose.
 
 Her family's channel is the town's largest data pipeline, which means at some
 point it is *the easiest way to find something out*. So the game offers the
@@ -78,7 +78,7 @@ Chapter ids: `act2_01` … `act2_10`.
 
 Fenwick lot, evening. The first scene with more than one of them in it. Deja
 and Milo are disagreeing about something trivially small and completely
-sincere; Files is on a phone; Ines is packing up the table behind them.
+sincere; Aaron is on a phone; Ines is packing up the table behind them.
 
 The protagonist notices, without anyone saying it, that all three of them keep
 looking at them when they want a tie broken. Isolation was the starting wound
@@ -105,13 +105,13 @@ somebody's whole disappearance fits in a field.
 Act 1 inciting incident mean something; it should land in the middle of the act,
 not the end, because the point is that it isn't the climax — it's a line item.
 
-### 3. Nova, on a Schedule
+### 3. Ellen, on a Schedule
 
-Nova asks the protagonist to be in something. Not a big thing — a two-minute
+Ellen asks the protagonist to be in something. Not a big thing — a two-minute
 video, they've done it before, it used to be fun.
 
 Except now the protagonist can see the schedule on the fridge, and the second
-take, and the way Nova's face changes between "hang on, one more" and the shot.
+take, and the way Ellen's face changes between "hang on, one more" and the shot.
 Being her friend and being content are the same activity in that house, and
 they always were, and the protagonist just didn't have the language for it in
 Act 1.
@@ -129,7 +129,7 @@ An investigation the crew needs: who else in town is inside the tiered data,
 and at what level. The clean route is a Tier 3 trace plus legwork, expensive in
 Heat and in days.
 
-The easy route is Nova. Her family's channel has years of archived footage of
+The easy route is Ellen. Her family's channel has years of archived footage of
 half the kids in Bellhaven, tagged, searchable, and she would give the
 protagonist the login in a second without asking why.
 
@@ -215,7 +215,7 @@ Four short scenes, at four locations, in any order. No mechanics at all.
 
 - **Deja**, at the yard, furious and practical, already three steps into what
   they do next, because stopping is not something her family gets to do.
-- **Files**, at Fenwick, silently deleting things. Everything they built on
+- **Aaron**, at Fenwick, silently deleting things. Everything they built on
   resistance infrastructure, gone, methodically, without being asked.
 - **Milo**, at the shop, not saying I told you so — which is worse, because he
   clearly wants to and has decided it wouldn't help.
@@ -253,14 +253,14 @@ moment the truth breaks, so there is no time to move the money.
 
 They have the data, the access and the wallets. They do not have anyone who will
 listen — which is when somebody says the only name that solves it, and the
-protagonist has to go and ask Nova.
+protagonist has to go and ask Ellen.
 
 **Whether that is a conversation or a favour being called in was decided in beat
 4**, and the scene should be visibly different in the two cases without ever
 mentioning why.
 
 **System touch:** `chapter → act3_01`. Act 2 close condition: Heat 55–70,
-`compromised` true, `crew_independent` true, Nova's trust wherever the player
+`compromised` true, `crew_independent` true, Ellen's trust wherever the player
 left it.
 
 ---
@@ -300,7 +300,7 @@ left it.
 
 Flagged so the Act 3 pass has a starting position rather than a blank page:
 
-- The broadcast needs an audience: Nova's channel, asked for, on her terms —
+- The broadcast needs an audience: Ellen's channel, asked for, on her terms —
   one unscheduled thing she chose, and then she stops. The difference between
   being broadcast and speaking is the whole of her recovery and should be shown
   in about four lines, not explained in forty.

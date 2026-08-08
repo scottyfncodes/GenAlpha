@@ -54,7 +54,7 @@ describe('Act 1 system touches', () => {
     }
   });
 
-  it('gives Nova the +10 from beat 5 and nothing else', () => {
+  it('gives Ellen the +10 from beat 5 and nothing else', () => {
     const trust = allEffects().filter(
       (e): e is Extract<Effect, { kind: 'trust' }> => e.kind === 'trust',
     );

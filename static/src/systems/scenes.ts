@@ -369,7 +369,7 @@ export function scenesAt(save: SaveState, scenes: Scene[], locationId: string): 
  * The first scene a location is offering, for callers that genuinely want one.
  *
  * Do NOT use this to decide what the player can reach. It silently drops every
- * other thread at the same location — which is how Files' Contact, seeded at
+ * other thread at the same location — which is how Aaron's Contact, seeded at
  * school alongside Deja's, became unreachable until Deja's was finished, and
  * turned a content-pacing suggestion into a hard gate nobody authored.
  */

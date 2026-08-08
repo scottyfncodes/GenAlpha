@@ -128,7 +128,7 @@ export function Overworld() {
 
   /**
    * Every thread this location is offering, not just the first. Two mentors
-   * can seed a Contact in the same place — Deja and Files both start at the
+   * can seed a Contact in the same place — Deja and Aaron both start at the
    * school — and taking only the first made the second invisible until the
    * first was finished, which is a hard ordering gate nobody wrote.
    */

@@ -34,10 +34,10 @@ time it comes up. The point is that the machine does not require anyone to be
 evil. (Story Bible: "the true-believer founder may even be sympathetic in his
 own mind, which is the point.")
 
-### 3. Files speaks
+### 3. Aaron speaks
 
 The rehearsal beat is where the crew record their own voices, and it is the
-emotional centre of the act — not the hijack. Files has communicated in notes,
+emotional centre of the act — not the hijack. Aaron has communicated in notes,
 code and screen-shares since Act 2 of their own life, and here, once, aloud, on
 a recording that four hundred thousand people will hear, they say a sentence.
 
@@ -63,7 +63,7 @@ Opens from Act 2 beat 10, on its own cursor (`act3`), same convention as Act 2.
 
 ### 1. The Ask
 
-Nova. Two variants, decided back in Act 2 beat 4 — a conversation, or a favour
+Ellen. Two variants, decided back in Act 2 beat 4 — a conversation, or a favour
 being called in.
 
 She says yes either way. **The terms are hers**: once, live, unscheduled,
@@ -122,7 +122,7 @@ Milo refuses to be dramatic and is right. Deja is too angry to be brief and does
 it in one take anyway. Bishop's is the shortest and is about being wrong. The
 protagonist's is last and is the only one that mentions Casey by name.
 
-And Files speaks. See decision 3.
+And Aaron speaks. See decision 3.
 
 **System touch:** none. `voices_recorded`. Beat 6.
 
@@ -151,7 +151,7 @@ and is much better lawyered.
 
 **System touch:** `world.townTrust`. Beat 8.
 
-### 8. Nova, After
+### 8. Ellen, After
 
 She deletes the channel. Nine years, in an afternoon, and she does not make
 content out of deleting it, which is the entire point.

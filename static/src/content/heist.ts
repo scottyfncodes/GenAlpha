@@ -182,7 +182,7 @@ const RECON: Scene = {
   id: 'heist_1_the_number',
   beat: 1,
   locationId: 'town_square',
-  hook: 'The grant figure is on the banner. Files has been looking at it for a week.',
+  hook: 'The grant figure is on the banner. Aaron has been looking at it for a week.',
   language: 'B',
   /*
    * After the crew, not during it. Both execution paths need a mechanic the
@@ -201,9 +201,9 @@ const RECON: Scene = {
       id: 'banner',
       lines: [
         { text: 'The safety grant banner has been up since March. Everyone in the photograph is still smiling.' },
-        { speaker: 'Files', text: '2.4.' },
-        { text: 'Files puts a phone on the bench between you. A council PDF, a contract schedule, and a third document that is neither.' },
-        { speaker: 'Files', text: 'Town pays 2.4. Helio spends 1.1 here. The rest goes somewhere and comes back as nothing.' },
+        { speaker: 'Aaron', text: '2.4.' },
+        { text: 'Aaron puts a phone on the bench between you. A council PDF, a contract schedule, and a third document that is neither.' },
+        { speaker: 'Aaron', text: 'Town pays 2.4. Helio spends 1.1 here. The rest goes somewhere and comes back as nothing.' },
       ],
       next: 'account',
     },
@@ -211,7 +211,7 @@ const RECON: Scene = {
       id: 'account',
       lines: [
         { text: 'It is not hidden. That is the part you keep coming back to. It is filed, published, and available to anyone who reads all four pages, which is nobody.' },
-        { speaker: 'Files', text: 'It’s an account. It’s got a name and a number and it sits there.' },
+        { speaker: 'Aaron', text: 'It’s an account. It’s got a name and a number and it sits there.' },
         { text: 'You think about Casey’s house with the swing set still up, and about a mailbox somebody cleared.', glitch: true },
       ],
       choices: [
@@ -222,9 +222,9 @@ const RECON: Scene = {
     how_much: {
       id: 'how_much',
       lines: [
-        { speaker: 'Files', text: 'Eight and a half thousand. It’s their float. It’s not their money-money.' },
-        { speaker: 'Files', text: 'Money-money’s further up. This is the bit that pays for the vans.' },
-        { text: 'Files does not say we should take it. Files says the number, and then waits, which is how Files says everything.' },
+        { speaker: 'Aaron', text: 'Eight and a half thousand. It’s their float. It’s not their money-money.' },
+        { speaker: 'Aaron', text: 'Money-money’s further up. This is the bit that pays for the vans.' },
+        { text: 'Aaron does not say we should take it. Aaron says the number, and then waits, which is how Aaron says everything.' },
         { text: 'Nobody has asked you to do this. There is nobody left to ask you.' },
       ],
       effects: [
@@ -436,7 +436,7 @@ const WINDOW: Scene = {
       lines: [
         { text: 'It goes wrong in the ordinary way things go wrong: slightly, and then all at once, and then you are walking very normally towards a bus.' },
         { text: 'Nobody follows you. That is worse. It means it went to a form somewhere instead of to a person.' },
-        { speaker: 'Files', text: 'They’ll move it. Not far. They’ll just make it annoying.' },
+        { speaker: 'Aaron', text: 'They’ll move it. Not far. They’ll just make it annoying.' },
       ],
       effects: [{ kind: 'beat', missionId: 'helio_heist', beat: 5 }],
       end: true,
@@ -464,7 +464,7 @@ const WINDOW: Scene = {
       lines: [
         { text: 'It takes about nine seconds. There is no alarm and no music and nobody says well done.' },
         { text: 'Somewhere a line item stops balancing, and on Monday a person whose name you will never learn is going to have a very bad meeting about it.' },
-        { speaker: 'Files', text: 'Okay.' },
+        { speaker: 'Aaron', text: 'Okay.' },
         { text: 'That’s all. Okay.' },
       ],
       effects: [{ kind: 'beat', missionId: 'helio_heist', beat: MENTOR_DONE, done: true }],

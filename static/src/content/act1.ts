@@ -17,7 +17,7 @@ const B1_OPEN: Scene = {
   hook: 'Get up. It’s Tuesday.',
   language: 'A',
   requires: { chapter: 'act1_glitch_01' },
-  start: 'wake',
+  start: 'terminal_check',
   nodes: {
     /*
      * The opening beat, ahead of the kitchen. Per the build note: the player
@@ -26,25 +26,23 @@ const B1_OPEN: Scene = {
      * SHDW economy both exist as ambient fact before either one matters to
      * the story. None of it is explained, per Style Guide 07: the reader
      * notices a headline the way the protagonist does, which is to say barely.
+     *
+     * Trimmed to four lines (was six, across two nodes): the alarm-clock beat
+     * folded into the opening line, and the closing "none of it means
+     * anything yet" reflection cut rather than trimmed — the jump straight to
+     * the kitchen's own opening line is the faster, truer version of the same
+     * beat, since that is exactly how someone actually leaves a feed.
      */
-    wake: {
-      id: 'wake',
-      lines: [
-        { text: 'The alarm goes off twice before you believe it. Tuesday, same as every other one, right up until it isn’t.' },
-      ],
-      next: 'terminal_check',
-    },
     terminal_check: {
       id: 'terminal_check',
       lines: [
-        { text: 'The family computer lives in the hallway, which is Mom’s rule for a reason nobody has to say out loud.' },
+        { text: 'The alarm goes off twice before you believe it. The family computer lives in the hallway, which is Mom’s rule for a reason nobody has to say out loud.' },
         {
           text: 'BELLHAVEN LOCAL — COUNCIL APPROVES FULL ROLLOUT OF FLACK SAFETY CAMERAS, PHASE TWO ON TRACK FOR SUMMER',
           readout: true,
         },
         { text: 'SHDW/USD 3.18, up 4% overnight. Nobody you know owns any.', readout: true },
         { text: 'ghost_on_5th: “anyone else notice they swapped the ones on Fifth” — 40 replies, most of them “lol no”', readout: true },
-        { text: 'None of it means anything yet. It’s just Tuesday morning noise, the kind you scroll past and forget by the driveway.' },
       ],
       next: 'kitchen',
     },
@@ -73,8 +71,7 @@ const B1_OPEN: Scene = {
     street: {
       id: 'street',
       lines: [
-        { text: 'Bellhaven in the morning: sprinklers, garage doors, somebody’s dog losing its mind about nothing.' },
-        { text: 'You take the long way, because the long way has the corner, and the corner has Nova.' },
+        { text: 'Bellhaven in the morning: sprinklers, garage doors, somebody’s dog losing its mind about nothing. You take the long way, because the long way has the corner, and the corner has Ellen.' },
       ],
       next: 'nova',
     },
@@ -82,9 +79,9 @@ const B1_OPEN: Scene = {
       id: 'nova',
       lines: [
         { text: 'She’s got her phone clipped to a little tripod on the wall, pointed at herself, walking backwards.' },
-        { speaker: 'Nova', text: '{name}! Hold on — thirty seconds, I have to get the light.' },
+        { speaker: 'Ellen', text: '{name}! Hold on — thirty seconds, I have to get the light.' },
         { text: 'She does something to her face that turns it into a slightly different face. Then she stops, and it’s her again.' },
-        { speaker: 'Nova', text: 'Okay. Done. Hi. What’d you do last night?' },
+        { speaker: 'Ellen', text: 'Okay. Done. Hi. What’d you do last night?' },
       ],
       choices: [
         { text: '“Nothing. Watched the ceiling.”', goto: 'nova_2' },
@@ -94,9 +91,9 @@ const B1_OPEN: Scene = {
     nova_who: {
       id: 'nova_who',
       lines: [
-        { speaker: 'Nova', text: 'The channel. Mondays are slow, so Tuesday has to carry.' },
+        { speaker: 'Ellen', text: 'The channel. Mondays are slow, so Tuesday has to carry.' },
         { text: 'She says it the way you’d say Tuesday is bin day.' },
-        { speaker: 'Nova', text: 'Anyway. You. Ceiling. Go.' },
+        { speaker: 'Ellen', text: 'Anyway. You. Ceiling. Go.' },
       ],
       next: 'nova_2',
     },
@@ -104,7 +101,7 @@ const B1_OPEN: Scene = {
       id: 'nova_2',
       lines: [
         { text: 'She walks the rest of the way with you, phone in her pocket, which she doesn’t do for everyone.' },
-        { speaker: 'Nova', text: 'You’re so weird and quiet. It’s restful. Don’t change.' },
+        { speaker: 'Ellen', text: 'You’re so weird and quiet. It’s restful. Don’t change.' },
       ],
       effects: [{ kind: 'chapter', chapterId: 'act1_glitch_02' }],
       end: true,
@@ -187,8 +184,7 @@ const B2B_THE_HOUSE: Scene = {
     mail: {
       id: 'mail',
       lines: [
-        { text: 'The mailbox is full. A catalogue, two bills, a birthday card with a stamp of a balloon on it.' },
-        { text: 'The swing set is still up in the back. The chains are still moving a little, from wind or from earlier.' },
+        { text: 'The mailbox is full — a catalogue, two bills, a birthday card with a balloon stamp — and the swing set out back is still moving a little, from wind or from earlier.' },
       ],
       effects: [
         { kind: 'heat', eventId: 'act1_casey_house', delta: 2, log: true },
@@ -212,8 +208,7 @@ const B3_FIRST_DIG: Scene = {
     terminal: {
       id: 'terminal',
       lines: [
-        { text: 'The library has two computers. One has a sign on it. The other has a sticky spacebar and nobody waiting.' },
-        { text: 'BELLHAVEN PUBLIC RECORDS. Everything rounded, everything blue, a little cartoon building waving at you.' },
+        { text: 'The library has two computers. One has a sign on it. The other has a sticky spacebar, nobody waiting, and BELLHAVEN PUBLIC RECORDS on the screen — everything rounded, everything blue, a little cartoon building waving at you.' },
         { text: 'Property transfers are public. You didn’t know that this morning. You know it now.' },
       ],
       choices: [{ text: 'Cross-reference the filing.', goto: 'trace' }],
@@ -222,7 +217,7 @@ const B3_FIRST_DIG: Scene = {
       id: 'trace',
       lines: [],
       /**
-       * Proto-run of the Trace mechanic, before Files formally teaches it.
+       * Proto-run of the Trace mechanic, before Aaron formally teaches it.
        * Practice mode: no mission record and no Heat-table charge — the scene
        * owns the +2, per the skeleton's system touch for this beat. The cost
        * lives here rather than on `found` so the briefing can preview it and
@@ -327,7 +322,7 @@ const B5_NOVA: Scene = {
   id: 'act1_05_nova_cracked_open',
   beat: 5,
   locationId: 'nova_house',
-  hook: 'Nova’s. You need to tell somebody.',
+  hook: 'Ellen’s. You need to tell somebody.',
   language: 'A',
   requires: { chapter: 'act1_glitch_05' },
   start: 'door',
@@ -336,7 +331,7 @@ const B5_NOVA: Scene = {
       id: 'door',
       lines: [
         { text: 'You came to tell her about the photo. You have the whole thing arranged in your head on the walk over.' },
-        { speaker: 'Nova', text: 'Come in, come in, don’t stand in the shot —' },
+        { speaker: 'Ellen', text: 'Come in, come in, don’t stand in the shot —' },
         { text: 'The living room has a ring light in it. Not a lamp. A ring light, on a stand, plugged in, warm.' },
       ],
       next: 'fridge',
@@ -345,7 +340,7 @@ const B5_NOVA: Scene = {
       id: 'fridge',
       lines: [
         { text: 'On the fridge, where other houses put drawings, there’s a printed grid. Monday through Sunday. Two rows per day.' },
-        { text: 'TUES: NOVA GRWM + REACTION. THURS: NOVA & BEAU SURPRISE.' },
+        { text: 'TUES: ELLEN GRWM + REACTION. THURS: ELLEN & BEAU SURPRISE.' },
         { text: 'Thursday is three days away and the surprise is already written down.' },
       ],
       choices: [
@@ -356,8 +351,8 @@ const B5_NOVA: Scene = {
     thursday: {
       id: 'thursday',
       lines: [
-        { speaker: 'Nova', text: 'Beau gets a puppy. He doesn’t know yet. That’s the whole video, him not knowing and then knowing.' },
-        { speaker: 'Nova', text: 'We’ve had the puppy since Sunday. It’s at my aunt’s.' },
+        { speaker: 'Ellen', text: 'Beau gets a puppy. He doesn’t know yet. That’s the whole video, him not knowing and then knowing.' },
+        { speaker: 'Ellen', text: 'We’ve had the puppy since Sunday. It’s at my aunt’s.' },
       ],
       next: 'beau',
     },
@@ -366,20 +361,20 @@ const B5_NOVA: Scene = {
       lines: [
         { text: 'Beau is seven. He comes through with a bowl of cereal and stops dead in the doorway, and looks at the light, and steps two feet left.' },
         { text: 'Nobody told him to. He just knows where the shot is.' },
-        { speaker: 'Nova', text: 'Beau, do the thing.' },
+        { speaker: 'Ellen', text: 'Beau, do the thing.' },
         { speaker: 'Beau', text: 'Do I have to do it happy or normal.' },
       ],
       choices: [
-        { text: '“Nova. Do you ever get a day off?”', goto: 'off' },
+        { text: '“Ellen. Do you ever get a day off?”', goto: 'off' },
         { text: 'Say nothing.', goto: 'nothing' },
       ],
     },
     off: {
       id: 'off',
       lines: [
-        { speaker: 'Nova', text: 'Off from what?' },
+        { speaker: 'Ellen', text: 'Off from what?' },
         { text: 'She actually doesn’t understand the question. She turns it over, finds nothing in it, and hands it back.' },
-        { speaker: 'Nova', text: 'It’s just how we do things. It’s not a job, it’s the house.' },
+        { speaker: 'Ellen', text: 'It’s just how we do things. It’s not a job, it’s the house.' },
       ],
       next: 'close',
     },
@@ -387,17 +382,17 @@ const B5_NOVA: Scene = {
       id: 'nothing',
       lines: [
         { text: 'You don’t have the words for it yet. You have a shape where the words go.' },
-        { text: 'Nova catches you looking at the fridge and moves, easily, so she’s between you and it.' },
+        { text: 'Ellen catches you looking at the fridge and moves, easily, so she’s between you and it.' },
       ],
       next: 'close',
     },
     close: {
       id: 'close',
       lines: [
-        { speaker: 'Nova', text: 'Okay, you came over with a face. What’s the face.' },
+        { speaker: 'Ellen', text: 'Okay, you came over with a face. What’s the face.' },
         { text: 'So you tell her. The chair, the spoon in the bowl, the photo of you somewhere you weren’t.' },
         { text: 'She doesn’t say you’re imagining it. She’s the only person all week who doesn’t say that.' },
-        { speaker: 'Nova', text: 'Okay. So what do we do.' },
+        { speaker: 'Ellen', text: 'Okay. So what do we do.' },
       ],
       effects: [
         { kind: 'trust', npcId: 'nova', delta: 10 },
@@ -421,8 +416,7 @@ const B6_PULLING_THREAD: Scene = {
     square: {
       id: 'square',
       lines: [
-        { text: 'Folding chairs, a banner, a screen on a truck. Somebody’s handing out branded pens.' },
-        { text: 'A WATCHFUL TOWN IS A SAFE TOWN. The letters are rounded and friendly and the same blue as the records site.' },
+        { text: 'Folding chairs, a banner, a screen on a truck, somebody handing out branded pens. A WATCHFUL TOWN IS A SAFE TOWN — the letters rounded and friendly, the same blue as the records site.' },
         { speaker: 'Councilwoman Reyes', text: '—and thanks to the safety grant, coverage is now effectively total. Not most of Bellhaven. All of it.' },
         { text: 'People clap. It’s a nice afternoon. The pens are quite good pens.' },
       ],
@@ -454,7 +448,7 @@ const B6_PULLING_THREAD: Scene = {
         { text: 'A grant means money. Money means somebody wrote a cheque and somebody signed for it.' },
         { text: 'The cameras aren’t a thing that happened to the town. They’re a thing the town was sold.' },
         { text: 'And it clicks over, all at once, the way a word you’ve read wrong for years suddenly reads right:' },
-        { text: 'Casey. The photo. The schedule on Nova’s fridge. Not three strange things. One thing, three times.' },
+        { text: 'Casey. The photo. The schedule on Ellen’s fridge. Not three strange things. One thing, three times.' },
       ],
       effects: [
         { kind: 'heat', eventId: 'act1_safety_grant', delta: 3, log: true },

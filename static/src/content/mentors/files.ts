@@ -3,12 +3,12 @@ import { MENTOR_DONE } from '../../systems/mentors';
 import type { Scene } from '../../systems/scenes';
 
 /**
- * FILES — Hacking. Beat 3 is deliberately not a hacking test. Files hands over
+ * AARON — Hacking. Beat 3 is deliberately not a hacking test. Aaron hands over
  * something real and simply watches; passing is not sharing it. This is the
  * mentor that proves the template works with no minigame in it at all.
  *
  * Failing has to cost something without locking hacking away for the rest of
- * the game, so the failure branch runs two extra beats: Files goes cold, and
+ * the game, so the failure branch runs two extra beats: Aaron goes cold, and
  * the way back is going and taking it back, at a price. A dead end here would
  * be a soft game-over, since skills are the entire progression system.
  */
@@ -83,7 +83,7 @@ const ASK: Scene = {
         { minTier: 'flagged', text: 'They’ve moved the crate. It’s behind the bins now, out of the line from the road, and they don’t explain that and you don’t ask.' },
         { text: 'You say a lot of words. You hear yourself saying them. Camera, record, Casey, the annex, help, all of it, faster and faster into a silence that does not move at all.' },
         { text: 'When you stop, they turn the laptop around. A text file, one line, already typed.' },
-        { speaker: 'Files', text: 'people who want to help usually want something to be about them' },
+        { speaker: 'Aaron', text: 'people who want to help usually want something to be about them' },
       ],
       choices: [
         { text: '“That’s not fair.”', goto: 'fair' },
@@ -95,9 +95,9 @@ const ASK: Scene = {
       id: 'fair',
       lines: [
         { text: 'They type. They turn it round.' },
-        { speaker: 'Files', text: 'no' },
+        { speaker: 'Aaron', text: 'no' },
         { text: 'Then, after a moment, they type again.' },
-        { speaker: 'Files', text: 'but its usually right' },
+        { speaker: 'Aaron', text: 'but its usually right' },
       ],
       next: 'notice',
     },
@@ -121,9 +121,9 @@ const ASK: Scene = {
       lines: [
         { text: 'They turn the screen round one more time. It’s a scan. INCIDENT NOTICE, a date, a time, 4:52 PM, a grainy photograph of somebody in your jacket.' },
         { text: 'You have not told them about the notice. You have not told anyone about the notice.' },
-        { speaker: 'Files', text: 'i wasnt looking for you. you were just in something i was already looking at' },
+        { speaker: 'Aaron', text: 'i wasnt looking for you. you were just in something i was already looking at' },
         { text: 'They close the lid halfway, which is as close as this is going to get to an appointment being made.' },
-        { speaker: 'Files', text: 'come back friday' },
+        { speaker: 'Aaron', text: 'come back friday' },
       ],
       effects: [
         { kind: 'trust', npcId: 'files', delta: 2 },
@@ -146,10 +146,10 @@ const TRUST: Scene = {
     friday: {
       id: 'friday',
       lines: [
-        { text: 'On Friday, Files does not make you talk. They just start showing you things, one window at a time, with no commentary at all.' },
+        { text: 'On Friday, Aaron does not make you talk. They just start showing you things, one window at a time, with no commentary at all.' },
         { text: 'A duty roster. A staff photo, badly lit, of a man about nineteen in a grey polo shirt. A login page you don’t recognise.' },
-        { speaker: 'Files', text: 'emmanuel. my brother. nights at the annex, cleaning' },
-        { speaker: 'Files', text: 'thats how i get in. its his card and his password and he doesnt know' },
+        { speaker: 'Aaron', text: 'emmanuel. my brother. nights at the annex, cleaning' },
+        { speaker: 'Aaron', text: 'thats how i get in. its his card and his password and he doesnt know' },
       ],
       choices: [
         { text: '“Why are you telling me this?”', goto: 'why' },
@@ -160,14 +160,14 @@ const TRUST: Scene = {
       id: 'why',
       lines: [
         { text: 'They shrug. It is the single least informative gesture you have ever received and it is clearly on purpose.' },
-        { speaker: 'Files', text: 'you asked me for stuff. now you have some' },
+        { speaker: 'Aaron', text: 'you asked me for stuff. now you have some' },
       ],
       next: 'week',
     },
     dont: {
       id: 'dont',
       lines: [
-        { speaker: 'Files', text: 'too late' },
+        { speaker: 'Aaron', text: 'too late' },
         { text: 'They go back to the screen, entirely unbothered, as if they have just put something down on a table between you and would like to see how long you leave it there.' },
       ],
       next: 'week',
@@ -238,7 +238,7 @@ const UNLOCK: Scene = {
   id: 'mentor_files_4_unlock',
   beat: 4,
   locationId: 'fenwick_lot',
-  hook: 'The lot. Files hasn’t moved.',
+  hook: 'The lot. Aaron hasn’t moved.',
   language: 'B',
   requires: { mission: { id: 'files', beat: 4 }, flags: ['files_kept_it'] },
   start: 'crate',
@@ -246,7 +246,7 @@ const UNLOCK: Scene = {
     crate: {
       id: 'crate',
       lines: [
-        { text: 'Files doesn’t ask what happened with Ridge. Files already knows what happened with Ridge; that was the point of Ridge.' },
+        { text: 'Aaron doesn’t ask what happened with Ridge. Aaron already knows what happened with Ridge; that was the point of Ridge.' },
         { text: 'They shuffle sideways on the crate. There is now, technically, room for two people on a crate built for one.' },
         { text: 'Then they turn the laptop so you can both see it, which they have never once done.' },
       ],
@@ -258,7 +258,7 @@ const UNLOCK: Scene = {
         { text: 'No explaining. No “so what you do is”. They just work, slowly, at about a third of their normal speed, so you can follow.' },
         { text: 'A record. A second record that contradicts it. The gap between them, which is where the true thing lives.' },
         { text: 'They pulse one node, wait, pulse another, and let a whole branch die rather than spend a move confirming what they already suspect.' },
-        { speaker: 'Files', text: 'dont chase it. read it' },
+        { speaker: 'Aaron', text: 'dont chase it. read it' },
         { text: 'That is the entire lesson. It takes ninety minutes and four words.' },
       ],
       next: 'close',
@@ -267,9 +267,9 @@ const UNLOCK: Scene = {
       id: 'close',
       lines: [
         { text: 'At the end they take the sandwich bag out again, look at it, and hand you the whole thing.' },
-        { speaker: 'Files', text: 'sorry. i had to see' },
+        { speaker: 'Aaron', text: 'sorry. i had to see' },
         { text: 'You say you know.' },
-        { speaker: 'Files', text: 'yeah' },
+        { speaker: 'Aaron', text: 'yeah' },
       ],
       effects: [
         { kind: 'skill', skill: 'hacking', unlocked: true, tier: 1 },
@@ -293,9 +293,9 @@ const COLD: Scene = {
     crate: {
       id: 'crate',
       lines: [
-        { text: 'Files is packing up when you get there, which they were not doing thirty seconds ago, because they saw you at the mouth of the alley.' },
+        { text: 'Aaron is packing up when you get there, which they were not doing thirty seconds ago, because they saw you at the mouth of the alley.' },
         { text: 'You start to say something about Ridge.' },
-        { speaker: 'Files', text: 'ridge told three people by lunch. thats what ridge is for' },
+        { speaker: 'Aaron', text: 'ridge told three people by lunch. thats what ridge is for' },
         { text: 'Not angry. Worse. The flat voice of somebody confirming a result they already ran the test for.' },
       ],
       choices: [
@@ -306,7 +306,7 @@ const COLD: Scene = {
     sorry: {
       id: 'sorry',
       lines: [
-        { speaker: 'Files', text: 'ok' },
+        { speaker: 'Aaron', text: 'ok' },
         { text: 'They close the laptop the rest of the way. It’s a very small sound.' },
       ],
       next: 'go',
@@ -315,8 +315,8 @@ const COLD: Scene = {
       id: 'fix',
       lines: [
         { text: 'They stop with the strap half over their shoulder.' },
-        { speaker: 'Files', text: 'you cant unsay it' },
-        { speaker: 'Files', text: 'you can go take back what you got for it though' },
+        { speaker: 'Aaron', text: 'you cant unsay it' },
+        { speaker: 'Aaron', text: 'you can go take back what you got for it though' },
         { text: 'Which is not forgiveness. It’s a set of instructions, offered by someone who could have offered nothing.' },
       ],
       next: 'go',
@@ -397,7 +397,7 @@ const LATE_UNLOCK: Scene = {
     crate: {
       id: 'crate',
       lines: [
-        { text: 'Files is on the crate. Files heard about Monday, because Files hears about everything; that’s the whole skill.' },
+        { text: 'Aaron is on the crate. Aaron heard about Monday, because Aaron hears about everything; that’s the whole skill.' },
         { text: 'They don’t say thank you and they don’t say it’s fine, because it isn’t either of those.' },
         { text: 'They turn the laptop maybe forty degrees. Not all the way. You have to lean.' },
       ],
@@ -407,12 +407,12 @@ const LATE_UNLOCK: Scene = {
       id: 'show',
       lines: [
         { text: 'They work fast, and they don’t slow down for you, and you get most of it anyway because you’ve been paying attention for a month.' },
-        { speaker: 'Files', text: 'dont chase it. read it' },
+        { speaker: 'Aaron', text: 'dont chase it. read it' },
         { text: 'Then they close the lid and pick up their bag and stand there for a second, deciding.' },
-        { speaker: 'Files', text: 'im not going to tell you anything about emmanuel again' },
+        { speaker: 'Aaron', text: 'im not going to tell you anything about emmanuel again' },
         { text: 'You say that’s fair.' },
-        { speaker: 'Files', text: 'yeah' },
-        { text: 'It’s less than the other version would have been. It is not nothing. You take it, and you earn the rest slowly, which is the only way anyone ever earns anything from Files.' },
+        { speaker: 'Aaron', text: 'yeah' },
+        { text: 'It’s less than the other version would have been. It is not nothing. You take it, and you earn the rest slowly, which is the only way anyone ever earns anything from Aaron.' },
       ],
       effects: [
         { kind: 'skill', skill: 'hacking', unlocked: true, tier: 1 },
@@ -426,7 +426,7 @@ const LATE_UNLOCK: Scene = {
 
 export const FILES: MentorMission = {
   id: 'files',
-  name: 'Files',
+  name: 'Aaron',
   skill: 'hacking',
   teaches: 'Hacking',
   scenes: [CONTACT, ASK, TRUST, UNLOCK, COLD, AMENDS, LATE_UNLOCK],

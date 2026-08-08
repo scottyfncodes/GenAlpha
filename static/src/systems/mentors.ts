@@ -19,7 +19,7 @@ import { validateScene } from './scenes';
  *   3 The Trust Mission  reuses an existing system — never a bespoke mechanic
  *   4 The Unlock       writes the trust delta AND flips skills.<x>.unlocked
  *
- * Beats past 4 are legal and are how a mentor branches: Files' recovery path
+ * Beats past 4 are legal and are how a mentor branches: Aaron's recovery path
  * runs 4 -> 5 -> 6 because failing his test must cost something without
  * locking the player out of hacking for the rest of the game.
  */
@@ -31,7 +31,7 @@ export const BEAT_NAMES = ['Contact', 'The Ask', 'The Trust Mission', 'The Unloc
 /**
  * Where the cursor parks when a mentor mission finishes. A sentinel rather
  * than "one past the last beat", because the last beat isn't the same number
- * for every mentor — Files' recovery path runs two beats longer than the
+ * for every mentor — Aaron's recovery path runs two beats longer than the
  * template — and a finished mission landing on a number some other branch also
  * uses would silently re-offer that branch's scene. No scene may gate on this.
  */

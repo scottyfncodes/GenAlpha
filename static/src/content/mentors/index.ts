@@ -9,7 +9,7 @@ import { BISHOP } from './bishop';
  * The four mentors, as four data objects filling one template (module 06).
  * Nothing in src/systems knows any of their names.
  *
- * Order here is the suggested content pacing from the module — Deja or Files
+ * Order here is the suggested content pacing from the module — Deja or Aaron
  * first, both low-stakes and high-charm, then Milo, then Bishop — and it is
  * only a suggestion. Nothing gates on it except Bishop's `mentorSkills: 2`,
  * because the open-investigation structure is supposed to let the player pick.

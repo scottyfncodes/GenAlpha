@@ -232,7 +232,7 @@ describe('the writing rules the act has to keep', () => {
   });
 });
 
-describe('Nova', () => {
+describe('Ellen', () => {
   it('is asked differently depending on Act 2, and says yes either way', () => {
     const door = byId('act3_1_the_ask').nodes.door;
     expect(visibleChoices(door, {}, [])[0].goto).toBe('clean');

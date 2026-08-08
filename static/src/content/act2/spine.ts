@@ -27,7 +27,7 @@ const CAR_PARK: Scene = {
         { speaker: 'Deja', text: 'The frame’s fine. The frame is the whole bike.' },
         { speaker: 'Milo', text: 'The frame is bent.' },
         { speaker: 'Deja', text: 'The frame is *characterful*.' },
-        { text: 'Files is sitting on the wall with a phone, not in the conversation, entirely in the conversation.' },
+        { text: 'Aaron is sitting on the wall with a phone, not in the conversation, entirely in the conversation.' },
       ],
       next: 'noticing',
     },
@@ -62,7 +62,7 @@ const CAR_PARK: Scene = {
 /**
  * Beat 2 — what the cameras are actually for, and what happened to Casey.
  *
- * The failure branch does not wall this off. Files finishes it overnight, which
+ * The failure branch does not wall this off. Aaron finishes it overnight, which
  * costs a day and a little more Heat and is characterful rather than punishing:
  * you still get the answer, you just didn't get it. Module 02's "never punish
  * failure twice", and the reason this scene has no retry loop.
@@ -97,7 +97,7 @@ const WHAT_FOR: Scene = {
       id: 'overnight',
       lines: [
         { text: 'You get nowhere for two hours and then the terminal times out on you, and the laminated sign turns out to mean it.' },
-        { text: 'You tell Files. Files says nothing, which means yes.' },
+        { text: 'You tell Aaron. Aaron says nothing, which means yes.' },
         { text: 'In the morning there is a message with no words in it, just twelve pages, and you sit on the bus and read them and miss your stop.' },
       ],
       effects: [{ kind: 'heat', eventId: 'act2:quarterly_slow', delta: 3 }],

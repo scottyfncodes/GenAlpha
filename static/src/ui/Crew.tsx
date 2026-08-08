@@ -89,11 +89,11 @@ export function Crew({ onClose }: { onClose: () => void }) {
         })}
       </ul>
 
-      {/* Nova is outside the template by design (module 06). She belongs on
+      {/* Ellen is outside the template by design (module 06). She belongs on
           this screen anyway — she is the reason any of it is personal. */}
       {save.relationships.nova && (
         <div className="crew__nova">
-          <b>Nova</b>
+          <b>Ellen</b>
           <p>Not part of any of this. The reason for all of it.</p>
         </div>
       )}
