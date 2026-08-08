@@ -24,6 +24,7 @@ export function Hud({
   const save = useSave();
   const { dispatch, deleteSave } = useGame();
   const [open, setOpen] = useState(false);
+  const [heatInfo, setHeatInfo] = useState(false);
   const { current, threshold_tier } = save.heat;
 
   /*
@@ -52,8 +53,25 @@ export function Hud({
     <div className="hud">
       <Glitch active={tierUp} intensity={1}>
         <div className={`hud__heat hud__heat--${threshold_tier}`}>
-          <RiskMeter label="Heat" value={current} max={100} status={threshold_tier} compact />
+          <div className="hud__heat-row">
+            <RiskMeter label="Heat" value={current} max={100} status={threshold_tier} compact />
+            <button
+              className="hud__info"
+              onClick={() => setHeatInfo((v) => !v)}
+              aria-expanded={heatInfo}
+              aria-label="What is Heat?"
+            >
+              ?
+            </button>
+          </div>
           <p className="hud__tierline">{tierLabel(threshold_tier)}</p>
+          {heatInfo && (
+            <p className="hud__heat-explain">
+              How much attention you’ve drawn. It climbs when you take a risk, and eases on its
+              own day by day — faster if you lie low. Past a threshold, people start looking
+              harder: clear, watched, flagged, hunted.
+            </p>
+          )}
         </div>
       </Glitch>
 

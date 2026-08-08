@@ -39,6 +39,39 @@
   font-family: var(--font-a);
 }
 
+.hud__heat-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.hud__heat-row .risk { flex: 1; }
+
+.hud__info {
+  flex: none;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  border: 1px solid rgba(236, 226, 208, 0.45);
+  background: none;
+  color: var(--b-paper);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  line-height: 1;
+  opacity: 0.8;
+}
+
+.hud__heat-explain {
+  margin: 8px 0 0;
+  padding-top: 8px;
+  border-top: 1px dashed rgba(236, 226, 208, 0.3);
+  font-size: 11px;
+  line-height: 1.5;
+  color: var(--b-paper);
+  opacity: 0.85;
+  font-family: var(--font-a);
+}
+
 .hud__bar {
   display: flex;
   gap: 6px;

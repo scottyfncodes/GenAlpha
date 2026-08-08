@@ -79,7 +79,7 @@ export const LOCATIONS: OverworldLocation[] = [
   },
   {
     id: 'school',
-    label: 'Bellhaven Middle',
+    label: 'School',
     language: 'A',
     x: 400, y: 112, w: 208, h: 128,
     color: '#a8bcd4',
@@ -92,7 +92,7 @@ export const LOCATIONS: OverworldLocation[] = [
   },
   {
     id: 'town_library',
-    label: 'Public Library',
+    label: 'Library',
     language: 'A',
     x: 688, y: 288, w: 144, h: 112,
     color: '#9db4d0',
@@ -104,7 +104,7 @@ export const LOCATIONS: OverworldLocation[] = [
   },
   {
     id: 'nova_house',
-    label: 'Nova’s',
+    label: 'Nova',
     language: 'A',
     x: 176, y: 176, w: 128, h: 104,
     color: '#b7c7dd',
@@ -116,7 +116,7 @@ export const LOCATIONS: OverworldLocation[] = [
   },
   {
     id: 'casey_house',
-    label: 'Casey’s',
+    label: 'Casey',
     language: 'A',
     x: 560, y: 448, w: 120, h: 96,
     color: '#c3ccd8',
@@ -153,7 +153,7 @@ export const LOCATIONS: OverworldLocation[] = [
    */
   {
     id: 'deja_jobsite',
-    label: 'The Utility Yard',
+    label: 'Utility Yard',
     language: 'B',
     x: 40, y: 56, w: 136, h: 100,
     color: '#f0a03c',
@@ -166,7 +166,7 @@ export const LOCATIONS: OverworldLocation[] = [
   },
   {
     id: 'fenwick_lot',
-    label: 'Behind the Fenwick Shops',
+    label: 'Fenwick Lot',
     language: 'B',
     x: 624, y: 148, w: 120, h: 92,
     color: '#e6402a',
@@ -183,7 +183,7 @@ export const LOCATIONS: OverworldLocation[] = [
   },
   {
     id: 'repair_shop',
-    label: 'Second Life Repair',
+    label: 'Repair Shop',
     language: 'B',
     x: 160, y: 288, w: 128, h: 92,
     color: '#d8843a',
@@ -195,7 +195,7 @@ export const LOCATIONS: OverworldLocation[] = [
   },
   {
     id: 'annex_fence',
-    label: 'The Annex Fence',
+    label: 'Annex Fence',
     language: 'B',
     x: 764, y: 476, w: 156, h: 108,
     color: '#c8532e',
@@ -214,7 +214,7 @@ export const LOCATIONS: OverworldLocation[] = [
      * share a location rather than being two places that sound alike.
      */
     id: 'ballpark',
-    label: 'Vetter Field',
+    label: 'Ballpark',
     language: 'A',
     x: 300, y: 560, w: 190, h: 120,
     color: '#7fa8c9',

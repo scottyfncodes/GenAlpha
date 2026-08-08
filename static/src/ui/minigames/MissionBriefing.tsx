@@ -39,6 +39,15 @@ export function MissionBriefing({
       <h2 className="briefing__title">{title}</h2>
       {brief && <p className="briefing__body">{brief}</p>}
 
+      {kind === 'hacking' && (
+        <p className="briefing__howto">
+          You’re moving through their network, not just guessing a password. <b>Pulse</b> a node
+          next to you to read it before you commit to it — some are clean path, one trips their
+          alarm, and a few just dead-end. The <b>trace counter</b> is how close they are to
+          noticing; reach the target before it fills.
+        </p>
+      )}
+
       <div className="briefing__cost">
         <RiskMeter
           label="Heat if you do this"

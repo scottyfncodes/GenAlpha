@@ -5,13 +5,24 @@
   load-bearing, so any component that can be in either mode reads from here.
 */
 :root {
-  /* LANGUAGE A — official. Soft, cool, too-polished. */
-  --a-bg: #eef3f9;
-  --a-surface: #ffffff;
-  --a-line: #d7e0ec;
-  --a-text: #26313f;
-  --a-muted: #7c8b9e;
-  --a-accent: #2f7cf6; /* the too-cheerful onboarding blue */
+  /*
+    LANGUAGE A — official. Was a light, soft, "clean onboarding" palette;
+    inverted dark on request. Still cool and clinical rather than warm —
+    that's what actually carries "official" now that light-vs-dark isn't
+    doing the job, kept distinct from Language B by temperature (cool
+    slate-blue here, warm near-black-and-red there) and by shape (rounded
+    here, cut there) rather than by brightness. The one cost worth naming:
+    the title screen's Language A → B transition was originally light-to-
+    dark as well as calm-to-urgent, and that specific contrast is gone now
+    that both ends are dark — the shift still reads, just on temperature
+    and shape instead of on brightness too.
+  */
+  --a-bg: #141a22;
+  --a-surface: #1c2430;
+  --a-line: #2c3a4a;
+  --a-text: #dce6f2;
+  --a-muted: #8b9bb0;
+  --a-accent: #5b96ff; /* the too-cheerful onboarding blue, brightened for a dark ground */
 
   /* LANGUAGE B — resistance. Riso: warm reds/oranges, deep black, one spot. */
   --b-bg: #100e0d;

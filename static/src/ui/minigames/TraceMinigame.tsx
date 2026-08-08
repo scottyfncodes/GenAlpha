@@ -55,7 +55,7 @@ export function TraceMinigame({
   };
 
   return (
-    <div className={`trace ${skin.language === 'B' ? 'lang-b' : 'lang-a'}`}>
+    <div className="trace">
       <header className="trace__head">
         <div>
           <p className="trace__framing">{skin.framing}</p>

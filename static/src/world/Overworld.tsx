@@ -353,7 +353,7 @@ export function Overworld() {
             ? `${nearbyScenes.length} things here · ${nearby.label}`
             : nearbyScene
               ? nearbyScene.hook
-              : `Look around · ${nearby.label}`}
+              : nearby.label}
         </button>
       )}
 

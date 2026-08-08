@@ -27,6 +27,19 @@
   opacity: 0.9;
 }
 
+/* The mechanic explained once, in the same voice every time — plain enough
+   to act on immediately, specific enough that it still reads as a real
+   system rather than a rulebook footnote. */
+.briefing__howto {
+  margin: 0 0 calc(var(--step) * 2);
+  padding: 10px 12px;
+  border: 1px dashed currentColor;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  line-height: 1.6;
+  opacity: 0.85;
+}
+
 .briefing__cost {
   margin-bottom: calc(var(--step) * 2);
   padding: var(--step);
