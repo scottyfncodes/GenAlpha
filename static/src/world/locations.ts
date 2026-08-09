@@ -249,6 +249,41 @@ export const LOCATIONS: OverworldLocation[] = [
       hunted: 'A van idles at the end of the block with its lights off.',
     },
   },
+  /*
+   * Safe havens. `canLieLow` was already a per-location flag with nowhere to
+   * live but Home and the safehouse — a kid ducking a van full of Helio
+   * jackets doesn't only have those two doors. Same mechanic, same cost,
+   * just somewhere ordinary and public to use it, which is the actual point:
+   * you're not hiding, you're getting a slice.
+   */
+  {
+    id: 'pizza_place',
+    label: 'Sal’s',
+    language: 'A',
+    x: 456, y: 16, w: 88, h: 68,
+    color: '#d99a6c',
+    blurb: 'Fluorescent lights, a jukebox nobody’s fed in years, and a guy behind the counter who stopped asking questions a long time ago.',
+    canLieLow: true,
+    ambient: {
+      watched: 'The guy behind the counter slides you a slice you didn’t order and doesn’t mention it again.',
+      flagged: 'Two Helio jackets at the corner table, not eating, just sitting.',
+      hunted: 'The OPEN sign is off but the door isn’t locked. That’s on purpose.',
+    },
+  },
+  {
+    id: 'arcade',
+    label: 'The Arcade',
+    language: 'A',
+    x: 288, y: 456, w: 88, h: 68,
+    color: '#8fa9c9',
+    blurb: 'Cabinets older than you are, a change machine that eats quarters, and a hum loud enough to think under.',
+    canLieLow: true,
+    ambient: {
+      watched: 'Nobody in here looks up when the door goes. That’s most of the appeal.',
+      flagged: 'The owner’s turned the machine facing the window around, so the screens don’t show from the street.',
+      hunted: 'The lights are half off. Somebody left the back door propped for you without saying so.',
+    },
+  },
 ];
 
 /**

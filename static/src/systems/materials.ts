@@ -1,6 +1,12 @@
 import type { SaveState } from '../state/schema';
 import { MATERIALS_BY_ID, RECIPES } from '../content/materials';
-import { CAMERA_NODES, HIDDEN_PICKUPS, type CameraNode } from '../world/collectibles';
+import {
+  CAMERA_NODES,
+  HIDDEN_PICKUPS,
+  sabotageActionsFor,
+  type CameraNode,
+  type SabotageActionId,
+} from '../world/collectibles';
 import { addShdw, grantItem, owns, quantityOf, removeItem } from './market';
 import { applyHeat } from './heat';
 
@@ -17,15 +23,24 @@ import { applyHeat } from './heat';
  * namespace is enough to keep them apart.
  */
 
-function onCooldown(save: SaveState, nodeId: string, respawnDays: number): boolean {
+/** `defaultRespawnDays` only matters when a record exists but was stamped
+ * without its own override — every current writer always stamps one for a
+ * camera (see `markCollected`), so this is really just a floor for data from
+ * before tiers existed. */
+function onCooldown(save: SaveState, nodeId: string, defaultRespawnDays: number): boolean {
   const record = save.world.collectedNodes.find((c) => c.nodeId === nodeId);
-  return Boolean(record) && save.world.day < record!.collectedOnDay + respawnDays;
+  if (!record) return false;
+  const respawnDays = record.respawnDays ?? defaultRespawnDays;
+  return save.world.day < record.collectedOnDay + respawnDays;
 }
 
-function markCollected(save: SaveState, nodeId: string): SaveState {
+/** `respawnDays` is stamped on the record itself when a node's timer isn't
+ * fixed — a camera's varies by which sabotage action took it down. Omitted
+ * for a hidden pickup, which always uses its own one fixed value. */
+function markCollected(save: SaveState, nodeId: string, respawnDays?: number): SaveState {
   const collectedNodes = [
     ...save.world.collectedNodes.filter((c) => c.nodeId !== nodeId),
-    { nodeId, collectedOnDay: save.world.day },
+    { nodeId, collectedOnDay: save.world.day, ...(respawnDays !== undefined ? { respawnDays } : {}) },
   ];
   return { ...save, world: { ...save.world, collectedNodes } };
 }
@@ -45,32 +60,36 @@ export function collectHidden(save: SaveState, obstacleId: string): SaveState {
   return markCollected(grantItem(save, pickup.itemId, 1, 'found'), obstacleId);
 }
 
-/** Whether a camera is currently standing — never dismantled, or Helio's had
- * time to put a new one up. */
-export function canDismantle(save: SaveState, node: CameraNode): boolean {
+/** Whether a camera is currently standing — never sabotaged, or Helio's had
+ * time to put a new one up. Whichever action took it down, all three are
+ * unavailable together; the camera is either there or it isn't. */
+export function canSabotage(save: SaveState, node: CameraNode): boolean {
   return !onCooldown(save, node.id, node.respawnDays);
 }
 
 /**
- * The deliberate version: a Heat cost, shown on the prompt before it's spent
- * (Heat System guardrail 2), and the better half of the salvage economy —
- * `cracked_chipset` comes from here and nowhere else. `acquiredVia: 'theft'`
- * because taking a camera apart is exactly that, not a lucky find.
+ * Any of the three tiers `sabotageActionsFor` derives for this node — a Heat
+ * cost shown on the prompt before it's spent (Heat System guardrail 2), and
+ * for two of the three, the better half of the salvage economy:
+ * `cracked_chipset` comes from a camera and nowhere else. `acquiredVia:
+ * 'theft'` because taking one apart is exactly that, not a lucky find.
  */
-export function dismantleCamera(save: SaveState, nodeId: string): SaveState {
+export function sabotageCamera(save: SaveState, nodeId: string, actionId: SabotageActionId): SaveState {
   const node = CAMERA_NODES.find((n) => n.id === nodeId);
-  if (!node || !canDismantle(save, node)) return save;
+  if (!node || !canSabotage(save, node)) return save;
+  const action = sabotageActionsFor(node).find((a) => a.id === actionId);
+  if (!action) return save;
 
-  const withItem = grantItem(save, node.itemId, 1, 'theft');
+  const withItem = grantItem(save, action.itemId, action.quantity, 'theft');
   const withHeat = {
     ...withItem,
     heat: applyHeat(withItem.heat, {
-      eventId: `dismantle_${nodeId}`,
-      delta: node.heatCost,
+      eventId: `sabotage_${actionId}_${nodeId}`,
+      delta: action.heatCost,
       logToHistory: true,
     }),
   };
-  return markCollected(withHeat, nodeId);
+  return markCollected(withHeat, nodeId, action.respawnDays);
 }
 
 export function sellMaterial(save: SaveState, itemId: string): SaveState {

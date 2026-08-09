@@ -6,20 +6,28 @@ import {
   useMemo,
   useReducer,
   useRef,
+  useState,
   type Dispatch,
   type ReactNode,
 } from 'react';
-import type { SaveState, SettingsState, StoryFlags } from './schema';
+import type { SaveState, SettingsState, StoryFlags, ThresholdTier } from './schema';
 import { resolveRun, type RunResult } from '../systems/missions';
 import type { Effect } from '../systems/scenes';
 import { createNewSave } from './defaults';
 import { clearSave, loadSave, writeSave } from './persistence';
-import { applyHeat, decayTo, lieLow } from '../systems/heat';
+import { applyHeat, decayTo, lieLow, TIER_ORDER } from '../systems/heat';
 import { applyEffects } from '../systems/effects';
 import { buy, buyShdw, sell, sellShdw, tickMarket, useConsumable } from '../systems/market';
 import { tickSafehouses } from '../systems/safehouse';
 import { drain } from '../systems/heist';
-import { collectHidden, craft, dismantleCamera, sellMaterial } from '../systems/materials';
+import { collectHidden, craft, sabotageCamera, sellMaterial } from '../systems/materials';
+import { applyCatch } from '../systems/consequences';
+import type { SabotageActionId } from '../world/collectibles';
+
+/** How long the "you can be caught right now" window stays open after a Heat
+ * tier crossing — long enough to be a real window, short enough that it
+ * reads as a moment rather than a mode. */
+const HEAT_ALERT_MS = 10_000;
 
 /**
  * The only writer to the save shape. Every system dispatches through here, so
@@ -47,9 +55,10 @@ type Action =
   | { type: 'APPLY_EFFECTS'; effects: Effect[] }
   | { type: 'TICK_PLAYTIME'; seconds: number }
   | { type: 'COLLECT_HIDDEN'; obstacleId: string }
-  | { type: 'DISMANTLE_CAMERA'; nodeId: string }
+  | { type: 'SABOTAGE_CAMERA'; nodeId: string; actionId: SabotageActionId }
   | { type: 'SELL_MATERIAL'; itemId: string }
-  | { type: 'CRAFT_ITEM'; recipeId: string };
+  | { type: 'CRAFT_ITEM'; recipeId: string }
+  | { type: 'CAUGHT'; tier: ThresholdTier };
 
 function reducer(state: SaveState | null, action: Action): SaveState | null {
   if (action.type === 'NEW_GAME') return createNewSave(action.name);
@@ -134,20 +143,25 @@ function reducer(state: SaveState | null, action: Action): SaveState | null {
     case 'SELL_SHDW':
       return sellShdw(state, action.amount);
 
-    /** Overworld salvage: a hidden bush, a dismantled camera, sold for SHDW,
+    /** Overworld salvage: a hidden bush, a sabotaged camera, sold for SHDW,
      * or built. See systems/materials.ts — each is a no-op on the state it
      * can't perform, same "return the save unchanged" contract as buy/sell. */
     case 'COLLECT_HIDDEN':
       return collectHidden(state, action.obstacleId);
 
-    case 'DISMANTLE_CAMERA':
-      return dismantleCamera(state, action.nodeId);
+    case 'SABOTAGE_CAMERA':
+      return sabotageCamera(state, action.nodeId, action.actionId);
 
     case 'SELL_MATERIAL':
       return sellMaterial(state, action.itemId);
 
     case 'CRAFT_ITEM':
       return craft(state, action.recipeId);
+
+    /** A patrol closed the distance inside the alert window. See
+     * systems/consequences.ts — no hard fail, ever, just a cost. */
+    case 'CAUGHT':
+      return applyCatch(state, action.tier);
 
     /**
      * The drain writes cash, Heat history, town trust and the drained-wallet
@@ -190,6 +204,15 @@ interface GameApi {
   continueGame: () => boolean;
   deleteSave: () => void;
   flag: (key: string) => boolean;
+  /**
+   * A `performance.now()` timestamp: while `now < heatAlertUntil`, the Heat
+   * bar flashes (Hud.tsx) and a patrol that catches the player triggers an
+   * escalated consequence instead of the ordinary ambient tick
+   * (Overworld.tsx, systems/consequences.ts). 0 when no window is open.
+   * Lives here rather than in either component because both need the exact
+   * same crossing the other computes — one source, read twice.
+   */
+  heatAlertUntil: number;
 }
 
 const GameCtx = createContext<GameApi | null>(null);
@@ -233,9 +256,26 @@ export function GameProvider({ children }: { children: ReactNode }) {
 
   const flag = useCallback((key: string) => Boolean(saveRef.current?.player.flags[key]), []);
 
+  /*
+   * The alert window opens on a tier *increase* only — dropping back down
+   * (decay, lying low) is a relief, not a rupture, same rule Hud.tsx's own
+   * glitch-on-crossing effect already follows for the same event. Detected
+   * here rather than in either consumer so Hud and Overworld can't compute
+   * two different answers to "is it flashing right now."
+   */
+  const [heatAlertUntil, setHeatAlertUntil] = useState(0);
+  const prevTierRef = useRef<ThresholdTier | undefined>(save?.heat.threshold_tier);
+  useEffect(() => {
+    const tier = save?.heat.threshold_tier;
+    if (tier && prevTierRef.current && TIER_ORDER.indexOf(tier) > TIER_ORDER.indexOf(prevTierRef.current)) {
+      setHeatAlertUntil(performance.now() + HEAT_ALERT_MS);
+    }
+    prevTierRef.current = tier;
+  }, [save?.heat.threshold_tier]);
+
   const value = useMemo<GameApi>(
-    () => ({ save, dispatch, newGame, continueGame, deleteSave, flag }),
-    [save, newGame, continueGame, deleteSave, flag],
+    () => ({ save, dispatch, newGame, continueGame, deleteSave, flag, heatAlertUntil }),
+    [save, newGame, continueGame, deleteSave, flag, heatAlertUntil],
   );
 
   return <GameCtx.Provider value={value}>{children}</GameCtx.Provider>;

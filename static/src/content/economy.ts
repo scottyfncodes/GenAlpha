@@ -83,6 +83,13 @@ export const ITEMS: GoodsItem[] = [
     lastsUntilNextDay: true,
     effect: 'Until tomorrow, the easy tools don’t leave your name on anything.',
   },
+  {
+    itemId: 'beater_car',
+    name: 'The Beater',
+    basePrice: 650,
+    category: 'gear',
+    effect: 'Runs. Doubles your speed on the street — the same money bought on the corner as it did built from parts.',
+  },
 ];
 
 export const ITEMS_BY_ID: Record<string, GoodsItem> = Object.fromEntries(
@@ -98,6 +105,7 @@ export const BURNER_PHONE = 'burner_phone';
 export const CLEAN_SIM = 'clean_sim';
 export const FORGED_ID = 'forged_id';
 export const INTEL_TIP = 'intel_tip';
+export const BEATER_CAR = 'beater_car';
 
 /** Heat a burner takes off a digital job. Small: it's an edge, not a bypass. */
 export const BURNER_HEAT_RELIEF = 2;

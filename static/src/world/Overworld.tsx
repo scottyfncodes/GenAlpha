@@ -9,13 +9,22 @@ import {
 } from './locations';
 import { OBSTACLES } from './obstacles';
 import { PATROL_ROUTES, activeRoutes, patrolTuning, type PatrolRoute } from './patrols';
-import { CAMERA_NODES, HIDDEN_PICKUPS, HIDDEN_PICKUP_OBSTACLE_IDS, type CameraNode } from './collectibles';
+import {
+  CAMERA_NODES,
+  HIDDEN_PICKUPS,
+  HIDDEN_PICKUP_OBSTACLE_IDS,
+  sabotageActionsFor,
+  type CameraNode,
+} from './collectibles';
 import { useGame, useSave } from '../state/GameContext';
 import type { ThresholdTier } from '../state/schema';
 import { LIE_LOW_DECAY, lieLowBlocked } from '../systems/heat';
 import { safehouseBlocked, safehouseDecay } from '../systems/safehouse';
-import { canCollectHidden, canDismantle } from '../systems/materials';
+import { canCollectHidden, canSabotage } from '../systems/materials';
+import { owns } from '../systems/market';
+import { consequenceFor, HURT_UNTIL_DAY_FLAG } from '../systems/consequences';
 import { MATERIALS_BY_ID } from '../content/materials';
+import { BEATER_CAR } from '../content/economy';
 import { LIE_LOW_FLAG } from '../content/breather';
 import { SAFEHOUSE_ID } from '../content/safehouse';
 import { ALL_SCENES } from '../content/all';
@@ -26,6 +35,8 @@ import { Market } from '../ui/Market';
 import './overworld.css';
 
 const SPEED = 110; // world units per second
+/** The whole pitch for owning a car — twice the street, same feet. */
+const DRIVING_MULTIPLIER = 2;
 const PLAYER_W = 12;
 const PLAYER_H = 18;
 const SCALE = 2; // pixel-art integer scale
@@ -102,7 +113,7 @@ function patrolPosition(route: PatrolRoute, state: PatrolState): { x: number; y:
 export function Overworld() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const save = useSave();
-  const { dispatch } = useGame();
+  const { dispatch, heatAlertUntil } = useGame();
   const [nearby, setNearby] = useState<OverworldLocation | null>(null);
   const [open, setOpen] = useState<OverworldLocation | null>(null);
   /** A brief line when a hidden bush gives something up — same "shown, not
@@ -119,6 +130,17 @@ export function Overworld() {
   const [market, setMarket] = useState(false);
   /** A brief line when a patrol clocks you — Heat that's shown, not hidden. */
   const [spotted, setSpotted] = useState<string | null>(null);
+  /** The consequence text when a catch lands inside the alert window —
+   * separate from `spotted` because this is a real cost, not ambient
+   * pressure, and deserves its own line rather than overwriting one. */
+  const [caught, setCaught] = useState<string | null>(null);
+  /** Whether the player has a car at all — checked every render off
+   * inventory rather than a schema field, same as any other owned gear. */
+  const hasCar = owns(save, BEATER_CAR);
+  /** Driving is a mode, not an item — session-local, resets to on-foot on
+   * reload rather than persisting, the same way a scene or a market sheet
+   * being open doesn't survive a refresh. */
+  const [driving, setDriving] = useState(false);
 
   /*
    * The draw loop runs off refs rather than closing over state, so the
@@ -135,12 +157,27 @@ export function Overworld() {
   const tierRef = useRef(save.heat.threshold_tier);
   tierRef.current = save.heat.threshold_tier;
 
-  /* Same reason again: `canCollectHidden`/`canDismantle` need the save's
+  /* Same reason again: `canCollectHidden`/`canSabotage` need the save's
      collected-node log and the current day, and the frame loop can't close
      over `save` directly without going stale the same way flags and tier
      would. */
   const saveRef = useRef(save);
   saveRef.current = save;
+
+  /* Same reason again — `&& hasCar` guards the freak case of losing the car
+     mid-session while still "driving" it, so movement can't get stuck fast
+     without the ownership backing it. */
+  const drivingRef = useRef(false);
+  drivingRef.current = driving && hasCar;
+
+  /* Same reason again: the frame loop needs to know whether the ten-second
+     alert window is open right now without waiting for a re-render. */
+  const heatAlertUntilRef = useRef(heatAlertUntil);
+  heatAlertUntilRef.current = heatAlertUntil;
+  /** Which alert window (identified by its own timestamp) has already cost
+   * the player a catch — so a second sighting inside the same ten seconds
+   * doesn't fire a second consequence on top of the first. */
+  const consumedAlertRef = useRef(0);
 
   /* Last direction of travel, so the sprite reads as turning. Held in a ref
      because it changes every frame and nothing outside the canvas cares. */
@@ -260,10 +297,14 @@ export function Overworld() {
       const blockers: { x: number; y: number; w: number; h: number }[] = [...visible, ...solidObstacles];
       const solid = blockers.filter((l) => !overlapsBuilding(pos.current.x, pos.current.y, l));
 
-      const nx = clamp(pos.current.x + (dx / len) * SPEED * dt, 8, MAP_WIDTH - 8);
+      // A skull-cracked consequence leaves this behind for a day — a cost
+      // that's felt rather than a screen that says so.
+      const hurt = Number(flagsRef.current[HURT_UNTIL_DAY_FLAG] ?? 0) > saveRef.current.world.day;
+      const speed = (drivingRef.current ? SPEED * DRIVING_MULTIPLIER : SPEED) * (hurt ? 0.6 : 1);
+      const nx = clamp(pos.current.x + (dx / len) * speed * dt, 8, MAP_WIDTH - 8);
       if (!solid.some((l) => overlapsBuilding(nx, pos.current.y, l))) pos.current.x = nx;
 
-      const ny = clamp(pos.current.y + (dy / len) * SPEED * dt, 8, MAP_HEIGHT - 8);
+      const ny = clamp(pos.current.y + (dy / len) * speed * dt, 8, MAP_HEIGHT - 8);
       if (!solid.some((l) => overlapsBuilding(pos.current.x, ny, l))) pos.current.y = ny;
 
       const here = locationAt(pos.current.x, pos.current.y, flagsRef.current);
@@ -302,17 +343,18 @@ export function Overworld() {
       contactRef.current = stillTouching;
 
       /*
-       * Cameras worth dismantling. Deliberate rather than automatic — this
-       * spends Heat, so it keeps the prompt-and-key pattern a location uses
-       * rather than the hidden pickups' silent walk-through. Only the ones
-       * `canDismantle` says are actually standing get drawn or targeted; one
-       * just taken apart stays gone until Helio's had time to replace it.
+       * Cameras worth sabotaging. Deliberate rather than automatic — every
+       * tier spends Heat, so this keeps the prompt-and-key pattern a location
+       * uses rather than the hidden pickups' silent walk-through. Only the
+       * ones `canSabotage` says are actually standing get drawn or targeted;
+       * one just taken down stays gone until Helio's had time to replace it,
+       * regardless of which of the three actions did it.
        */
       const cameraDraw: { x: number; y: number; dismantlable: boolean }[] = [];
       let closestCamera: CameraNode | null = null;
       let closestCameraDist = CAMERA_INTERACT_RADIUS;
       for (const node of CAMERA_NODES) {
-        if (!canDismantle(saveRef.current, node)) continue;
+        if (!canSabotage(saveRef.current, node)) continue;
         const dist = Math.hypot(node.x - pos.current.x, node.y - pos.current.y);
         const inRange = dist < CAMERA_INTERACT_RADIUS;
         cameraDraw.push({ x: node.x, y: node.y, dismantlable: inRange });
@@ -347,6 +389,28 @@ export function Overworld() {
 
         const dist = Math.hypot(p.x - pos.current.x, p.y - pos.current.y);
         if (dist < tuning.detectionRadius) {
+          /*
+           * A Heat tier crossing opens a ten-second window (GameContext.tsx
+           * `heatAlertUntil`) where an actual catch costs something real
+           * instead of the ambient tick below — checked first, and only
+           * once per window (`consumedAlertRef`), so a second sighting
+           * inside the same window doesn't charge the player twice for one
+           * crossing.
+           */
+          const inAlertWindow =
+            now < heatAlertUntilRef.current && heatAlertUntilRef.current !== consumedAlertRef.current;
+          if (inAlertWindow) {
+            consumedAlertRef.current = heatAlertUntilRef.current;
+            const tier = tierRef.current;
+            const consequence = consequenceFor(saveRef.current, tier);
+            if (consequence) {
+              dispatch({ type: 'CAUGHT', tier });
+              setCaught(consequence.label);
+              window.setTimeout(() => setCaught((m) => (m === consequence.label ? null : m)), 4000);
+              continue;
+            }
+          }
+
           const lastHit = patrolCooldownRef.current.get(route.id) ?? -Infinity;
           if (now - lastHit > tuning.cooldownMs) {
             patrolCooldownRef.current.set(route.id, now);
@@ -377,6 +441,7 @@ export function Overworld() {
         cameraDraw,
         moving,
         now,
+        drivingRef.current,
       );
       raf = requestAnimationFrame(frame);
     };
@@ -408,10 +473,12 @@ export function Overworld() {
       if (k === 'e' || k === ' ') {
         // A location wins ties — the rare case where a camera sits inside a
         // location's radius should read as "walk in and talk", not a race
-        // against a piece of street furniture.
+        // against a piece of street furniture. The key picks the middle
+        // tier — the three risk/reward options are otherwise a mouse/tap
+        // choice on the prompt itself.
         if (nearbyRef.current) enterRef.current(nearbyRef.current);
         else if (nearbyCameraRef.current) {
-          dispatch({ type: 'DISMANTLE_CAMERA', nodeId: nearbyCameraRef.current.id });
+          dispatch({ type: 'SABOTAGE_CAMERA', nodeId: nearbyCameraRef.current.id, actionId: 'dismantle' });
         }
         return;
       }
@@ -448,6 +515,12 @@ export function Overworld() {
         </p>
       )}
 
+      {caught && (
+        <p className="overworld__caught" role="status">
+          {caught}
+        </p>
+      )}
+
       {nearby && !open && (
         <button className="overworld__prompt" onClick={() => enter(nearby)}>
           {nearbyScenes.length > 1
@@ -458,16 +531,23 @@ export function Overworld() {
         </button>
       )}
 
-      {/* Same slot as the location prompt, mutually exclusive with it — the
-          cost is on the button itself, per Heat System guardrail 2: nothing
+      {/* Same slot as the location prompt, mutually exclusive with it — three
+          risk/reward tiers instead of one, each with its own cost and payout
+          stated on the button itself, per Heat System guardrail 2: nothing
           spends Heat without showing the price first. */}
       {!nearby && nearbyCamera && !open && (
-        <button
-          className="overworld__prompt overworld__prompt--camera"
-          onClick={() => dispatch({ type: 'DISMANTLE_CAMERA', nodeId: nearbyCamera.id })}
-        >
-          Dismantle the camera · Heat +{nearbyCamera.heatCost}
-        </button>
+        <div className="overworld__sabotage">
+          {sabotageActionsFor(nearbyCamera).map((action) => (
+            <button
+              key={action.id}
+              className="overworld__prompt overworld__prompt--camera"
+              onClick={() => dispatch({ type: 'SABOTAGE_CAMERA', nodeId: nearbyCamera.id, actionId: action.id })}
+            >
+              {action.label} · Heat +{action.heatCost} · {action.quantity}×{' '}
+              {MATERIALS_BY_ID[action.itemId]?.name ?? action.itemId}
+            </button>
+          ))}
+        </div>
       )}
 
       {active && <SceneView scene={active} onClose={leave} />}
@@ -507,6 +587,14 @@ export function Overworld() {
       )}
 
       {market && <Market onClose={() => setMarket(false)} />}
+
+      {/* Only offered once there's a car to offer — same rule as Crew not
+          showing before the first mentor skill. */}
+      {hasCar && !open && (
+        <button className="overworld__drive" onClick={() => setDriving((v) => !v)}>
+          {driving ? 'Get out' : 'Take the car'}
+        </button>
+      )}
 
       <Joystick onChange={(dx, dy) => (touch.current = { dx, dy })} />
 

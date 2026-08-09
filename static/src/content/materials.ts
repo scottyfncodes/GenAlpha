@@ -80,4 +80,16 @@ export const RECIPES: Recipe[] = [
     outputItemId: 'clean_sim',
     description: 'A phone with no history is just a phone somebody forgot to register.',
   },
+  {
+    id: 'craft_beater_car',
+    label: 'The Beater',
+    inputs: [
+      { itemId: 'salvaged_board', quantity: 4 },
+      { itemId: 'cracked_chipset', quantity: 3 },
+      { itemId: 'spare_battery', quantity: 2 },
+      { itemId: 'copper_wire', quantity: 2 },
+    ],
+    outputItemId: 'beater_car',
+    description: 'Nobody sells you a whole car built from parts. It still counts.',
+  },
 ];

@@ -204,6 +204,16 @@ export interface Safehouse {
 export interface CollectedNode {
   nodeId: string;
   collectedOnDay: number;
+  /**
+   * ADDED in 0.7.0 for tiered camera sabotage. A camera's respawn depends on
+   * *which* action took it down (a quick tamper is back in a day; an
+   * overload takes over a week) rather than being fixed per node, so the
+   * chosen action's own timer is stamped here instead of re-derived from the
+   * static node definition. Optional and absent for anything else that uses
+   * this same log (hidden bush pickups, and any camera hit before this
+   * existed) — those fall back to their node's own fixed `respawnDays`.
+   */
+  respawnDays?: number;
 }
 
 export interface WorldState {

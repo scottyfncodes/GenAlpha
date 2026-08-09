@@ -24,10 +24,28 @@ export function Hud({
   onOpenPhone: () => void;
 }) {
   const save = useSave();
-  const { dispatch, deleteSave } = useGame();
+  const { dispatch, deleteSave, heatAlertUntil } = useGame();
   const [open, setOpen] = useState(false);
   const [heatInfo, setHeatInfo] = useState(false);
   const { current, threshold_tier } = save.heat;
+
+  /*
+   * The ten-second "you can be caught right now" window a tier crossing opens
+   * (GameContext.tsx) — a real setTimeout for the actual remaining time
+   * rather than a fixed one, so a re-render partway through the window
+   * doesn't restart the flash from ten seconds again.
+   */
+  const [heatAlertActive, setHeatAlertActive] = useState(false);
+  useEffect(() => {
+    const remaining = heatAlertUntil - performance.now();
+    if (remaining <= 0) {
+      setHeatAlertActive(false);
+      return;
+    }
+    setHeatAlertActive(true);
+    const id = window.setTimeout(() => setHeatAlertActive(false), remaining);
+    return () => window.clearTimeout(id);
+  }, [heatAlertUntil]);
 
   /*
    * Build Addendum Module 9, Part B.3: the Glitch effect is built once and
@@ -54,7 +72,9 @@ export function Hud({
   return (
     <div className="hud">
       <Glitch active={tierUp} intensity={1}>
-        <div className={`hud__heat hud__heat--${threshold_tier}`}>
+        <div
+          className={`hud__heat hud__heat--${threshold_tier}${heatAlertActive ? ' hud__heat--alert' : ''}`}
+        >
           <div className="hud__heat-row">
             <RiskMeter label="Heat" value={current} max={100} status={threshold_tier} compact />
             <button

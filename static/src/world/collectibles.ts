@@ -49,6 +49,11 @@ export const HIDDEN_PICKUP_OBSTACLE_IDS = new Set(HIDDEN_PICKUPS.map((p) => p.ob
  * of — comes from cameras and nowhere else. Copper and board salvage overlap
  * with the hidden bush finds; the chipset is the reason to actually do the
  * sabotage instead of just walking around.
+ *
+ * `itemId`/`respawnDays`/`heatCost` describe the *dismantle* action — the
+ * middle of the three risk/reward tiers `sabotageActionsFor` derives from a
+ * node. Kept as the node's own baseline numbers, unchanged from before this
+ * had tiers, so a "normal" hit still costs what it always did.
  */
 export interface CameraNode {
   id: string;
@@ -69,3 +74,58 @@ export const CAMERA_NODES: CameraNode[] = [
   { id: 'camera_dismantle_6', x: 600, y: 600, itemId: 'cracked_chipset', respawnDays: 5, heatCost: 4 },
   { id: 'camera_dismantle_7', x: 16, y: 300, itemId: 'copper_wire', respawnDays: 4, heatCost: 3 },
 ];
+
+export type SabotageActionId = 'tamper' | 'dismantle' | 'overload';
+
+export interface SabotageAction {
+  id: SabotageActionId;
+  label: string;
+  /** Shown on the prompt before it's spent — Heat System guardrail 2. */
+  heatCost: number;
+  /** Days the camera stays down before Helio replaces it. */
+  respawnDays: number;
+  itemId: string;
+  quantity: number;
+}
+
+/**
+ * Three ways to hit the same camera, derived from its own baseline rather
+ * than hand-authored per node — three risk/reward points, not three times
+ * the content to maintain:
+ *
+ * - **Tamper**: almost free (Heat +1) and back within a day, but it only
+ *   loosens a wire — the common material every node yields the same way,
+ *   never the node's own featured part.
+ * - **Dismantle**: the node's own numbers, unchanged from before this had
+ *   tiers — the featured part, once, at the cost already on the tin.
+ * - **Overload**: the expensive one. Heat costs more, the camera stays dark
+ *   for over a week, and it pays out double the featured part for it.
+ */
+export function sabotageActionsFor(node: CameraNode): SabotageAction[] {
+  return [
+    {
+      id: 'tamper',
+      label: 'Quick tamper',
+      heatCost: 1,
+      respawnDays: 1,
+      itemId: 'copper_wire',
+      quantity: 1,
+    },
+    {
+      id: 'dismantle',
+      label: 'Dismantle it',
+      heatCost: node.heatCost,
+      respawnDays: node.respawnDays,
+      itemId: node.itemId,
+      quantity: 1,
+    },
+    {
+      id: 'overload',
+      label: 'Overload it',
+      heatCost: node.heatCost + 3,
+      respawnDays: node.respawnDays + 3,
+      itemId: node.itemId,
+      quantity: 2,
+    },
+  ];
+}
