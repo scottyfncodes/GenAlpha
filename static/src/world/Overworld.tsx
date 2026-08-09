@@ -395,10 +395,17 @@ export function Overworld() {
     const MOVE = ['w', 'a', 's', 'd', 'arrowup', 'arrowdown', 'arrowleft', 'arrowright'];
 
     const down = (e: KeyboardEvent) => {
-      if (blockedRef.current) return;
       const k = e.key.toLowerCase();
+      const isGameKey = k === 'e' || k === ' ' || MOVE.includes(k);
+      // The browser's own scroll-on-arrow-key default has to be cancelled
+      // whether or not the game is currently blocked — the earlier version
+      // returned before this ran while a scene or location card was open,
+      // which is exactly when there's no dialogue box also swallowing the
+      // key, so pressing Down there scrolled the page out from under it.
+      if (isGameKey) e.preventDefault();
+      if (blockedRef.current || !isGameKey) return;
+
       if (k === 'e' || k === ' ') {
-        e.preventDefault();
         // A location wins ties — the rare case where a camera sits inside a
         // location's radius should read as "walk in and talk", not a race
         // against a piece of street furniture.
@@ -408,8 +415,6 @@ export function Overworld() {
         }
         return;
       }
-      if (!MOVE.includes(k)) return;
-      e.preventDefault(); // arrows would otherwise scroll the page under the canvas
       keys.current.add(k);
     };
     const up = (e: KeyboardEvent) => keys.current.delete(e.key.toLowerCase());
