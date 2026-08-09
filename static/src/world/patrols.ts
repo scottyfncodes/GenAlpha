@@ -82,6 +82,15 @@ export interface PatrolTuning {
   detectionRadius: number;
   cooldownMs: number;
   heatOnSpot: number;
+  /**
+   * ADDED for the quarterly-threshold escalation: at `flagged` and `hunted`,
+   * a van that spots the player abandons its route and drives at them
+   * instead of past them, for as long as they stay within chase range
+   * (Overworld.tsx `CHASE_RADIUS`). `clear`/`watched` stay passive — a fixed
+   * beat, the same "dodging surveillance doesn't start until the plot
+   * thickens" pacing already governs when routes go active at all.
+   */
+  hunting: boolean;
 }
 
 /**
@@ -94,10 +103,10 @@ export interface PatrolTuning {
  * player just hadn't given it a reason to look yet.
  */
 const TUNING: Record<ThresholdTier, PatrolTuning> = {
-  clear: { activeRoutes: 0, speed: 40, detectionRadius: 28, cooldownMs: 6000, heatOnSpot: 1 },
-  watched: { activeRoutes: 3, speed: 55, detectionRadius: 36, cooldownMs: 5000, heatOnSpot: 2 },
-  flagged: { activeRoutes: 4, speed: 70, detectionRadius: 44, cooldownMs: 4000, heatOnSpot: 3 },
-  hunted: { activeRoutes: 5, speed: 85, detectionRadius: 52, cooldownMs: 3000, heatOnSpot: 4 },
+  clear: { activeRoutes: 0, speed: 40, detectionRadius: 28, cooldownMs: 6000, heatOnSpot: 1, hunting: false },
+  watched: { activeRoutes: 3, speed: 55, detectionRadius: 36, cooldownMs: 5000, heatOnSpot: 2, hunting: false },
+  flagged: { activeRoutes: 4, speed: 70, detectionRadius: 44, cooldownMs: 4000, heatOnSpot: 3, hunting: true },
+  hunted: { activeRoutes: 5, speed: 85, detectionRadius: 52, cooldownMs: 3000, heatOnSpot: 4, hunting: true },
 };
 
 export function patrolTuning(tier: ThresholdTier): PatrolTuning {

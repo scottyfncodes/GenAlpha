@@ -84,6 +84,7 @@ const WHAT_FOR: Scene = {
       ],
       minigame: {
         kind: 'hacking',
+        variant: 'cipher',
         missionId: 'helio_quarterly',
         tier: 2,
         skinId: 'villain',

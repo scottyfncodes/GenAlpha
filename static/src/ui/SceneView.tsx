@@ -4,9 +4,10 @@ import { completionFlag, heatCostOf, render, visibleChoices, visibleLines } from
 import { useGame, useSave } from '../state/GameContext';
 import { Glitch } from './Glitch';
 import { TraceMinigame } from './minigames/TraceMinigame';
+import { CipherMinigame } from './minigames/CipherMinigame';
 import { SabotageMission } from './minigames/SabotageMission';
 import { MissionBriefing } from './minigames/MissionBriefing';
-import { buildTraceConfig } from '../content/hacking';
+import { buildTraceConfig, buildCipherConfig } from '../content/hacking';
 import { buildSabotageConfig, SABOTAGE_MISSIONS } from '../content/sabotage';
 import { isPrepped } from '../systems/missions';
 import { consumableActive, heatReliefFor } from '../systems/market';
@@ -94,6 +95,7 @@ export function SceneView({ scene, onClose }: { scene: Scene; onClose: () => voi
         <div className="scene__stage">
           <MissionBriefing
             kind={mg.kind}
+            variant={mg.kind === 'hacking' ? mg.variant : undefined}
             language={skin.language}
             title={skin.title}
             framing={skin.framing}
@@ -109,7 +111,19 @@ export function SceneView({ scene, onClose }: { scene: Scene; onClose: () => voi
 
     return (
       <div className="scene__stage">
-        {mg.kind === 'hacking' ? (
+        {mg.kind === 'hacking' && mg.variant === 'cipher' ? (
+          <CipherMinigame
+            skinId={mg.skinId}
+            config={buildCipherConfig({
+              missionId: mg.missionId,
+              tier: mg.tier,
+              skillTier: save.skills.hacking.tier,
+              heatTier: save.heat.threshold_tier,
+              hardened: mg.practice ? undefined : record?.hardened,
+            })}
+            onResolve={resolve}
+          />
+        ) : mg.kind === 'hacking' ? (
           <TraceMinigame
             skinId={mg.skinId}
             config={buildTraceConfig({

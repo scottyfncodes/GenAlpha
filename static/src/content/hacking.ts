@@ -1,4 +1,5 @@
 import type { DecoyDensity, TraceConfig } from '../systems/trace';
+import type { CipherConfig } from '../systems/cipher';
 import { SKINS, type SkinId } from './skins';
 import { seedFrom } from '../systems/rng';
 import { budgetNudge } from '../systems/missions';
@@ -58,5 +59,56 @@ export function buildTraceConfig(args: BuildTraceArgs): TraceConfig {
     extraTrapPenalty: tier.extraTrapPenalty,
     revealAdjacentCounts: skin.revealAdjacentCounts ?? true,
     bankedIntel: args.bankedIntel,
+  };
+}
+
+/**
+ * Cipher's own difficulty table — same shape as `HACKING_TIERS`, sized for a
+ * Mastermind-style deduction game instead of a grid walk. Guess budgets stay
+ * small on purpose: a 10-guess ceiling still takes real deduction to beat
+ * within, it just doesn't take a spreadsheet.
+ */
+export interface CipherTier {
+  codeLength: number;
+  symbolCount: number;
+  guessBudget: number;
+  allowRepeats: boolean;
+  label: string;
+}
+
+export const CIPHER_TIERS: Record<1 | 2 | 3 | 4, CipherTier> = {
+  1: { codeLength: 3, symbolCount: 4, guessBudget: 8, allowRepeats: false, label: 'Intro' },
+  2: { codeLength: 4, symbolCount: 5, guessBudget: 9, allowRepeats: false, label: 'Standard' },
+  3: { codeLength: 4, symbolCount: 6, guessBudget: 9, allowRepeats: true, label: 'Hardened' },
+  4: { codeLength: 5, symbolCount: 6, guessBudget: 10, allowRepeats: true, label: 'Heist-grade' },
+};
+
+export interface BuildCipherArgs {
+  missionId: string;
+  tier: 1 | 2 | 3 | 4;
+  /** skills.hacking.tier — 2 grants +1 guess, the same QoL Trace gives as +1 pulse. */
+  skillTier: number;
+  heatTier: ThresholdTier;
+  /** missions[id].hardened — a burned target tightens the guess budget next time. */
+  hardened?: number;
+}
+
+export function buildCipherConfig(args: BuildCipherArgs): CipherConfig {
+  const tier = CIPHER_TIERS[args.tier];
+  const hardened = args.hardened ?? 0;
+
+  return {
+    missionId: args.missionId,
+    codeLength: tier.codeLength,
+    symbolCount: tier.symbolCount,
+    baseGuessBudget: tier.guessBudget,
+    guessBudget: Math.max(
+      4,
+      tier.guessBudget + budgetNudge(args.heatTier) - hardened + (args.skillTier >= 2 ? 1 : 0),
+    ),
+    // Seeded on the mission alone — same reasoning as Trace: a hardened
+    // target is the same code, just a shorter leash to find it within.
+    seed: seedFrom(args.missionId),
+    allowRepeats: tier.allowRepeats,
   };
 }

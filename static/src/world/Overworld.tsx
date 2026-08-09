@@ -44,6 +44,13 @@ const SCALE = 2; // pixel-art integer scale
  * bush pickup has no radius of its own, it fires on actually overlapping the
  * bush's rect (see the frame loop), the same feet-box test a building uses. */
 const CAMERA_INTERACT_RADIUS = 26;
+/** How far past its own detection radius a hunting van keeps chasing —
+ * wider than the circle that started the chase, so breaking line of sight
+ * for a moment doesn't shake it instantly. */
+const CHASE_RADIUS_MULTIPLIER = 2.5;
+/** How long standing inside a hunting van's own red circle takes before it
+ * counts as caught, continuous exposure rather than a single sighting. */
+const LINGER_CATCH_MS = 2000;
 
 /** Position along a patrol route: which leg (the segment between two
  * consecutive waypoints), how far into it (0..1), and — for a there-and-back
@@ -238,6 +245,15 @@ export function Overworld() {
     new Map(PATROL_ROUTES.map((r) => [r.id, { leg: 0, t: 0, dir: 1 as const }])),
   );
   const patrolCooldownRef = useRef<Map<string, number>>(new Map());
+  /** Where a hunting van actually is right now, once it's peeled off its
+   * route to chase — diverges from `patrolStateRef`'s route math for as
+   * long as the chase lasts, and is what gets drawn and checked against the
+   * player instead. Absent for a van that's never left its route. */
+  const patrolChaseRef = useRef<Map<string, { x: number; y: number }>>(new Map());
+  /** When the player entered a van's circle without having left it since —
+   * cleared the instant they step outside it, so this measures continuous
+   * exposure, not a running total. */
+  const patrolLingerRef = useRef<Map<string, number>>(new Map());
 
   enterRef.current = enter;
   blockedRef.current = Boolean(open);
@@ -374,6 +390,14 @@ export function Overworld() {
        * its own cooldown so standing in one van's radius can't machine-gun
        * Heat every frame. The Heat cost is small and ambient on purpose —
        * this is background pressure from wandering, not a mission charge.
+       *
+       * At `flagged`+ (`tuning.hunting`), a van already close enough to spot
+       * the player stops following its route and drives straight at them
+       * instead, for as long as they stay within chase range — security
+       * going from passive to aggressive at the quarterly thresholds. The
+       * route's own state keeps advancing underneath the chase either way,
+       * so a van that gives up resumes patrolling from wherever the route
+       * naturally is rather than picking up mid-chase.
        */
       const tuning = patrolTuning(tierRef.current);
       const active = new Set(activeRoutes(tierRef.current).map((r) => r.id));
@@ -384,45 +408,81 @@ export function Overworld() {
         patrolStateRef.current.set(route.id, next);
         if (!active.has(route.id)) continue;
 
-        const p = patrolPosition(route, next);
+        const routePos = patrolPosition(route, next);
+        // Already chasing gets the wider give-up radius; starting one at all
+        // still needs an actual sighting at the van's own detection range —
+        // otherwise a van two and a half circles away would start driving at
+        // the player without ever having "spotted" them.
+        const wasChasing = patrolChaseRef.current.has(route.id);
+        const lastPos = patrolChaseRef.current.get(route.id) ?? routePos;
+        const chaseRadius = tuning.detectionRadius * (wasChasing ? CHASE_RADIUS_MULTIPLIER : 1);
+        const chasing =
+          tuning.hunting && Math.hypot(lastPos.x - pos.current.x, lastPos.y - pos.current.y) < chaseRadius;
+
+        let p: { x: number; y: number };
+        if (chasing) {
+          const dx = pos.current.x - lastPos.x;
+          const dy = pos.current.y - lastPos.y;
+          const toPlayer = Math.hypot(dx, dy) || 1;
+          const step = Math.min(tuning.speed * dt, toPlayer);
+          p = { x: lastPos.x + (dx / toPlayer) * step, y: lastPos.y + (dy / toPlayer) * step };
+          patrolChaseRef.current.set(route.id, p);
+        } else {
+          p = routePos;
+          patrolChaseRef.current.delete(route.id);
+        }
         patrolDraw.push({ x: p.x, y: p.y, radius: tuning.detectionRadius });
 
         const dist = Math.hypot(p.x - pos.current.x, p.y - pos.current.y);
-        if (dist < tuning.detectionRadius) {
-          /*
-           * A Heat tier crossing opens a ten-second window (GameContext.tsx
-           * `heatAlertUntil`) where an actual catch costs something real
-           * instead of the ambient tick below — checked first, and only
-           * once per window (`consumedAlertRef`), so a second sighting
-           * inside the same window doesn't charge the player twice for one
-           * crossing.
-           */
-          const inAlertWindow =
-            now < heatAlertUntilRef.current && heatAlertUntilRef.current !== consumedAlertRef.current;
-          if (inAlertWindow) {
-            consumedAlertRef.current = heatAlertUntilRef.current;
-            const tier = tierRef.current;
-            const consequence = consequenceFor(saveRef.current, tier);
-            if (consequence) {
-              dispatch({ type: 'CAUGHT', tier });
-              setCaught(consequence.label);
-              window.setTimeout(() => setCaught((m) => (m === consequence.label ? null : m)), 4000);
-              continue;
-            }
-          }
+        if (dist >= tuning.detectionRadius) {
+          patrolLingerRef.current.delete(route.id);
+          continue;
+        }
 
-          const lastHit = patrolCooldownRef.current.get(route.id) ?? -Infinity;
-          if (now - lastHit > tuning.cooldownMs) {
-            patrolCooldownRef.current.set(route.id, now);
-            dispatch({
-              type: 'ADD_HEAT',
-              eventId: `patrol_spotted_${route.id}`,
-              delta: tuning.heatOnSpot,
-              logToHistory: false,
-            });
-            setSpotted('A Helio van slows near you.');
-            window.setTimeout(() => setSpotted((m) => (m === null ? m : null)), 1800);
+        let since = patrolLingerRef.current.get(route.id);
+        if (since === undefined) {
+          since = now;
+          patrolLingerRef.current.set(route.id, since);
+        }
+
+        /*
+         * Two ways to get caught inside the same circle: a Heat tier
+         * crossing opened a ten-second window (GameContext.tsx
+         * `heatAlertUntil`, only once per window via `consumedAlertRef`), or
+         * — new — a hunting van has had the player continuously inside its
+         * own circle for `LINGER_CATCH_MS`. Either fires the same escalating
+         * consequence; the linger timer resets on its own trigger so it
+         * takes a fresh two seconds to fire again, the same way stepping
+         * outside the circle resets it above.
+         */
+        const inAlertWindow =
+          now < heatAlertUntilRef.current && heatAlertUntilRef.current !== consumedAlertRef.current;
+        const lingerCaught = tuning.hunting && now - since >= LINGER_CATCH_MS;
+
+        if (inAlertWindow || lingerCaught) {
+          if (inAlertWindow) consumedAlertRef.current = heatAlertUntilRef.current;
+          if (lingerCaught) patrolLingerRef.current.delete(route.id);
+          const tier = tierRef.current;
+          const consequence = consequenceFor(saveRef.current, tier);
+          if (consequence) {
+            dispatch({ type: 'CAUGHT', tier });
+            setCaught(consequence.label);
+            window.setTimeout(() => setCaught((m) => (m === consequence.label ? null : m)), 4000);
+            continue;
           }
+        }
+
+        const lastHit = patrolCooldownRef.current.get(route.id) ?? -Infinity;
+        if (now - lastHit > tuning.cooldownMs) {
+          patrolCooldownRef.current.set(route.id, now);
+          dispatch({
+            type: 'ADD_HEAT',
+            eventId: `patrol_spotted_${route.id}`,
+            delta: tuning.heatOnSpot,
+            logToHistory: false,
+          });
+          setSpotted('A Helio van slows near you.');
+          window.setTimeout(() => setSpotted((m) => (m === null ? m : null)), 1800);
         }
       }
 

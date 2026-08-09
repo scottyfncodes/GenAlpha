@@ -47,4 +47,10 @@ export const OBSTACLES: Obstacle[] = [
   { id: 'filler_15', x: 848, y: 560, w: 80, h: 60, kind: 'hedge' },
   { id: 'filler_16', x: 300, y: 200, w: 60, h: 56, kind: 'bush' },
   { id: 'filler_17', x: 208, y: 40, w: 60, h: 56, kind: 'rock' },
+  // The map expansion's own strip — a couple of trees flanking the
+  // treehouse and a bush nearby, checked clear of it and of each other the
+  // same way as everything above.
+  { id: 'filler_18', x: 1060, y: 20, w: 64, h: 84, kind: 'tree' },
+  { id: 'filler_19', x: 1140, y: 20, w: 64, h: 84, kind: 'tree' },
+  { id: 'filler_20', x: 960, y: 100, w: 70, h: 56, kind: 'bush' },
 ];

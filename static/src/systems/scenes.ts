@@ -183,7 +183,19 @@ interface SceneMinigameBase {
 }
 
 export type SceneMinigame =
-  | (SceneMinigameBase & { kind: 'hacking'; tier: 1 | 2 | 3 | 4; skinId: SkinId })
+  | (SceneMinigameBase & {
+      kind: 'hacking';
+      tier: 1 | 2 | 3 | 4;
+      skinId: SkinId;
+      /**
+       * ADDED for the Cipher minigame (systems/cipher.ts) — a second hacking
+       * feel sharing the same mission plumbing (briefing, Heat table, hardening,
+       * banked-intel-free resolve). Defaults to `'trace'` so the existing dozen
+       * `kind: 'hacking'` blocks need no changes to keep rendering exactly as
+       * they always have.
+       */
+      variant?: 'trace' | 'cipher';
+    })
   /** Tier, skin and beats all come off the authored SabotageConfig. */
   | (SceneMinigameBase & { kind: 'sabotage' });
 

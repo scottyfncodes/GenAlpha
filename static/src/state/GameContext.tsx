@@ -15,7 +15,7 @@ import { resolveRun, type RunResult } from '../systems/missions';
 import type { Effect } from '../systems/scenes';
 import { createNewSave } from './defaults';
 import { clearSave, loadSave, writeSave } from './persistence';
-import { applyHeat, decayTo, lieLow, TIER_ORDER } from '../systems/heat';
+import { applyHeat, decayTo, HOME_RELIEF_DECAY, HOME_RELIEF_FLAG, lieLow, TIER_ORDER } from '../systems/heat';
 import { applyEffects } from '../systems/effects';
 import { buy, buyShdw, sell, sellShdw, tickMarket, useConsumable } from '../systems/market';
 import { tickSafehouses } from '../systems/safehouse';
@@ -23,6 +23,7 @@ import { drain } from '../systems/heist';
 import { collectHidden, craft, sabotageCamera, sellMaterial } from '../systems/materials';
 import { applyCatch } from '../systems/consequences';
 import type { SabotageActionId } from '../world/collectibles';
+import { HOME_LOCATION_ID } from '../world/locations';
 
 /** How long the "you can be caught right now" window stays open after a Heat
  * tier crossing — long enough to be a real window, short enough that it
@@ -67,8 +68,22 @@ function reducer(state: SaveState | null, action: Action): SaveState | null {
   if (!state) return state;
 
   switch (action.type) {
-    case 'SET_LOCATION':
-      return { ...state, player: { ...state.player, currentLocation: action.locationId } };
+    /**
+     * Arriving home is a small, automatic Heat relief — not the Lie Low
+     * choice, which costs a day on purpose. Once per in-fiction day
+     * (`HOME_RELIEF_FLAG` stamped with the day it was given) so walking in
+     * and back out can't be farmed for free Heat.
+     */
+    case 'SET_LOCATION': {
+      const next = { ...state, player: { ...state.player, currentLocation: action.locationId } };
+      if (action.locationId !== HOME_LOCATION_ID) return next;
+      if (state.player.flags[HOME_RELIEF_FLAG] === state.world.day) return next;
+      return {
+        ...next,
+        heat: applyHeat(next.heat, { eventId: 'home_relief', delta: -HOME_RELIEF_DECAY }),
+        player: { ...next.player, flags: { ...next.player.flags, [HOME_RELIEF_FLAG]: state.world.day } },
+      };
+    }
 
     case 'SET_CHAPTER':
       return { ...state, player: { ...state.player, currentChapter: action.chapterId } };

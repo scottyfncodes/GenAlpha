@@ -143,6 +143,7 @@ const EASY_WAY: Scene = {
       ],
       minigame: {
         kind: 'hacking',
+        variant: 'cipher',
         missionId: 'records_host',
         tier: 3,
         skinId: 'villain',

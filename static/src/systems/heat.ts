@@ -22,6 +22,14 @@ export const TIER_ORDER: ThresholdTier[] = ['clear', 'watched', 'flagged', 'hunt
 export const HISTORY_CAP = 20;
 export const PASSIVE_DECAY_PER_DAY = 2;
 export const LIE_LOW_DECAY = 12; // spec range −10 to −15
+/**
+ * Walking in the door is not the same choice as Lie Low — no day spent, no
+ * button pressed, just a smaller, automatic relief for actually being home.
+ * Once per in-fiction day (`GameContext.tsx`'s `SET_LOCATION`, guarded by
+ * `HOME_RELIEF_FLAG`), so it can't be farmed by walking in and out.
+ */
+export const HOME_RELIEF_DECAY = 5;
+export const HOME_RELIEF_FLAG = 'home_relief_day';
 
 export function tierFor(current: number): ThresholdTier {
   const band = HEAT_TIERS.find((t) => current >= t.min && current <= t.max);

@@ -61,12 +61,26 @@ export interface OverworldLocation {
   render?: 'building' | 'camera';
 }
 
-export const MAP_WIDTH = 960;
-export const MAP_HEIGHT = 640;
+/*
+ * Expanded from 960x640. Both `drawGround`/`drawRoads` and the movement
+ * clamp in Overworld.tsx already read these constants rather than a
+ * hardcoded size, so the new strip east and south of the old edge fills in
+ * with the same ground and the same repeating road grid automatically —
+ * nothing needed drawing by hand for it to be walkable. The old edge sat
+ * mid-block for `ballpark` (y 560-680 against a 640-tall map, an existing
+ * 40px overflow this also happens to clear), which is the other reason 640
+ * wasn't just left alone.
+ */
+export const MAP_WIDTH = 1280;
+export const MAP_HEIGHT = 800;
+
+/** Named rather than a magic string — `GameContext.tsx`'s automatic Heat
+ * relief on arrival checks this specific location and nothing else. */
+export const HOME_LOCATION_ID = 'home';
 
 export const LOCATIONS: OverworldLocation[] = [
   {
-    id: 'home',
+    id: HOME_LOCATION_ID,
     label: 'Home',
     language: 'A',
     x: 96, y: 400, w: 128, h: 96,
@@ -227,6 +241,7 @@ export const LOCATIONS: OverworldLocation[] = [
     x: 300, y: 560, w: 190, h: 120,
     color: '#7fa8c9',
     blurb: 'Chain-link, a scoreboard with one dead segment, and a big screen nobody looks at.',
+    canLieLow: true,
     ambient: {
       flagged: 'There’s a new camera on the scoreboard gantry, pointing at the bleachers rather than the field.',
       hunted: 'Two people in the top row who did not come to watch a baseball game.',
@@ -282,6 +297,26 @@ export const LOCATIONS: OverworldLocation[] = [
       watched: 'Nobody in here looks up when the door goes. That’s most of the appeal.',
       flagged: 'The owner’s turned the machine facing the window around, so the screens don’t show from the street.',
       hunted: 'The lights are half off. Somebody left the back door propped for you without saying so.',
+    },
+  },
+  {
+    /*
+     * In the strip the map expansion opened up — a plank floor and three
+     * walls, which is a place nobody official put a camera on, because
+     * nobody official knows it's there. Same Lie Low mechanic as Sal's and
+     * the Arcade, just older and smaller and yours since you were nine.
+     */
+    id: 'treehouse',
+    label: 'The Treehouse',
+    language: 'A',
+    x: 960, y: 20, w: 80, h: 64,
+    color: '#8a9b6e',
+    blurb: 'A plank floor, a rope ladder nobody’s cut down, and a beach towel doing the job of a roof in one corner.',
+    canLieLow: true,
+    ambient: {
+      watched: 'Somebody left half a candy bar up here. It’s not new enough to be yours.',
+      flagged: 'From up here you can actually see which streets still have a light on this late.',
+      hunted: 'Nobody looks up. That was always the whole design.',
     },
   },
 ];

@@ -12,6 +12,7 @@ export function MissionBriefing({
   framing,
   brief,
   kind,
+  variant,
   language,
   heatRange,
   relief = 0,
@@ -22,6 +23,10 @@ export function MissionBriefing({
   framing: string;
   brief?: string;
   kind: MissionKind;
+  /** Which hacking feel this is — Trace's grid walk or Cipher's code-breaking.
+   * Ignored for `kind: 'sabotage'`. Defaults to Trace's copy, matching the
+   * SceneMinigame type's own default. */
+  variant?: 'trace' | 'cipher';
   language: 'A' | 'B';
   /** Overrides the mission-table range — story scenes own their own cost. */
   heatRange?: [number, number];
@@ -39,7 +44,15 @@ export function MissionBriefing({
       <h2 className="briefing__title">{title}</h2>
       {brief && <p className="briefing__body">{brief}</p>}
 
-      {kind === 'hacking' && (
+      {kind === 'hacking' && variant === 'cipher' && (
+        <p className="briefing__howto">
+          It’s a locked code, not a network to walk. Set a guess and <b>read</b> it — you’ll only
+          learn how many symbols were exactly right and how many were just somewhere in there,
+          never which. Close it out before you’re out of reads.
+        </p>
+      )}
+
+      {kind === 'hacking' && variant !== 'cipher' && (
         <p className="briefing__howto">
           You’re moving through their network, not just guessing a password. <b>Pulse</b> a node
           next to you to read it before you commit to it — some are clean path, one trips their

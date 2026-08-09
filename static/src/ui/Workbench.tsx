@@ -1,8 +1,9 @@
 import { useState } from 'react';
 import { TraceMinigame } from './minigames/TraceMinigame';
+import { CipherMinigame } from './minigames/CipherMinigame';
 import { SabotageMission } from './minigames/SabotageMission';
 import { MissionBriefing } from './minigames/MissionBriefing';
-import { buildTraceConfig } from '../content/hacking';
+import { buildTraceConfig, buildCipherConfig } from '../content/hacking';
 import { buildSabotageConfig, SABOTAGE_MISSIONS } from '../content/sabotage';
 import { SKINS, type SkinId } from '../content/skins';
 import { useGame, useSave } from '../state/GameContext';
@@ -12,6 +13,7 @@ import './workbench.css';
 
 type Launch =
   | { kind: 'hacking'; missionId: string; tier: 1 | 2 | 3 | 4; skinId: SkinId }
+  | { kind: 'cipher'; missionId: string; tier: 1 | 2 | 3 | 4; skinId: SkinId }
   | { kind: 'sabotage'; missionId: string };
 
 /**
@@ -66,6 +68,28 @@ export function Workbench({ onClose }: { onClose: () => void }) {
         </div>
       );
     }
+    if (launch.kind === 'cipher') {
+      const record = save.missions[launch.missionId];
+      return (
+        <div className="workbench__stage">
+          <CipherMinigame
+            key={`${launch.missionId}:${record?.attempts ?? 0}`}
+            skinId={launch.skinId}
+            config={buildCipherConfig({
+              missionId: launch.missionId,
+              tier: launch.tier,
+              skillTier: save.skills.hacking.tier,
+              heatTier: save.heat.threshold_tier,
+              hardened: record?.hardened,
+            })}
+            // Cipher resolves through the same 'hacking' mission record as
+            // Trace — it's a different feel on the same mechanic slot, not a
+            // different mission kind.
+            onResolve={resolve('hacking', launch.missionId)}
+          />
+        </div>
+      );
+    }
     const record = save.missions[launch.missionId];
     return (
       <div className="workbench__stage">
@@ -85,13 +109,17 @@ export function Workbench({ onClose }: { onClose: () => void }) {
   }
 
   if (launch) {
-    const skin = launch.kind === 'hacking' ? SKINS[launch.skinId] : SKINS[SABOTAGE_MISSIONS[launch.missionId].skinId as SkinId];
+    const skin =
+      launch.kind === 'sabotage'
+        ? SKINS[SABOTAGE_MISSIONS[launch.missionId].skinId as SkinId]
+        : SKINS[launch.skinId];
     return (
       <div className="workbench__stage">
         <MissionBriefing
-          kind={launch.kind}
+          kind={launch.kind === 'cipher' ? 'hacking' : launch.kind}
+          variant={launch.kind === 'cipher' ? 'cipher' : undefined}
           language={skin.language}
-          title={launch.kind === 'hacking' ? skin.title : SABOTAGE_MISSIONS[launch.missionId].title}
+          title={launch.kind === 'sabotage' ? SABOTAGE_MISSIONS[launch.missionId].title : skin.title}
           framing={skin.framing}
           brief={launch.kind === 'sabotage' ? SABOTAGE_MISSIONS[launch.missionId].brief : undefined}
           onStart={() => setRunning(true)}
@@ -140,6 +168,35 @@ export function Workbench({ onClose }: { onClose: () => void }) {
       <p className="workbench__hint">
         Tier 3 uses the villain skin — it withholds adjacent trap counts. Same rules, worse
         visibility, which is what better security means here.
+      </p>
+
+      <h3>Cipher — hacking</h3>
+      <div className="workbench__row">
+        {([1, 2, 3, 4] as const).map((tier) => {
+          const id = `wb_cipher_t${tier}`;
+          const cooling = isOnCooldown(save.missions[id], save.world.day);
+          return (
+            <button
+              key={tier}
+              disabled={cooling}
+              onClick={() =>
+                setLaunch({
+                  kind: 'cipher',
+                  missionId: id,
+                  tier,
+                  skinId: tier === 1 ? 'records' : tier === 2 ? 'resistance' : tier === 3 ? 'villain' : 'heist',
+                })
+              }
+            >
+              Tier {tier}
+              {cooling ? ' (cooling)' : ''}
+            </button>
+          );
+        })}
+      </div>
+      <p className="workbench__hint">
+        Same mission plumbing as Trace, a code-breaking feel instead of a grid walk — set a guess,
+        read it back, and learn only how many symbols landed and how many were just present.
       </p>
 
       <h3>Casing &amp; the Window — sabotage</h3>
