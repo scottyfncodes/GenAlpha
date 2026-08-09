@@ -9,12 +9,12 @@ import {
 } from './locations';
 import { OBSTACLES } from './obstacles';
 import { PATROL_ROUTES, activeRoutes, patrolTuning, type PatrolRoute } from './patrols';
-import { COLLECTIBLE_NODES } from './collectibles';
+import { CAMERA_NODES, HIDDEN_PICKUPS, HIDDEN_PICKUP_OBSTACLE_IDS, type CameraNode } from './collectibles';
 import { useGame, useSave } from '../state/GameContext';
 import type { ThresholdTier } from '../state/schema';
 import { LIE_LOW_DECAY, lieLowBlocked } from '../systems/heat';
 import { safehouseBlocked, safehouseDecay } from '../systems/safehouse';
-import { canCollect } from '../systems/materials';
+import { canCollectHidden, canDismantle } from '../systems/materials';
 import { MATERIALS_BY_ID } from '../content/materials';
 import { LIE_LOW_FLAG } from '../content/breather';
 import { SAFEHOUSE_ID } from '../content/safehouse';
@@ -29,7 +29,10 @@ const SPEED = 110; // world units per second
 const PLAYER_W = 12;
 const PLAYER_H = 18;
 const SCALE = 2; // pixel-art integer scale
-const CONTACT_RADIUS = 14;
+/** How close counts as "close enough to dismantle" for a camera — a hidden
+ * bush pickup has no radius of its own, it fires on actually overlapping the
+ * bush's rect (see the frame loop), the same feet-box test a building uses. */
+const CAMERA_INTERACT_RADIUS = 26;
 
 /** Position along a patrol route: which leg (the segment between two
  * consecutive waypoints), how far into it (0..1), and — for a there-and-back
@@ -102,9 +105,12 @@ export function Overworld() {
   const { dispatch } = useGame();
   const [nearby, setNearby] = useState<OverworldLocation | null>(null);
   const [open, setOpen] = useState<OverworldLocation | null>(null);
-  /** A brief line when a salvage node is picked up — same "shown, not silent"
-   * treatment as `spotted`, since there's no prompt to click any more. */
+  /** A brief line when a hidden bush gives something up — same "shown, not
+   * silent" treatment as `spotted`, since there's no prompt to click for it. */
   const [picked, setPicked] = useState<string | null>(null);
+  /** The camera close enough to dismantle right now, if any — this one keeps
+   * its prompt, since spending Heat on purpose is a decision, not a walk. */
+  const [nearbyCamera, setNearbyCamera] = useState<CameraNode | null>(null);
   /**
    * Held in state, not derived: a scene's own effects change the chapter part
    * way through, which would otherwise unmount the scene mid-read.
@@ -129,9 +135,10 @@ export function Overworld() {
   const tierRef = useRef(save.heat.threshold_tier);
   tierRef.current = save.heat.threshold_tier;
 
-  /* Same reason again: `canCollect` needs the save's collected-node log and
-     the current day, and the frame loop can't close over `save` directly
-     without going stale the same way flags and tier would. */
+  /* Same reason again: `canCollectHidden`/`canDismantle` need the save's
+     collected-node log and the current day, and the frame loop can't close
+     over `save` directly without going stale the same way flags and tier
+     would. */
   const saveRef = useRef(save);
   saveRef.current = save;
 
@@ -175,7 +182,8 @@ export function Overworld() {
   const touch = useRef({ dx: 0, dy: 0 });
   const nearbyRef = useRef<OverworldLocation | null>(null);
   const enterRef = useRef<(loc: OverworldLocation) => void>(() => {});
-  /** Nodes currently underfoot, so a pickup fires once on approach rather
+  const nearbyCameraRef = useRef<CameraNode | null>(null);
+  /** Hidden pickups currently underfoot, so one fires once on approach rather
    * than every single frame the player happens to be standing on it. */
   const contactRef = useRef<Set<string>>(new Set());
   /** True while a scene or location card owns the screen. */
@@ -246,7 +254,10 @@ export function Overworld() {
        * approach.
        */
       const visible = visibleLocations(flagsRef.current);
-      const blockers: { x: number; y: number; w: number; h: number }[] = [...visible, ...OBSTACLES];
+      // A bush hiding a salvage find is walkable, full stop — that's the only
+      // tell it ever gives, so it can't also be a wall.
+      const solidObstacles = OBSTACLES.filter((o) => !HIDDEN_PICKUP_OBSTACLE_IDS.has(o.id));
+      const blockers: { x: number; y: number; w: number; h: number }[] = [...visible, ...solidObstacles];
       const solid = blockers.filter((l) => !overlapsBuilding(pos.current.x, pos.current.y, l));
 
       const nx = clamp(pos.current.x + (dx / len) * SPEED * dt, 8, MAP_WIDTH - 8);
@@ -263,34 +274,57 @@ export function Overworld() {
       }
 
       /*
-       * Salvage nodes. No prompt, no key to press — walking into one is the
-       * whole interaction. A node already picked and on cooldown is filtered
-       * out here rather than at draw time only, so it's neither visible nor
-       * collectible until `canCollect` says its respawn day has passed — the
-       * same "no ghost target" rule the location prompt already follows.
+       * Hidden bush pickups. No prompt, no key to press — walking into one is
+       * the whole interaction, and nothing about it looks different from any
+       * other bush until you're standing in it (see collectibles.ts). One
+       * already taken and on cooldown is skipped here the same way a spent
+       * location thread would be.
        *
        * `contactRef` fires the pickup once per approach rather than once per
-       * frame spent standing on it — `collect()` is idempotent either way
+       * frame spent standing on it — `collectHidden` is idempotent either way
        * (systems/materials.ts), this is purely so the toast doesn't reset
        * itself twenty times while the player is still standing there.
        */
-      const collectibleDraw: { x: number; y: number }[] = [];
       const stillTouching = new Set<string>();
-      for (const node of COLLECTIBLE_NODES) {
-        if (!canCollect(saveRef.current, node)) continue;
-        collectibleDraw.push({ x: node.x, y: node.y });
+      for (const pickup of HIDDEN_PICKUPS) {
+        if (!canCollectHidden(saveRef.current, pickup.obstacleId)) continue;
+        const bush = OBSTACLES.find((o) => o.id === pickup.obstacleId);
+        if (!bush || !overlapsBuilding(pos.current.x, pos.current.y, bush)) continue;
 
-        const dist = Math.hypot(node.x - pos.current.x, node.y - pos.current.y);
-        if (dist >= CONTACT_RADIUS) continue;
-        stillTouching.add(node.id);
-        if (contactRef.current.has(node.id)) continue;
+        stillTouching.add(pickup.obstacleId);
+        if (contactRef.current.has(pickup.obstacleId)) continue;
 
-        dispatch({ type: 'COLLECT_NODE', nodeId: node.id });
-        const name = MATERIALS_BY_ID[node.itemId]?.name ?? 'salvage';
-        setPicked(`Picked up: ${name}`);
-        window.setTimeout(() => setPicked((m) => (m === `Picked up: ${name}` ? null : m)), 1600);
+        dispatch({ type: 'COLLECT_HIDDEN', obstacleId: pickup.obstacleId });
+        const name = MATERIALS_BY_ID[pickup.itemId]?.name ?? 'salvage';
+        setPicked(`Found something: ${name}`);
+        window.setTimeout(() => setPicked((m) => (m === `Found something: ${name}` ? null : m)), 1600);
       }
       contactRef.current = stillTouching;
+
+      /*
+       * Cameras worth dismantling. Deliberate rather than automatic — this
+       * spends Heat, so it keeps the prompt-and-key pattern a location uses
+       * rather than the hidden pickups' silent walk-through. Only the ones
+       * `canDismantle` says are actually standing get drawn or targeted; one
+       * just taken apart stays gone until Helio's had time to replace it.
+       */
+      const cameraDraw: { x: number; y: number; dismantlable: boolean }[] = [];
+      let closestCamera: CameraNode | null = null;
+      let closestCameraDist = CAMERA_INTERACT_RADIUS;
+      for (const node of CAMERA_NODES) {
+        if (!canDismantle(saveRef.current, node)) continue;
+        const dist = Math.hypot(node.x - pos.current.x, node.y - pos.current.y);
+        const inRange = dist < CAMERA_INTERACT_RADIUS;
+        cameraDraw.push({ x: node.x, y: node.y, dismantlable: inRange });
+        if (inRange && dist < closestCameraDist) {
+          closestCameraDist = dist;
+          closestCamera = node;
+        }
+      }
+      if (closestCamera?.id !== nearbyCameraRef.current?.id) {
+        nearbyCameraRef.current = closestCamera;
+        setNearbyCamera(closestCamera);
+      }
 
       /*
        * Patrols. Every route keeps walking regardless of tier; only the
@@ -340,7 +374,7 @@ export function Overworld() {
         { w: PLAYER_W, h: PLAYER_H },
         OBSTACLES,
         patrolDraw,
-        collectibleDraw,
+        cameraDraw,
         moving,
         now,
       );
@@ -365,7 +399,13 @@ export function Overworld() {
       const k = e.key.toLowerCase();
       if (k === 'e' || k === ' ') {
         e.preventDefault();
+        // A location wins ties — the rare case where a camera sits inside a
+        // location's radius should read as "walk in and talk", not a race
+        // against a piece of street furniture.
         if (nearbyRef.current) enterRef.current(nearbyRef.current);
+        else if (nearbyCameraRef.current) {
+          dispatch({ type: 'DISMANTLE_CAMERA', nodeId: nearbyCameraRef.current.id });
+        }
         return;
       }
       if (!MOVE.includes(k)) return;
@@ -410,6 +450,18 @@ export function Overworld() {
             : nearbyScene
               ? nearbyScene.hook
               : nearby.label}
+        </button>
+      )}
+
+      {/* Same slot as the location prompt, mutually exclusive with it — the
+          cost is on the button itself, per Heat System guardrail 2: nothing
+          spends Heat without showing the price first. */}
+      {!nearby && nearbyCamera && !open && (
+        <button
+          className="overworld__prompt overworld__prompt--camera"
+          onClick={() => dispatch({ type: 'DISMANTLE_CAMERA', nodeId: nearbyCamera.id })}
+        >
+          Dismantle the camera · Heat +{nearbyCamera.heatCost}
         </button>
       )}
 

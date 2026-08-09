@@ -1,35 +1,71 @@
 /**
- * Overworld collectible nodes (module 9 addendum, Part A): things worth
- * walking off the critical path for. Coordinates checked against the same
- * padded-rect collision data as the maze filler and patrol routes — every
- * point here sits outside every building and obstacle, padding included, so
- * a node is never placed somewhere the player can't actually stand next to.
+ * Overworld salvage, split into the two ways the build note asked for it to
+ * feel different: a handful of *hidden* finds no different-looking from any
+ * other bush until you happen to walk into the right one (the Zelda "cut
+ * every bush" instinct), and a deliberate, costed act of sabotage against the
+ * town's own camera network — which is where the good parts actually come
+ * from. Free salvage is a lucky find; a dismantled camera is a decision.
  *
- * Respawn is keyed to `world.day`, never wall-clock time, same rule as
- * everything else that comes back — see `systems/materials.ts` `canCollect`.
+ * Both share the same day-keyed respawn bookkeeping as everything else that
+ * comes back — `world.collectedNodes`, never wall-clock time — see
+ * `systems/materials.ts`.
  */
-export interface CollectibleNode {
+
+/**
+ * A bush from `world/obstacles.ts` that happens to be hiding something. The
+ * obstacle itself is drawn exactly like any other bush — nothing marks it —
+ * and it is quietly excluded from collision (Overworld.tsx) so walking into
+ * it is possible at all, which is the only tell there ever is.
+ */
+export interface HiddenPickup {
+  obstacleId: string;
+  itemId: string;
+  respawnDays: number;
+}
+
+export const HIDDEN_PICKUPS: HiddenPickup[] = [
+  { obstacleId: 'filler_2', itemId: 'spare_battery', respawnDays: 3 },
+  { obstacleId: 'filler_4', itemId: 'copper_wire', respawnDays: 2 },
+  { obstacleId: 'filler_10', itemId: 'copper_wire', respawnDays: 2 },
+  { obstacleId: 'filler_12', itemId: 'salvaged_board', respawnDays: 3 },
+  { obstacleId: 'filler_16', itemId: 'spare_battery', respawnDays: 3 },
+];
+
+/** The obstacle ids `HIDDEN_PICKUPS` names, precomputed so Overworld.tsx can
+ * cheaply exclude them from collision every frame without re-deriving the
+ * set each time — these bushes are walkable, full stop, whether or not
+ * there's currently anything in them. */
+export const HIDDEN_PICKUP_OBSTACLE_IDS = new Set(HIDDEN_PICKUPS.map((p) => p.obstacleId));
+
+/**
+ * A camera worth taking apart. Rendered with the same small blue box as the
+ * story pole (`draw.ts` `drawSabotageCamera`, `locations.ts`'s `camera_pole_5th`)
+ * so it reads as the same kind of object — this is the ordinary version of
+ * the thing Act 1 made you look at once. Coordinates carried over from the
+ * old standalone pickups, already checked clear of every building and
+ * obstacle rect.
+ *
+ * `cracked_chipset` — the one material every recipe eventually wants more
+ * of — comes from cameras and nowhere else. Copper and board salvage overlap
+ * with the hidden bush finds; the chipset is the reason to actually do the
+ * sabotage instead of just walking around.
+ */
+export interface CameraNode {
   id: string;
   x: number;
   y: number;
   itemId: string;
   respawnDays: number;
+  /** Heat charged for the act, shown on the prompt before it's spent. */
+  heatCost: number;
 }
 
-export const COLLECTIBLE_NODES: CollectibleNode[] = [
-  { id: 'salvage_1', x: 640, y: 415, itemId: 'copper_wire', respawnDays: 2 },
-  { id: 'salvage_2', x: 600, y: 428, itemId: 'salvaged_board', respawnDays: 3 },
-  { id: 'salvage_3', x: 120, y: 300, itemId: 'copper_wire', respawnDays: 2 },
-  { id: 'salvage_4', x: 140, y: 350, itemId: 'spare_battery', respawnDays: 3 },
-  { id: 'salvage_5', x: 756, y: 100, itemId: 'cracked_chipset', respawnDays: 4 },
-  { id: 'salvage_6', x: 756, y: 210, itemId: 'copper_wire', respawnDays: 2 },
-  { id: 'salvage_7', x: 330, y: 300, itemId: 'salvaged_board', respawnDays: 3 },
-  { id: 'salvage_8', x: 330, y: 450, itemId: 'spare_battery', respawnDays: 3 },
-  { id: 'salvage_9', x: 540, y: 300, itemId: 'cracked_chipset', respawnDays: 4 },
-  { id: 'salvage_10', x: 540, y: 450, itemId: 'copper_wire', respawnDays: 2 },
-  { id: 'salvage_11', x: 16, y: 300, itemId: 'salvaged_board', respawnDays: 3 },
-  { id: 'salvage_12', x: 948, y: 300, itemId: 'spare_battery', respawnDays: 3 },
-  { id: 'salvage_13', x: 260, y: 428, itemId: 'cracked_chipset', respawnDays: 4 },
-  { id: 'salvage_14', x: 600, y: 600, itemId: 'copper_wire', respawnDays: 2 },
-  { id: 'salvage_15', x: 700, y: 608, itemId: 'salvaged_board', respawnDays: 3 },
+export const CAMERA_NODES: CameraNode[] = [
+  { id: 'camera_dismantle_1', x: 756, y: 100, itemId: 'cracked_chipset', respawnDays: 5, heatCost: 4 },
+  { id: 'camera_dismantle_2', x: 120, y: 300, itemId: 'cracked_chipset', respawnDays: 5, heatCost: 4 },
+  { id: 'camera_dismantle_3', x: 540, y: 300, itemId: 'copper_wire', respawnDays: 4, heatCost: 3 },
+  { id: 'camera_dismantle_4', x: 948, y: 300, itemId: 'cracked_chipset', respawnDays: 5, heatCost: 4 },
+  { id: 'camera_dismantle_5', x: 260, y: 428, itemId: 'salvaged_board', respawnDays: 4, heatCost: 3 },
+  { id: 'camera_dismantle_6', x: 600, y: 600, itemId: 'cracked_chipset', respawnDays: 5, heatCost: 4 },
+  { id: 'camera_dismantle_7', x: 16, y: 300, itemId: 'copper_wire', respawnDays: 4, heatCost: 3 },
 ];

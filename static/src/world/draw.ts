@@ -69,8 +69,6 @@ const PALETTE = {
   rockLight: '#5c6577',
   hedgeDark: '#38513e',
   hedge: '#48684f',
-  collectible: '#e8d24a',
-  collectibleGlow: 'rgba(232, 210, 74, 0.28)',
 } as const;
 
 const px = Math.round;
@@ -92,7 +90,7 @@ export function drawTown(
   playerSize: { w: number; h: number },
   obstacles: Obstacle[],
   patrols: { x: number; y: number; radius: number }[],
-  collectibles: { x: number; y: number }[],
+  cameraNodes: { x: number; y: number; dismantlable: boolean }[],
   moving: boolean,
   now: number,
 ) {
@@ -126,10 +124,11 @@ export function drawTown(
     else drawBuilding(ctx, loc, here?.id === loc.id, tier);
   }
 
-  // Salvage: a glint on the ground, not a building — same footing as a
-  // camera's "post with a lens on it", scaled down further because this is a
-  // thing you pick up, not a thing that watches you.
-  for (const c of collectibles) drawCollectible(ctx, c);
+  // Ordinary cameras, worth taking apart — the same small box the story pole
+  // renders as, so it reads as the same kind of object. `dismantlable` is
+  // just whether the player is close enough to act on it right now; a camera
+  // on cooldown after a dismantle isn't in this list at all.
+  for (const c of cameraNodes) drawSabotageCamera(ctx, c, c.dismantlable);
 
   // Detection rings under the vans, so a van sitting still doesn't visually
   // "arrive" on top of its own danger zone.
@@ -416,29 +415,34 @@ function drawCamera(ctx: CanvasRenderingContext2D, loc: OverworldLocation, isHer
 }
 
 /**
- * A salvage node: a small gold diamond over a soft glow, the one shape on this
- * canvas that means "pick this up" rather than "place" or "threat" — cameras
- * are blue boxes, patrols are red, everything else is terrain-colored. Static,
- * like every other sprite here; the glow is what reads as "shiny" without a
- * per-frame animation loop.
+ * An ordinary camera, worth taking apart — the same fixed 2x2-tile blue box
+ * as `drawCamera` above, because it is the same kind of object; the only
+ * difference is this one sits on a bare point rather than centred in a named
+ * location's rect, so the two take slightly different inputs and it wasn't
+ * worth forcing one shape to fit both. The highlight ring is the same
+ * "you're close enough" tell a location gets, doubling here as the only
+ * signal that dismantling is actually available right now.
  */
-function drawCollectible(ctx: CanvasRenderingContext2D, node: { x: number; y: number }) {
-  const r = 5;
+function drawSabotageCamera(
+  ctx: CanvasRenderingContext2D,
+  node: { x: number; y: number },
+  dismantlable: boolean,
+) {
+  const size = 16;
+  const x = px(node.x - size / 2);
+  const y = px(node.y - size / 2);
 
-  ctx.fillStyle = PALETTE.collectibleGlow;
-  ctx.beginPath();
-  ctx.arc(node.x, node.y, r * 2.4, 0, Math.PI * 2);
-  ctx.fill();
-
-  ctx.save();
-  ctx.translate(px(node.x), px(node.y));
-  ctx.rotate(Math.PI / 4);
-  ctx.fillStyle = PALETTE.collectible;
-  ctx.fillRect(-r, -r, r * 2, r * 2);
-  ctx.strokeStyle = PALETTE.outline;
+  ctx.fillStyle = PALETTE.camera;
+  ctx.fillRect(x, y, size, size);
+  ctx.strokeStyle = PALETTE.cameraDark;
   ctx.lineWidth = 1;
-  ctx.strokeRect(-r - 0.5, -r - 0.5, r * 2 + 1, r * 2 + 1);
-  ctx.restore();
+  ctx.strokeRect(x - 0.5, y - 0.5, size + 1, size + 1);
+
+  if (dismantlable) {
+    ctx.strokeStyle = PALETTE.spriteShirt;
+    ctx.lineWidth = 2;
+    ctx.strokeRect(x - 4, y - 4, size + 8, size + 8);
+  }
 }
 
 /**

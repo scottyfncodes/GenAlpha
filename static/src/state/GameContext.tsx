@@ -19,7 +19,7 @@ import { applyEffects } from '../systems/effects';
 import { buy, buyShdw, sell, sellShdw, tickMarket, useConsumable } from '../systems/market';
 import { tickSafehouses } from '../systems/safehouse';
 import { drain } from '../systems/heist';
-import { collect, craft, sellMaterial } from '../systems/materials';
+import { collectHidden, craft, dismantleCamera, sellMaterial } from '../systems/materials';
 
 /**
  * The only writer to the save shape. Every system dispatches through here, so
@@ -46,7 +46,8 @@ type Action =
   | { type: 'SET_SETTING'; patch: Partial<SettingsState> }
   | { type: 'APPLY_EFFECTS'; effects: Effect[] }
   | { type: 'TICK_PLAYTIME'; seconds: number }
-  | { type: 'COLLECT_NODE'; nodeId: string }
+  | { type: 'COLLECT_HIDDEN'; obstacleId: string }
+  | { type: 'DISMANTLE_CAMERA'; nodeId: string }
   | { type: 'SELL_MATERIAL'; itemId: string }
   | { type: 'CRAFT_ITEM'; recipeId: string };
 
@@ -133,11 +134,14 @@ function reducer(state: SaveState | null, action: Action): SaveState | null {
     case 'SELL_SHDW':
       return sellShdw(state, action.amount);
 
-    /** Overworld salvage: collect, sell for SHDW, or build. See
-     * systems/materials.ts — each is a no-op on the state it can't perform,
-     * same "return the save unchanged" contract as buy/sell. */
-    case 'COLLECT_NODE':
-      return collect(state, action.nodeId);
+    /** Overworld salvage: a hidden bush, a dismantled camera, sold for SHDW,
+     * or built. See systems/materials.ts — each is a no-op on the state it
+     * can't perform, same "return the save unchanged" contract as buy/sell. */
+    case 'COLLECT_HIDDEN':
+      return collectHidden(state, action.obstacleId);
+
+    case 'DISMANTLE_CAMERA':
+      return dismantleCamera(state, action.nodeId);
 
     case 'SELL_MATERIAL':
       return sellMaterial(state, action.itemId);
