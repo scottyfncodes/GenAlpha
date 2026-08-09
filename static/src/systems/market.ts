@@ -329,12 +329,31 @@ export function eventsFromRun(kind: string, outcome: string, skinId?: string): s
   return events;
 }
 
-/** SHDW: a store of value and a laundering vector, deliberately not a minigame. */
-export function shdwRate(save: SaveState): number {
-  const wander = mulberry32(seedFrom(`shdw:${save.world.day}`))() * 2 - 1;
+/**
+ * SHDW: a store of value and a laundering vector, deliberately not a
+ * minigame. `shdwRateOnDay` takes the day as a parameter — still seeded, so a
+ * reload can't reroll any single day — so the Shadow app can look a few days
+ * back and draw a trend line without that history ever being stored.
+ */
+export function shdwRateOnDay(save: SaveState, day: number): number {
+  const wander = mulberry32(seedFrom(`shdw:${day}`))() * 2 - 1;
   const heat = HEAT_MULTIPLIER[save.heat.threshold_tier];
   const rate = SHDW.basePrice * (1 + wander * SHDW.drift) * heat;
   return Math.round(rate * 100) / 100;
+}
+
+export function shdwRate(save: SaveState): number {
+  return shdwRateOnDay(save, save.world.day);
+}
+
+/** Up, down or level against yesterday's rate — the arrow on the Shadow app. */
+export function shdwDirection(save: SaveState): 'up' | 'down' | 'level' {
+  if (save.world.day <= 1) return 'level';
+  const prev = shdwRateOnDay(save, save.world.day - 1);
+  const now = shdwRate(save);
+  if (now > prev * 1.02) return 'up';
+  if (now < prev * 0.98) return 'down';
+  return 'level';
 }
 
 export function shdwHeld(save: SaveState): number {

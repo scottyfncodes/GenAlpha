@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useGame, useSave } from '../state/GameContext';
-import { ITEMS, SHDW } from '../content/economy';
+import { ITEMS } from '../content/economy';
 import {
   categoryLabel,
   netWorth,
@@ -9,7 +9,6 @@ import {
   quantityOf,
   resaleValue,
   shdwHeld,
-  shdwRate,
   tickerLines,
   unavailableReason,
 } from '../systems/market';
@@ -142,54 +141,6 @@ export function Market({ onClose }: { onClose: () => void }) {
           </ul>
         </section>
       ))}
-
-      <ShadowPanel onAct={act} />
     </div>
-  );
-}
-
-/**
- * SHDW — a store of value and a way to move money that isn't a pocket, and
- * deliberately not a second minigame (module 03). Two buttons and a rate.
- */
-function ShadowPanel({
-  onAct,
-}: {
-  onAct: (action: MarketAction, said: string) => void;
-}) {
-  const save = useSave();
-  const rate = shdwRate(save);
-  const held = shdwHeld(save);
-  const cash = save.economy.cashOnHand;
-
-  return (
-    <section className="market__section market__shdw">
-      <h3 className="market__section-title">{SHDW.name}</h3>
-      <p className="market__effect">
-        Nobody explains what it is. Everybody uses it. ${rate.toFixed(2)} each today.
-      </p>
-      <p className="market__held">
-        {held > 0 ? `You hold ${held.toFixed(4)} — about $${Math.round(held * rate)}.` : 'You hold none.'}
-      </p>
-      <div className="market__row-actions">
-        {[25, 100].map((amount) => (
-          <button
-            key={amount}
-            disabled={cash < amount}
-            onClick={() => onAct({ type: 'BUY_SHDW', cash: amount }, `Put $${amount} into it.`)}
-          >
-            Buy ${amount}
-          </button>
-        ))}
-        {held > 0 && (
-          <button onClick={() => onAct({ type: 'SELL_SHDW', amount: held }, 'Back into cash.')}>
-            Sell all
-          </button>
-        )}
-      </div>
-      <p className="market__footnote">
-        Ines takes cash. The rate is the rate; she doesn’t haggle and she doesn’t explain.
-      </p>
-    </section>
   );
 }

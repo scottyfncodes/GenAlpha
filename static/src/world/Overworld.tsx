@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, type PointerEvent } from 'react';
 import {
   LOCATIONS,
   MAP_HEIGHT,
@@ -449,7 +449,7 @@ export function Overworld() {
 
       {market && <Market onClose={() => setMarket(false)} />}
 
-      <Dpad onChange={(dx, dy) => (touch.current = { dx, dy })} />
+      <Joystick onChange={(dx, dy) => (touch.current = { dx, dy })} />
 
       {!open && (
         <p className="overworld__hint">
@@ -464,25 +464,62 @@ export function Overworld() {
   );
 }
 
-function Dpad({ onChange }: { onChange: (dx: number, dy: number) => void }) {
-  const press = (dx: number, dy: number) => ({
-    onPointerDown: () => onChange(dx, dy),
-    onPointerUp: () => onChange(0, 0),
-    onPointerLeave: () => onChange(0, 0),
-    onPointerCancel: () => onChange(0, 0),
-  });
-  /**
-   * Touch controls. Previously aria-hidden with four focusable buttons inside,
-   * which announces nothing to a screen reader while still catching Tab. They
-   * are labelled and taken out of the tab order instead: keyboard users have
-   * WASD, so there is nothing here for Tab to usefully reach.
-   */
+/** How far the knob can travel from center, in px — also the denominator that
+ * turns that travel into a -1..1 direction. */
+const JOYSTICK_RADIUS = 38;
+
+/**
+ * Touch movement, as one draggable stick rather than four separate buttons.
+ * Press anywhere on the base, drag, the knob follows clamped to the radius,
+ * release recenters it — one control surface instead of four hit targets to
+ * scan for. Not in the tab order, same reasoning as the four buttons it
+ * replaces: keyboard users have WASD, so there is nothing here for Tab to
+ * usefully reach.
+ */
+function Joystick({ onChange }: { onChange: (dx: number, dy: number) => void }) {
+  const baseRef = useRef<HTMLDivElement>(null);
+  const activeId = useRef<number | null>(null);
+  const [knob, setKnob] = useState({ x: 0, y: 0 });
+
+  const update = (clientX: number, clientY: number) => {
+    const base = baseRef.current;
+    if (!base) return;
+    const rect = base.getBoundingClientRect();
+    const dx = clientX - (rect.left + rect.width / 2);
+    const dy = clientY - (rect.top + rect.height / 2);
+    const dist = Math.hypot(dx, dy) || 1;
+    const clamped = Math.min(dist, JOYSTICK_RADIUS);
+    const x = (dx / dist) * clamped;
+    const y = (dy / dist) * clamped;
+    setKnob({ x, y });
+    onChange(x / JOYSTICK_RADIUS, y / JOYSTICK_RADIUS);
+  };
+
+  const release = (e: PointerEvent) => {
+    if (activeId.current !== e.pointerId) return;
+    activeId.current = null;
+    setKnob({ x: 0, y: 0 });
+    onChange(0, 0);
+  };
+
   return (
-    <div className="dpad" role="group" aria-label="Move">
-      <button className="dpad__up" tabIndex={-1} aria-label="Move up" {...press(0, -1)}>↑</button>
-      <button className="dpad__left" tabIndex={-1} aria-label="Move left" {...press(-1, 0)}>←</button>
-      <button className="dpad__right" tabIndex={-1} aria-label="Move right" {...press(1, 0)}>→</button>
-      <button className="dpad__down" tabIndex={-1} aria-label="Move down" {...press(0, 1)}>↓</button>
+    <div
+      ref={baseRef}
+      className="joystick"
+      role="group"
+      aria-label="Move"
+      onPointerDown={(e) => {
+        activeId.current = e.pointerId;
+        e.currentTarget.setPointerCapture(e.pointerId);
+        update(e.clientX, e.clientY);
+      }}
+      onPointerMove={(e) => {
+        if (activeId.current === e.pointerId) update(e.clientX, e.clientY);
+      }}
+      onPointerUp={release}
+      onPointerCancel={release}
+    >
+      <div className="joystick__knob" style={{ transform: `translate(${knob.x}px, ${knob.y}px)` }} />
     </div>
   );
 }

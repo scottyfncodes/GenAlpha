@@ -3,7 +3,8 @@ import { useGame, useSave } from '../state/GameContext';
 import { Market } from './Market';
 import { MATERIALS, RECIPES } from '../content/materials';
 import { canCraft } from '../systems/materials';
-import { quantityOf } from '../systems/market';
+import { quantityOf, shdwDirection, shdwHeld, shdwRate, shdwRateOnDay } from '../systems/market';
+import { SHDW } from '../content/economy';
 import './phone.css';
 
 /**
@@ -18,7 +19,7 @@ import './phone.css';
  * phone's screen instead of the whole viewport without a single line of
  * Market's own CSS changing.
  */
-type App = 'home' | 'market' | 'salvage';
+type App = 'home' | 'market' | 'salvage' | 'shadow';
 
 export function Phone({ onClose }: { onClose: () => void }) {
   const [app, setApp] = useState<App>('home');
@@ -28,6 +29,7 @@ export function Phone({ onClose }: { onClose: () => void }) {
       <div className="phone__body">
         {app === 'market' && <Market onClose={() => setApp('home')} />}
         {app === 'salvage' && <Salvage onBack={() => setApp('home')} />}
+        {app === 'shadow' && <Shadow onBack={() => setApp('home')} />}
         {app === 'home' && (
           <PhoneHome onOpen={setApp} onClose={onClose} />
         )}
@@ -53,6 +55,10 @@ function PhoneHome({ onOpen, onClose }: { onOpen: (app: App) => void; onClose: (
         <button className="phone__app" onClick={() => onOpen('salvage')}>
           <span className="phone__app-icon">🔧</span>
           <span>Salvage</span>
+        </button>
+        <button className="phone__app" onClick={() => onOpen('shadow')}>
+          <span className="phone__app-icon">📈</span>
+          <span>{SHDW.name}</span>
         </button>
       </div>
     </div>
@@ -142,6 +148,96 @@ function Salvage({ onBack }: { onBack: () => void }) {
           })}
         </ul>
       </section>
+    </div>
+  );
+}
+
+/**
+ * SHDW, on its own screen instead of buried at the bottom of the market list —
+ * a store of value and a way to move money that isn't a pocket, still
+ * deliberately not a second minigame (module 03), but the one number in this
+ * game that's supposed to read as genuinely live. The bars are the last
+ * several in-fiction days computed straight from `shdwRateOnDay`, not stored
+ * history — nothing new to migrate, and a save from day 2 just shows a
+ * flatter week instead of a special case.
+ */
+function Shadow({ onBack }: { onBack: () => void }) {
+  const save = useSave();
+  const { dispatch } = useGame();
+  const [note, setNote] = useState<string | null>(null);
+
+  const rate = shdwRate(save);
+  const dir = shdwDirection(save);
+  const held = shdwHeld(save);
+  const cash = save.economy.cashOnHand;
+
+  const history = Array.from({ length: 7 }, (_, i) =>
+    shdwRateOnDay(save, Math.max(1, save.world.day - 6 + i)),
+  );
+  const max = Math.max(...history);
+  const min = Math.min(...history);
+  const span = max - min || 1;
+
+  return (
+    <div className="shadow lang-b">
+      <header className="shadow__head">
+        <div>
+          <p className="shadow__eyebrow">Nobody explains what it is. Everybody uses it.</p>
+          <h2 className="shadow__title">{SHDW.name}</h2>
+        </div>
+        <button className="shadow__back" onClick={onBack}>
+          Done
+        </button>
+      </header>
+
+      <div className={`shadow__rate shadow__rate--${dir}`}>
+        <span className="shadow__rate-value">${rate.toFixed(2)}</span>
+        <i className="shadow__rate-arrow" aria-hidden>
+          {dir === 'up' ? '▲' : dir === 'down' ? '▼' : '·'}
+        </i>
+      </div>
+      <p className="shadow__rate-label">per SHDW, today</p>
+
+      <div className="shadow__chart" role="img" aria-label={`Rate over the last ${history.length} days`}>
+        {history.map((v, i) => (
+          <span key={i} className="shadow__bar" style={{ height: `${8 + ((v - min) / span) * 32}px` }} />
+        ))}
+      </div>
+
+      {note && <p className="shadow__note">{note}</p>}
+
+      <p className="shadow__held">
+        {held > 0 ? `You hold ${held.toFixed(4)} — about $${Math.round(held * rate)}.` : 'You hold none.'}
+      </p>
+
+      <div className="shadow__actions">
+        {[25, 100].map((amount) => (
+          <button
+            key={amount}
+            disabled={cash < amount}
+            onClick={() => {
+              dispatch({ type: 'BUY_SHDW', cash: amount });
+              setNote(`Put $${amount} into it.`);
+            }}
+          >
+            Buy ${amount}
+          </button>
+        ))}
+        {held > 0 && (
+          <button
+            onClick={() => {
+              dispatch({ type: 'SELL_SHDW', amount: held });
+              setNote('Back into cash.');
+            }}
+          >
+            Sell all
+          </button>
+        )}
+      </div>
+
+      <p className="shadow__footnote">
+        Ines takes cash. The rate is the rate; she doesn’t haggle and she doesn’t explain.
+      </p>
     </div>
   );
 }

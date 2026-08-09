@@ -100,33 +100,35 @@
   font-size: 12px;
 }
 
-.dpad {
+/* One control surface instead of four buttons: a fixed base, a knob that
+   follows the drag and snaps back to center on release. */
+.joystick {
   position: absolute;
-  right: calc(var(--step) * 2);
-  bottom: calc(var(--step) * 5);
-  display: grid;
-  grid-template-areas: '. up .' 'left . right' '. down .';
-  gap: 6px;
-}
-
-.dpad button {
-  width: 46px;
-  height: 46px;
-  background: rgba(20, 17, 15, 0.55);
-  color: var(--b-paper);
-  border: 2px solid rgba(236, 226, 208, 0.45);
-  border-radius: 8px;
-  font-size: 18px;
+  right: calc(var(--step) * 3);
+  bottom: calc(var(--step) * 6);
+  width: 96px;
+  height: 96px;
+  border-radius: 50%;
+  background: rgba(20, 17, 15, 0.45);
+  border: 2px solid rgba(236, 226, 208, 0.35);
   touch-action: none;
 }
 
-.dpad__up { grid-area: up; }
-.dpad__left { grid-area: left; }
-.dpad__right { grid-area: right; }
-.dpad__down { grid-area: down; }
+.joystick__knob {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 44px;
+  height: 44px;
+  margin: -22px 0 0 -22px;
+  border-radius: 50%;
+  background: rgba(236, 226, 208, 0.55);
+  border: 2px solid var(--b-paper);
+  pointer-events: none;
+}
 
 @media (hover: hover) and (pointer: fine) {
-  .dpad { display: none; }
+  .joystick { display: none; }
 }
 
 /* Several threads open in one place — the player picks. Hooks as authored,

@@ -69,8 +69,7 @@
   color: var(--b-orange);
 }
 
-.market__worth,
-.market__footnote {
+.market__worth {
   font-size: 12px;
   opacity: 0.75;
 }
@@ -166,5 +165,3 @@
   gap: 6px;
   margin-top: 10px;
 }
-
-.market__shdw { border-top: 2px solid var(--b-red); padding-top: var(--step); }
