@@ -47,6 +47,15 @@
   white-space: nowrap;
 }
 
+/* Gold, not the location prompt's paper-white — the same "pick this up"
+   color as the canvas glint (world/draw.ts), so the prompt and the sprite
+   read as the same object. */
+.overworld__prompt--collect {
+  background: #e8d24a;
+  border-color: #20262f;
+  color: #20262f;
+}
+
 .overworld__scene {
   position: absolute;
   inset: auto var(--step) calc(var(--step) * 2);

@@ -33,7 +33,7 @@ export function createNewSave(name: string): SaveState {
       activeConsumables: [],
     },
     missions: {},
-    world: { townTrust: 50, safehouses: [], day: 1 },
+    world: { townTrust: 50, safehouses: [], day: 1, collectedNodes: [] },
     settings: {
       textSpeed: 'normal',
       audioMuted: false,

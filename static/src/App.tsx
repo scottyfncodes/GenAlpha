@@ -5,6 +5,7 @@ import { Hud } from './ui/Hud';
 import { Overworld } from './world/Overworld';
 import { SettingsPanel } from './ui/SettingsPanel';
 import { Crew } from './ui/Crew';
+import { Phone } from './ui/Phone';
 import { setMuted } from './systems/audio';
 
 /*
@@ -26,6 +27,7 @@ function Shell() {
   const [workbench, setWorkbench] = useState(false);
   const [settings, setSettings] = useState(false);
   const [crew, setCrew] = useState(false);
+  const [phone, setPhone] = useState(false);
 
   // The audio module holds its own mute flag so a cue can fire from anywhere
   // without threading the save through. This keeps it in step on load and
@@ -57,9 +59,11 @@ function Shell() {
         onOpenWorkbench={() => setWorkbench(true)}
         onOpenSettings={() => setSettings(true)}
         onOpenCrew={() => setCrew(true)}
+        onOpenPhone={() => setPhone(true)}
       />
       {crew && <Crew onClose={() => setCrew(false)} />}
       {settings && <SettingsPanel onClose={() => setSettings(false)} />}
+      {phone && <Phone onClose={() => setPhone(false)} />}
       {Workbench && workbench && (
         <Suspense fallback={null}>
           <Workbench onClose={() => setWorkbench(false)} />

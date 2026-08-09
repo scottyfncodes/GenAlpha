@@ -9,10 +9,13 @@ import {
 } from './locations';
 import { OBSTACLES } from './obstacles';
 import { PATROL_ROUTES, activeRoutes, patrolTuning, type PatrolRoute } from './patrols';
+import { COLLECTIBLE_NODES, type CollectibleNode } from './collectibles';
 import { useGame, useSave } from '../state/GameContext';
 import type { ThresholdTier } from '../state/schema';
 import { LIE_LOW_DECAY, lieLowBlocked } from '../systems/heat';
 import { safehouseBlocked, safehouseDecay } from '../systems/safehouse';
+import { canCollect } from '../systems/materials';
+import { MATERIALS_BY_ID } from '../content/materials';
 import { LIE_LOW_FLAG } from '../content/breather';
 import { SAFEHOUSE_ID } from '../content/safehouse';
 import { ALL_SCENES } from '../content/all';
@@ -26,6 +29,7 @@ const SPEED = 110; // world units per second
 const PLAYER_W = 12;
 const PLAYER_H = 18;
 const SCALE = 2; // pixel-art integer scale
+const COLLECT_RADIUS = 28;
 
 /** Position along a patrol route: which leg (the segment between two
  * consecutive waypoints), how far into it (0..1), and — for a there-and-back
@@ -97,6 +101,7 @@ export function Overworld() {
   const save = useSave();
   const { dispatch } = useGame();
   const [nearby, setNearby] = useState<OverworldLocation | null>(null);
+  const [nearbyCollectible, setNearbyCollectible] = useState<CollectibleNode | null>(null);
   const [open, setOpen] = useState<OverworldLocation | null>(null);
   /**
    * Held in state, not derived: a scene's own effects change the chapter part
@@ -121,6 +126,12 @@ export function Overworld() {
      be a lot of teardown for a two-pixel scanline. */
   const tierRef = useRef(save.heat.threshold_tier);
   tierRef.current = save.heat.threshold_tier;
+
+  /* Same reason again: `canCollect` needs the save's collected-node log and
+     the current day, and the frame loop can't close over `save` directly
+     without going stale the same way flags and tier would. */
+  const saveRef = useRef(save);
+  saveRef.current = save;
 
   /* Last direction of travel, so the sprite reads as turning. Held in a ref
      because it changes every frame and nothing outside the canvas cares. */
@@ -162,6 +173,7 @@ export function Overworld() {
   const touch = useRef({ dx: 0, dy: 0 });
   const nearbyRef = useRef<OverworldLocation | null>(null);
   const enterRef = useRef<(loc: OverworldLocation) => void>(() => {});
+  const nearbyCollectibleRef = useRef<CollectibleNode | null>(null);
   /** True while a scene or location card owns the screen. */
   const blockedRef = useRef(false);
 
@@ -246,6 +258,29 @@ export function Overworld() {
       }
 
       /*
+       * Salvage nodes. A node already picked and on cooldown is filtered out
+       * here rather than at draw time only, so it's neither visible nor
+       * interactable until `canCollect` says its respawn day has passed —
+       * the same "no ghost target" rule the location prompt already follows.
+       */
+      const collectibleDraw: { x: number; y: number }[] = [];
+      let closestNode: CollectibleNode | null = null;
+      let closestDist = COLLECT_RADIUS;
+      for (const node of COLLECTIBLE_NODES) {
+        if (!canCollect(saveRef.current, node)) continue;
+        collectibleDraw.push({ x: node.x, y: node.y });
+        const dist = Math.hypot(node.x - pos.current.x, node.y - pos.current.y);
+        if (dist < closestDist) {
+          closestDist = dist;
+          closestNode = node;
+        }
+      }
+      if (closestNode?.id !== nearbyCollectibleRef.current?.id) {
+        nearbyCollectibleRef.current = closestNode;
+        setNearbyCollectible(closestNode);
+      }
+
+      /*
        * Patrols. Every route keeps walking regardless of tier; only the
        * active subset is drawn or checked against the player, and each has
        * its own cooldown so standing in one van's radius can't machine-gun
@@ -293,6 +328,7 @@ export function Overworld() {
         { w: PLAYER_W, h: PLAYER_H },
         OBSTACLES,
         patrolDraw,
+        collectibleDraw,
       );
       raf = requestAnimationFrame(frame);
     };
@@ -315,7 +351,13 @@ export function Overworld() {
       const k = e.key.toLowerCase();
       if (k === 'e' || k === ' ') {
         e.preventDefault();
+        // A location wins ties — the rare case where a node sits inside a
+        // location's radius should read as "walk in and talk", not a race
+        // against a glint on the floor.
         if (nearbyRef.current) enterRef.current(nearbyRef.current);
+        else if (nearbyCollectibleRef.current) {
+          dispatch({ type: 'COLLECT_NODE', nodeId: nearbyCollectibleRef.current.id });
+        }
         return;
       }
       if (!MOVE.includes(k)) return;
@@ -354,6 +396,18 @@ export function Overworld() {
             : nearbyScene
               ? nearbyScene.hook
               : nearby.label}
+        </button>
+      )}
+
+      {/* Same slot as the location prompt, and mutually exclusive with it —
+          a node under a location's radius reads as part of that place, not a
+          second competing button. */}
+      {!nearby && nearbyCollectible && !open && (
+        <button
+          className="overworld__prompt overworld__prompt--collect"
+          onClick={() => dispatch({ type: 'COLLECT_NODE', nodeId: nearbyCollectible.id })}
+        >
+          Collect · {MATERIALS_BY_ID[nearbyCollectible.itemId]?.name ?? 'salvage'}
         </button>
       )}
 

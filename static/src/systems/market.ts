@@ -1,4 +1,5 @@
 import type {
+  AcquiredVia,
   ActiveConsumable,
   ItemCategory,
   MarketEventInstance,
@@ -169,7 +170,7 @@ export function grantItem(
   save: SaveState,
   itemId: string,
   quantity = 1,
-  via: 'purchase' | 'mission_reward' | 'theft' = 'purchase',
+  via: AcquiredVia = 'purchase',
 ): SaveState {
   const existing = save.economy.inventory.find((i) => i.itemId === itemId);
   const inventory = existing
@@ -344,6 +345,13 @@ function setShdw(save: SaveState, amount: number): SaveState {
   const others = save.economy.cryptoWallets.filter((w) => w.asset !== SHDW.asset);
   const cryptoWallets = amount > 0 ? [...others, { asset: SHDW.asset, amount }] : others;
   return { ...save, economy: { ...save.economy, cryptoWallets } };
+}
+
+/** Adds (or, with a negative delta, spends) SHDW directly — the write side
+ * `systems/materials.ts` needs for selling salvage without duplicating the
+ * wallet's own merge-or-drop logic. */
+export function addShdw(save: SaveState, delta: number): SaveState {
+  return setShdw(save, Math.max(0, shdwHeld(save) + delta));
 }
 
 /** Buys as much SHDW as `cash` covers, to four decimal places. */

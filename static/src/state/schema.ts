@@ -8,8 +8,8 @@
 
 export type MissionStatus = 'available' | 'in_progress' | 'complete' | 'failed';
 export type ThresholdTier = 'clear' | 'watched' | 'flagged' | 'hunted';
-export type AcquiredVia = 'purchase' | 'mission_reward' | 'theft';
-export type ItemCategory = 'gear' | 'safehouse' | 'intel';
+export type AcquiredVia = 'purchase' | 'mission_reward' | 'theft' | 'found' | 'crafted';
+export type ItemCategory = 'gear' | 'safehouse' | 'intel' | 'material';
 export type SecurityTier = 'low' | 'medium' | 'high';
 export type TextSpeed = 'slow' | 'normal' | 'fast';
 
@@ -200,6 +200,12 @@ export interface Safehouse {
   burnedOnDay?: number;
 }
 
+/** A collectible node the player has picked clean, and when it's due back. */
+export interface CollectedNode {
+  nodeId: string;
+  collectedOnDay: number;
+}
+
 export interface WorldState {
   townTrust: number;
   safehouses: Safehouse[];
@@ -209,6 +215,13 @@ export interface WorldState {
    * this instead of wall-clock time.
    */
   day: number;
+  /**
+   * Overworld collectible nodes already picked, keyed by node id rather than
+   * removed from a list — a node is a place, not an object, so it comes back
+   * on its own schedule (`world/collectibles.ts`) instead of being gone for
+   * good the way a inventory item would be.
+   */
+  collectedNodes: CollectedNode[];
 }
 
 export interface SettingsState {

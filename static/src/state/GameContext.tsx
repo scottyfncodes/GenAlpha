@@ -19,6 +19,7 @@ import { applyEffects } from '../systems/effects';
 import { buy, buyShdw, sell, sellShdw, tickMarket, useConsumable } from '../systems/market';
 import { tickSafehouses } from '../systems/safehouse';
 import { drain } from '../systems/heist';
+import { collect, craft, sellMaterial } from '../systems/materials';
 
 /**
  * The only writer to the save shape. Every system dispatches through here, so
@@ -44,7 +45,10 @@ type Action =
   | { type: 'DRAIN_WALLET'; walletId: string; redistributeFraction: number }
   | { type: 'SET_SETTING'; patch: Partial<SettingsState> }
   | { type: 'APPLY_EFFECTS'; effects: Effect[] }
-  | { type: 'TICK_PLAYTIME'; seconds: number };
+  | { type: 'TICK_PLAYTIME'; seconds: number }
+  | { type: 'COLLECT_NODE'; nodeId: string }
+  | { type: 'SELL_MATERIAL'; itemId: string }
+  | { type: 'CRAFT_ITEM'; recipeId: string };
 
 function reducer(state: SaveState | null, action: Action): SaveState | null {
   if (action.type === 'NEW_GAME') return createNewSave(action.name);
@@ -128,6 +132,18 @@ function reducer(state: SaveState | null, action: Action): SaveState | null {
 
     case 'SELL_SHDW':
       return sellShdw(state, action.amount);
+
+    /** Overworld salvage: collect, sell for SHDW, or build. See
+     * systems/materials.ts — each is a no-op on the state it can't perform,
+     * same "return the save unchanged" contract as buy/sell. */
+    case 'COLLECT_NODE':
+      return collect(state, action.nodeId);
+
+    case 'SELL_MATERIAL':
+      return sellMaterial(state, action.itemId);
+
+    case 'CRAFT_ITEM':
+      return craft(state, action.recipeId);
 
     /**
      * The drain writes cash, Heat history, town trust and the drained-wallet

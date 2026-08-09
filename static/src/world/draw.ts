@@ -67,6 +67,8 @@ const PALETTE = {
   rockLight: '#5c6577',
   hedgeDark: '#38513e',
   hedge: '#48684f',
+  collectible: '#e8d24a',
+  collectibleGlow: 'rgba(232, 210, 74, 0.28)',
 } as const;
 
 const px = Math.round;
@@ -88,6 +90,7 @@ export function drawTown(
   playerSize: { w: number; h: number },
   obstacles: Obstacle[],
   patrols: { x: number; y: number; radius: number }[],
+  collectibles: { x: number; y: number }[],
 ) {
   const vw = canvas.clientWidth;
   const vh = canvas.clientHeight;
@@ -118,6 +121,11 @@ export function drawTown(
     if (loc.render === 'camera') drawCamera(ctx, loc, here?.id === loc.id);
     else drawBuilding(ctx, loc, here?.id === loc.id, tier);
   }
+
+  // Salvage: a glint on the ground, not a building — same footing as a
+  // camera's "post with a lens on it", scaled down further because this is a
+  // thing you pick up, not a thing that watches you.
+  for (const c of collectibles) drawCollectible(ctx, c);
 
   // Detection rings under the vans, so a van sitting still doesn't visually
   // "arrive" on top of its own danger zone.
@@ -401,6 +409,32 @@ function drawCamera(ctx: CanvasRenderingContext2D, loc: OverworldLocation, isHer
     ctx.lineWidth = 2;
     ctx.strokeRect(x - 4, y - 4, size + 8, size + 8);
   }
+}
+
+/**
+ * A salvage node: a small gold diamond over a soft glow, the one shape on this
+ * canvas that means "pick this up" rather than "place" or "threat" — cameras
+ * are blue boxes, patrols are red, everything else is terrain-colored. Static,
+ * like every other sprite here; the glow is what reads as "shiny" without a
+ * per-frame animation loop.
+ */
+function drawCollectible(ctx: CanvasRenderingContext2D, node: { x: number; y: number }) {
+  const r = 5;
+
+  ctx.fillStyle = PALETTE.collectibleGlow;
+  ctx.beginPath();
+  ctx.arc(node.x, node.y, r * 2.4, 0, Math.PI * 2);
+  ctx.fill();
+
+  ctx.save();
+  ctx.translate(px(node.x), px(node.y));
+  ctx.rotate(Math.PI / 4);
+  ctx.fillStyle = PALETTE.collectible;
+  ctx.fillRect(-r, -r, r * 2, r * 2);
+  ctx.strokeStyle = PALETTE.outline;
+  ctx.lineWidth = 1;
+  ctx.strokeRect(-r - 0.5, -r - 0.5, r * 2 + 1, r * 2 + 1);
+  ctx.restore();
 }
 
 /**

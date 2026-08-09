@@ -16,10 +16,12 @@ export function Hud({
   onOpenWorkbench,
   onOpenSettings,
   onOpenCrew,
+  onOpenPhone,
 }: {
   onOpenWorkbench: () => void;
   onOpenSettings: () => void;
   onOpenCrew: () => void;
+  onOpenPhone: () => void;
 }) {
   const save = useSave();
   const { dispatch, deleteSave } = useGame();
@@ -76,6 +78,16 @@ export function Hud({
       </Glitch>
 
       <div className="hud__bar">
+        {/*
+          Deliberately not gated on a story flag. The physical table behind
+          Fenwick's still opens the way it always has, once the story gets
+          there — this is the same market and the same salvage economy,
+          reachable from turn one, per the build note: the loop shouldn't
+          have to wait on a flag to be worth playing.
+        */}
+        <button className="hud__toggle" onClick={onOpenPhone}>
+          Phone
+        </button>
         {/* Only offered once there is somebody on it. Before the first mentor
             it would be an empty screen explaining that you're on your own,
             which the game is already saying perfectly well without a button. */}
