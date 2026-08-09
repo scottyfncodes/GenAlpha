@@ -313,3 +313,86 @@
   font-size: 11px;
   opacity: 0.6;
 }
+
+/* Leads — the case file. Plainer than Salvage or Shadow on purpose: this
+   screen has nothing to buy or sell, only things you found out. */
+.leads {
+  height: 100%;
+  overflow-y: auto;
+  padding: calc(var(--step) * 2);
+  padding-bottom: calc(var(--step) * 4);
+}
+
+.leads__head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--step);
+  border-bottom: 2px solid var(--b-red);
+  padding-bottom: var(--step);
+  margin-bottom: var(--step);
+}
+
+.leads__eyebrow {
+  margin: 0;
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--b-orange);
+}
+
+.leads__title {
+  margin: 2px 0 0;
+  font-size: 22px;
+  text-transform: uppercase;
+}
+
+.leads__back {
+  background: none;
+  border: 1px solid currentColor;
+  color: inherit;
+  padding: 6px 12px;
+  font-family: var(--font-mono);
+  font-size: 12px;
+}
+
+.leads__empty {
+  font-size: 13px;
+  opacity: 0.7;
+  font-style: italic;
+}
+
+.leads__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.leads__row {
+  border-left: 2px solid var(--b-orange);
+  padding-left: 10px;
+}
+
+.leads__row-title {
+  display: block;
+  font-family: var(--font-mono);
+  font-size: 13px;
+  margin-bottom: 4px;
+}
+
+.leads__row-entry {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.5;
+  opacity: 0.85;
+}
+
+.leads__remaining {
+  margin-top: calc(var(--step) * 1.5);
+  font-size: 11px;
+  opacity: 0.55;
+  font-style: italic;
+}

@@ -5,6 +5,7 @@ import { MATERIALS, RECIPES } from '../content/materials';
 import { canCraft } from '../systems/materials';
 import { quantityOf, shdwDirection, shdwHeld, shdwRate, shdwRateOnDay } from '../systems/market';
 import { SHDW } from '../content/economy';
+import { discoveredEntries, undiscoveredCount } from '../systems/casefile';
 import './phone.css';
 
 /**
@@ -19,7 +20,7 @@ import './phone.css';
  * phone's screen instead of the whole viewport without a single line of
  * Market's own CSS changing.
  */
-type App = 'home' | 'market' | 'salvage' | 'shadow';
+type App = 'home' | 'market' | 'salvage' | 'shadow' | 'leads';
 
 export function Phone({ onClose }: { onClose: () => void }) {
   const [app, setApp] = useState<App>('home');
@@ -30,6 +31,7 @@ export function Phone({ onClose }: { onClose: () => void }) {
         {app === 'market' && <Market onClose={() => setApp('home')} />}
         {app === 'salvage' && <Salvage onBack={() => setApp('home')} />}
         {app === 'shadow' && <Shadow onBack={() => setApp('home')} />}
+        {app === 'leads' && <Leads onBack={() => setApp('home')} />}
         {app === 'home' && (
           <PhoneHome onOpen={setApp} onClose={onClose} />
         )}
@@ -39,6 +41,9 @@ export function Phone({ onClose }: { onClose: () => void }) {
 }
 
 function PhoneHome({ onOpen, onClose }: { onOpen: (app: App) => void; onClose: () => void }) {
+  const save = useSave();
+  const leads = discoveredEntries(save).length;
+
   return (
     <div className="phone__home">
       <div className="phone__statusbar">
@@ -59,6 +64,10 @@ function PhoneHome({ onOpen, onClose }: { onOpen: (app: App) => void; onClose: (
         <button className="phone__app" onClick={() => onOpen('shadow')}>
           <span className="phone__app-icon">📈</span>
           <span>{SHDW.name}</span>
+        </button>
+        <button className="phone__app" onClick={() => onOpen('leads')}>
+          <span className="phone__app-icon">🗂️</span>
+          <span>Leads{leads > 0 ? ` (${leads})` : ''}</span>
         </button>
       </div>
     </div>
@@ -238,6 +247,53 @@ function Shadow({ onBack }: { onBack: () => void }) {
       <p className="shadow__footnote">
         Ines takes cash. The rate is the rate; she doesn’t haggle and she doesn’t explain.
       </p>
+    </div>
+  );
+}
+
+/**
+ * Leads: the mystery, kept as a dossier instead of something the player has
+ * to remember. Every entry here is unlocked by a flag a scene already wrote —
+ * this reads it back, in the order it was found, so a choice that revealed
+ * something has a place to show for it besides forty minutes of dialogue ago.
+ * The undiscovered count is a number, never a list — the point is "there is
+ * more to find," not a spoiler of what it is.
+ */
+function Leads({ onBack }: { onBack: () => void }) {
+  const save = useSave();
+  const found = discoveredEntries(save);
+  const remaining = undiscoveredCount(save);
+
+  return (
+    <div className="leads lang-b">
+      <header className="leads__head">
+        <div>
+          <p className="leads__eyebrow">What you’ve actually got</p>
+          <h2 className="leads__title">Leads</h2>
+        </div>
+        <button className="leads__back" onClick={onBack}>
+          Done
+        </button>
+      </header>
+
+      {found.length === 0 ? (
+        <p className="leads__empty">Nothing on paper yet. Keep pulling on things.</p>
+      ) : (
+        <ul className="leads__list">
+          {found.map((e) => (
+            <li key={e.id} className="leads__row">
+              <b className="leads__row-title">{e.title}</b>
+              <p className="leads__row-entry">{e.entry}</p>
+            </li>
+          ))}
+        </ul>
+      )}
+
+      {remaining > 0 && (
+        <p className="leads__remaining">
+          {remaining} more thread{remaining === 1 ? '' : 's'} out there, unaccounted for.
+        </p>
+      )}
     </div>
   );
 }

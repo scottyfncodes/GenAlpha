@@ -270,10 +270,15 @@ function Dialogue({
     if (!choices.length) onDone();
   };
 
-  // A node with no lines (a pure routing node) passes straight through.
+  // A node with no lines and nothing to choose (a pure routing node) passes
+  // straight through. One with no lines but real choices — a hub the player
+  // returns to between two clue branches — has to stop here instead: the
+  // `showChoices` logic below already renders correctly with an empty line
+  // list, so the only thing that needs excluding is the case with nothing to
+  // show at all.
   const routed = useRef(false);
   useEffect(() => {
-    if (lines.length === 0 && !routed.current) {
+    if (lines.length === 0 && choices.length === 0 && !routed.current) {
       routed.current = true;
       onDone();
     }

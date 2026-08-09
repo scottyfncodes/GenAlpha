@@ -421,9 +421,29 @@ const B6_PULLING_THREAD: Scene = {
         { speaker: 'Councilwoman Reyes', text: '—and thanks to the safety grant, coverage is now effectively total. Not most of Bellhaven. All of it.' },
         { text: 'People clap. It’s a nice afternoon. The pens are quite good pens.' },
       ],
+      next: 'hub',
+    },
+    /**
+     * Both of these used to be a single either/or choice into the same next
+     * node — which meant one of two genuinely different pieces of the mystery
+     * was permanently lost to whichever you didn't pick. A hub looped back
+     * into by each turns it into a checklist instead: pick one, it's gone
+     * from the list and the other is still there, and "move on" only appears
+     * once both are. The choice is which to pull on first, not which one you
+     * get to keep. One line rather than none — a bare choice list with no
+     * text above it reads as broken, not as a menu.
+     */
+    hub: {
+      id: 'hub',
+      lines: [{ text: 'Still a few minutes before anyone would miss you.' }],
       choices: [
-        { text: 'Look at the map behind her.', goto: 'map' },
-        { text: 'Watch who’s standing at the back.', goto: 'back' },
+        { text: 'Look at the map behind her.', goto: 'map', hiddenIfFlag: 'act1_b6_map_seen' },
+        { text: 'Watch who’s standing at the back.', goto: 'back', hiddenIfFlag: 'act1_b6_back_seen' },
+        {
+          text: 'You’ve seen enough.',
+          goto: 'thread',
+          requiresAllFlags: ['act1_b6_map_seen', 'act1_b6_back_seen'],
+        },
       ],
     },
     map: {
@@ -433,7 +453,8 @@ const B6_PULLING_THREAD: Scene = {
         { text: 'There’s a dot on Fenwick Street. Tuesday, 4:52.' },
         { text: 'There’s a dot on your street. There’s a dot pointing at Casey’s front door.', glitch: true },
       ],
-      next: 'thread',
+      effects: [{ kind: 'flag', key: 'act1_b6_map_seen' }],
+      next: 'hub',
     },
     back: {
       id: 'back',
@@ -441,7 +462,8 @@ const B6_PULLING_THREAD: Scene = {
         { text: 'Two men in good jackets who aren’t clapping, and aren’t from here, and are watching the crowd instead of the stage.' },
         { text: 'One of them is counting. You can see him doing it.' },
       ],
-      next: 'thread',
+      effects: [{ kind: 'flag', key: 'act1_b6_back_seen' }],
+      next: 'hub',
     },
     thread: {
       id: 'thread',
