@@ -52,6 +52,8 @@ const PALETTE = {
   sprite: '#14110f',
   spriteSkin: '#e8c8a8',
   spriteShirt: '#ece2d0',
+  spriteJacketDark: '#c7b89a',
+  spriteBag: '#8a6b4a',
   outline: '#20262f',
   patrolBody: '#e6402a',
   patrolCab: '#100e0d',
@@ -91,6 +93,8 @@ export function drawTown(
   obstacles: Obstacle[],
   patrols: { x: number; y: number; radius: number }[],
   collectibles: { x: number; y: number }[],
+  moving: boolean,
+  now: number,
 ) {
   const vw = canvas.clientWidth;
   const vh = canvas.clientHeight;
@@ -132,7 +136,7 @@ export function drawTown(
   for (const patrol of patrols) drawPatrolRing(ctx, patrol);
   for (const patrol of patrols) drawPatrol(ctx, patrol);
 
-  drawPlayer(ctx, player, facing, playerSize);
+  drawPlayer(ctx, player, facing, playerSize, moving, now);
 
   ctx.restore();
 }
@@ -462,29 +466,77 @@ function drawWindows(ctx: CanvasRenderingContext2D, loc: OverworldLocation, isB:
 
 /**
  * The protagonist. Deliberately small against the map — big skies, small
- * sprites — and drawn as four flat shapes: legs, body, head, and a hairline
- * that shifts with facing so the sprite reads as turning without needing four
- * sheets of frames.
+ * sprites — but built with actual volume rather than three flat bars: a bag
+ * peeking from behind the shoulders, arms that swing, two legs that stagger
+ * into a stride instead of a single block sliding across the street. Facing
+ * still reads off the hairline, the same trick as before, so none of this
+ * needs four sheets of hand-drawn frames — just a phase number.
  */
 function drawPlayer(
   ctx: CanvasRenderingContext2D,
   player: { x: number; y: number },
   facing: { x: number; y: number },
   size: { w: number; h: number },
+  moving: boolean,
+  now: number,
 ) {
   const x = px(player.x - size.w / 2);
   const y = px(player.y - size.h + 2);
+
+  // A two-beat gait: one leg forward and the opposite arm forward, then the
+  // other way. `stride` is that beat, +1/-1/0 — 0 at a standstill so the
+  // sprite settles rather than freezing mid-step.
+  const stride = moving ? (Math.floor(now / 220) % 2 === 0 ? 1 : -1) : 0;
 
   // A flat shadow, so the sprite sits on the street instead of floating on it.
   ctx.fillStyle = 'rgba(0,0,0,0.28)';
   ctx.fillRect(x - 1, px(player.y), size.w + 2, 2);
 
+  // The bag: a wider, darker rectangle drawn first so a one-pixel margin
+  // survives on each side once the narrower torso goes on top of it — a
+  // strap silhouette without needing to draw straps.
+  ctx.fillStyle = PALETTE.spriteBag;
+  ctx.fillRect(x, y + 4, size.w, size.h - 10);
+
+  // Legs, staggered rather than one solid bar — planted foot at full length,
+  // trailing one pulled a pixel short so it reads as lifted. Both feet stay
+  // level with the ground line either way; only the top of the short leg
+  // moves, same as the original single bar's baseline.
+  const legW = 5;
+  const legBase = 5;
+  const legY = y + size.h - legBase;
   ctx.fillStyle = PALETTE.sprite;
-  ctx.fillRect(x, y + size.h - 5, size.w, 5); // legs
+  ctx.fillRect(x, legY + Math.max(0, -stride), legW, legBase - Math.max(0, -stride));
+  ctx.fillRect(x + size.w - legW, legY + Math.max(0, stride), legW, legBase - Math.max(0, stride));
+
+  // Torso, narrower than the full width so the bag and the arms both have
+  // somewhere to show.
+  const torsoX = x + 2;
+  const torsoW = size.w - 4;
   ctx.fillStyle = PALETTE.spriteShirt;
-  ctx.fillRect(x, y + 4, size.w, size.h - 9); // body
+  ctx.fillRect(torsoX, y + 4, torsoW, size.h - 9);
+  // A centre seam for a little volume on a shape that would otherwise be flat.
+  ctx.fillStyle = PALETTE.spriteJacketDark;
+  ctx.fillRect(x + Math.round(size.w / 2) - 1, y + 5, 1, size.h - 11);
+
+  // Arms swing opposite each other, and opposite the same-side leg — left
+  // leg forward pairs with right arm forward, same as an actual stride. A
+  // skin-toned tip at the bottom reads as a hand without needing its own
+  // shape.
+  const armW = 2;
+  const armH = size.h - 11;
+  const leftArmTop = y + 4 + stride;
+  const rightArmTop = y + 4 - stride;
+  ctx.fillStyle = PALETTE.spriteShirt;
+  ctx.fillRect(x, leftArmTop, armW, armH);
+  ctx.fillRect(x + size.w - armW, rightArmTop, armW, armH);
   ctx.fillStyle = PALETTE.spriteSkin;
-  ctx.fillRect(x + 1, y, size.w - 2, 5); // head
+  ctx.fillRect(x, leftArmTop + armH, armW, 2);
+  ctx.fillRect(x + size.w - armW, rightArmTop + armH, armW, 2);
+
+  // Head.
+  ctx.fillStyle = PALETTE.spriteSkin;
+  ctx.fillRect(x + 1, y, size.w - 2, 5);
 
   // Hair, offset by facing. Away from the camera means you see the back of it.
   ctx.fillStyle = PALETTE.sprite;

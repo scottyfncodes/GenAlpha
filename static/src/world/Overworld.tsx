@@ -9,7 +9,7 @@ import {
 } from './locations';
 import { OBSTACLES } from './obstacles';
 import { PATROL_ROUTES, activeRoutes, patrolTuning, type PatrolRoute } from './patrols';
-import { COLLECTIBLE_NODES, type CollectibleNode } from './collectibles';
+import { COLLECTIBLE_NODES } from './collectibles';
 import { useGame, useSave } from '../state/GameContext';
 import type { ThresholdTier } from '../state/schema';
 import { LIE_LOW_DECAY, lieLowBlocked } from '../systems/heat';
@@ -29,7 +29,7 @@ const SPEED = 110; // world units per second
 const PLAYER_W = 12;
 const PLAYER_H = 18;
 const SCALE = 2; // pixel-art integer scale
-const COLLECT_RADIUS = 28;
+const CONTACT_RADIUS = 14;
 
 /** Position along a patrol route: which leg (the segment between two
  * consecutive waypoints), how far into it (0..1), and — for a there-and-back
@@ -101,8 +101,10 @@ export function Overworld() {
   const save = useSave();
   const { dispatch } = useGame();
   const [nearby, setNearby] = useState<OverworldLocation | null>(null);
-  const [nearbyCollectible, setNearbyCollectible] = useState<CollectibleNode | null>(null);
   const [open, setOpen] = useState<OverworldLocation | null>(null);
+  /** A brief line when a salvage node is picked up — same "shown, not silent"
+   * treatment as `spotted`, since there's no prompt to click any more. */
+  const [picked, setPicked] = useState<string | null>(null);
   /**
    * Held in state, not derived: a scene's own effects change the chapter part
    * way through, which would otherwise unmount the scene mid-read.
@@ -173,7 +175,9 @@ export function Overworld() {
   const touch = useRef({ dx: 0, dy: 0 });
   const nearbyRef = useRef<OverworldLocation | null>(null);
   const enterRef = useRef<(loc: OverworldLocation) => void>(() => {});
-  const nearbyCollectibleRef = useRef<CollectibleNode | null>(null);
+  /** Nodes currently underfoot, so a pickup fires once on approach rather
+   * than every single frame the player happens to be standing on it. */
+  const contactRef = useRef<Set<string>>(new Set());
   /** True while a scene or location card owns the screen. */
   const blockedRef = useRef(false);
 
@@ -224,7 +228,8 @@ export function Overworld() {
       if (keys.current.has('w') || keys.current.has('arrowup')) dy -= 1;
       if (keys.current.has('s') || keys.current.has('arrowdown')) dy += 1;
 
-      if (dx !== 0 || dy !== 0) facing.current = { x: Math.sign(dx), y: Math.sign(dy) };
+      const moving = dx !== 0 || dy !== 0;
+      if (moving) facing.current = { x: Math.sign(dx), y: Math.sign(dy) };
 
       const len = Math.hypot(dx, dy) || 1;
 
@@ -258,27 +263,34 @@ export function Overworld() {
       }
 
       /*
-       * Salvage nodes. A node already picked and on cooldown is filtered out
-       * here rather than at draw time only, so it's neither visible nor
-       * interactable until `canCollect` says its respawn day has passed —
-       * the same "no ghost target" rule the location prompt already follows.
+       * Salvage nodes. No prompt, no key to press — walking into one is the
+       * whole interaction. A node already picked and on cooldown is filtered
+       * out here rather than at draw time only, so it's neither visible nor
+       * collectible until `canCollect` says its respawn day has passed — the
+       * same "no ghost target" rule the location prompt already follows.
+       *
+       * `contactRef` fires the pickup once per approach rather than once per
+       * frame spent standing on it — `collect()` is idempotent either way
+       * (systems/materials.ts), this is purely so the toast doesn't reset
+       * itself twenty times while the player is still standing there.
        */
       const collectibleDraw: { x: number; y: number }[] = [];
-      let closestNode: CollectibleNode | null = null;
-      let closestDist = COLLECT_RADIUS;
+      const stillTouching = new Set<string>();
       for (const node of COLLECTIBLE_NODES) {
         if (!canCollect(saveRef.current, node)) continue;
         collectibleDraw.push({ x: node.x, y: node.y });
+
         const dist = Math.hypot(node.x - pos.current.x, node.y - pos.current.y);
-        if (dist < closestDist) {
-          closestDist = dist;
-          closestNode = node;
-        }
+        if (dist >= CONTACT_RADIUS) continue;
+        stillTouching.add(node.id);
+        if (contactRef.current.has(node.id)) continue;
+
+        dispatch({ type: 'COLLECT_NODE', nodeId: node.id });
+        const name = MATERIALS_BY_ID[node.itemId]?.name ?? 'salvage';
+        setPicked(`Picked up: ${name}`);
+        window.setTimeout(() => setPicked((m) => (m === `Picked up: ${name}` ? null : m)), 1600);
       }
-      if (closestNode?.id !== nearbyCollectibleRef.current?.id) {
-        nearbyCollectibleRef.current = closestNode;
-        setNearbyCollectible(closestNode);
-      }
+      contactRef.current = stillTouching;
 
       /*
        * Patrols. Every route keeps walking regardless of tier; only the
@@ -329,6 +341,8 @@ export function Overworld() {
         OBSTACLES,
         patrolDraw,
         collectibleDraw,
+        moving,
+        now,
       );
       raf = requestAnimationFrame(frame);
     };
@@ -351,13 +365,7 @@ export function Overworld() {
       const k = e.key.toLowerCase();
       if (k === 'e' || k === ' ') {
         e.preventDefault();
-        // A location wins ties — the rare case where a node sits inside a
-        // location's radius should read as "walk in and talk", not a race
-        // against a glint on the floor.
         if (nearbyRef.current) enterRef.current(nearbyRef.current);
-        else if (nearbyCollectibleRef.current) {
-          dispatch({ type: 'COLLECT_NODE', nodeId: nearbyCollectibleRef.current.id });
-        }
         return;
       }
       if (!MOVE.includes(k)) return;
@@ -389,6 +397,12 @@ export function Overworld() {
         </p>
       )}
 
+      {picked && (
+        <p className="overworld__picked" role="status">
+          {picked}
+        </p>
+      )}
+
       {nearby && !open && (
         <button className="overworld__prompt" onClick={() => enter(nearby)}>
           {nearbyScenes.length > 1
@@ -396,18 +410,6 @@ export function Overworld() {
             : nearbyScene
               ? nearbyScene.hook
               : nearby.label}
-        </button>
-      )}
-
-      {/* Same slot as the location prompt, and mutually exclusive with it —
-          a node under a location's radius reads as part of that place, not a
-          second competing button. */}
-      {!nearby && nearbyCollectible && !open && (
-        <button
-          className="overworld__prompt overworld__prompt--collect"
-          onClick={() => dispatch({ type: 'COLLECT_NODE', nodeId: nearbyCollectible.id })}
-        >
-          Collect · {MATERIALS_BY_ID[nearbyCollectible.itemId]?.name ?? 'salvage'}
         </button>
       )}
 

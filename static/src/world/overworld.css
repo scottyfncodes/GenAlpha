@@ -32,6 +32,27 @@
   pointer-events: none;
 }
 
+/* A pickup, confirmed without a prompt to click — walking over a node is the
+   whole interaction, so this is the only acknowledgement it happened. Same
+   gold as the glint on the canvas (world/draw.ts), sits below `spotted` so
+   the two never compete for the same line. */
+.overworld__picked {
+  position: absolute;
+  left: 50%;
+  top: calc(var(--step) * 11);
+  transform: translateX(-50%);
+  margin: 0;
+  background: rgba(232, 210, 74, 0.9);
+  color: #20262f;
+  border: 1px solid var(--b-ink);
+  padding: 6px 14px;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+  pointer-events: none;
+}
+
 .overworld__prompt {
   position: absolute;
   left: 50%;
@@ -47,14 +68,6 @@
   white-space: nowrap;
 }
 
-/* Gold, not the location prompt's paper-white — the same "pick this up"
-   color as the canvas glint (world/draw.ts), so the prompt and the sprite
-   read as the same object. */
-.overworld__prompt--collect {
-  background: #e8d24a;
-  border-color: #20262f;
-  color: #20262f;
-}
 
 .overworld__scene {
   position: absolute;
