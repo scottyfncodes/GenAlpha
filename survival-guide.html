@@ -1,0 +1,1279 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Offline Survival Guide</title>
+<style>
+:root{
+  --bg:#0a0c0f; --bg-elev:#12151a; --bg-card:#191d24; --bg-card2:#1f2430;
+  --border:#2b313c; --text:#f3f5f8; --text-dim:#aab2bf; --text-dim2:#7c8494;
+  --accent:#ff5a3c; --accent-dim:#3a1c14; --accent2:#3ba7ff; --accent2-dim:#0f2233;
+  --mild:#3fbf7f; --mild-bg:#0f2a1e; --moderate:#f0b73a; --moderate-bg:#2e2408;
+  --severe:#ff4d4d; --severe-bg:#2e0f0f; --info:#3ba7ff; --info-bg:#0f2233;
+  --focus:#ffd166; --radius:14px; --fs:18px;
+}
+*{box-sizing:border-box;}
+html{font-size:var(--fs);}
+body{
+  margin:0; background:var(--bg); color:var(--text);
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  line-height:1.5; -webkit-text-size-adjust:100%;
+}
+button, input, select{font-family:inherit; font-size:1rem; color:inherit;}
+button{cursor:pointer;}
+a{color:var(--accent2);}
+h1,h2,h3,h4{line-height:1.25; margin:0 0 .5em;}
+p{margin:0 0 .75em;}
+.visually-hidden{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;}
+
+#app-shell{display:flex; min-height:100vh;}
+
+/* HEADER */
+#topbar{
+  position:sticky; top:0; z-index:40; display:flex; align-items:center; gap:.5rem;
+  background:var(--bg-elev); border-bottom:1px solid var(--border);
+  padding:.6rem .7rem; flex-wrap:wrap;
+}
+#hamburger{
+  display:none; min-width:48px; min-height:48px; background:var(--bg-card);
+  border:1px solid var(--border); border-radius:10px; font-size:1.4rem; color:var(--text);
+}
+.brand{display:flex; align-items:center; gap:.5rem; font-weight:800; font-size:1.05rem; white-space:nowrap;}
+.brand .flag{font-size:1.3rem;}
+#search-wrap{position:relative; flex:1 1 240px; min-width:140px;}
+#search-input{
+  width:100%; min-height:48px; border-radius:10px; border:1px solid var(--border);
+  background:var(--bg-card); color:var(--text); padding:.5rem .9rem; font-size:1rem;
+}
+#search-input:focus{outline:3px solid var(--focus); outline-offset:1px;}
+#search-results{
+  position:absolute; top:calc(100% + 4px); left:0; right:0; background:var(--bg-card2);
+  border:1px solid var(--border); border-radius:12px; max-height:60vh; overflow:auto;
+  z-index:60; box-shadow:0 12px 32px rgba(0,0,0,.5); display:none;
+}
+#search-results.show{display:block;}
+.sr-item{
+  display:block; width:100%; text-align:left; background:none; border:0; border-bottom:1px solid var(--border);
+  padding:.75rem .9rem; min-height:48px;
+}
+.sr-item:last-child{border-bottom:0;}
+.sr-item:hover, .sr-item:focus{background:var(--bg-elev);}
+.sr-cat{color:var(--text-dim2); font-size:.78rem; text-transform:uppercase; letter-spacing:.04em;}
+.sr-title{font-weight:700;}
+.sr-empty{padding:.9rem; color:var(--text-dim);}
+.icon-btn{
+  min-width:48px; min-height:48px; border-radius:10px; background:var(--bg-card);
+  border:1px solid var(--border); padding:.4rem .7rem; font-weight:700; font-size:.95rem;
+}
+.icon-btn:hover{border-color:var(--accent2);}
+#emergency-btn{
+  min-height:52px; background:var(--accent); border:0; color:#1a0a05; font-weight:900;
+  border-radius:12px; padding:.6rem 1rem; font-size:1.02rem; letter-spacing:.02em;
+  box-shadow:0 0 0 3px var(--accent-dim);
+  display:flex; align-items:center; gap:.4rem; white-space:nowrap;
+}
+#emergency-btn:hover{filter:brightness(1.08);}
+
+/* SIDEBAR */
+#sidebar{
+  width:250px; flex-shrink:0; background:var(--bg-elev); border-right:1px solid var(--border);
+  position:sticky; top:0; align-self:flex-start; height:100vh; overflow-y:auto; padding:.75rem;
+}
+.nav-group-label{
+  color:var(--text-dim2); font-size:.72rem; text-transform:uppercase; letter-spacing:.06em;
+  margin:1rem .5rem .35rem; font-weight:700;
+}
+.nav-group-label:first-child{margin-top:.25rem;}
+.nav-btn{
+  display:flex; align-items:center; gap:.6rem; width:100%; min-height:50px;
+  background:none; border:0; color:var(--text); border-radius:10px; padding:.55rem .6rem;
+  text-align:left; font-size:.98rem; font-weight:600;
+}
+.nav-btn .ic{font-size:1.15rem; width:1.4em; text-align:center;}
+.nav-btn:hover{background:var(--bg-card);}
+.nav-btn.active{background:var(--accent2-dim); color:var(--accent2); box-shadow:inset 3px 0 0 var(--accent2);}
+#sidebar-scrim{display:none;}
+
+/* MAIN */
+#main{flex:1; min-width:0; padding:1rem 1rem 4rem;}
+.container{max-width:880px; margin:0 auto;}
+.hero{
+  background:linear-gradient(180deg,var(--bg-card),var(--bg-elev)); border:1px solid var(--border);
+  border-radius:var(--radius); padding:1.4rem 1.2rem; margin-bottom:1rem;
+}
+.hero h1{font-size:1.5rem;}
+.hero p{color:var(--text-dim);}
+.big-emergency{
+  display:flex; align-items:center; justify-content:center; gap:.6rem; width:100%;
+  min-height:88px; background:var(--accent); color:#1a0a05; border:0; border-radius:16px;
+  font-size:1.35rem; font-weight:900; margin:1rem 0; box-shadow:0 0 0 6px var(--accent-dim);
+}
+.big-emergency small{display:block; font-size:.6em; font-weight:700; opacity:.85;}
+.secondary-row{display:flex; gap:.7rem; flex-wrap:wrap;}
+.btn{
+  min-height:52px; border-radius:12px; border:1px solid var(--border); background:var(--bg-card);
+  color:var(--text); padding:.6rem 1rem; font-weight:700; font-size:1rem; display:inline-flex;
+  align-items:center; gap:.5rem; flex:1 1 auto; justify-content:center;
+}
+.btn:hover{border-color:var(--accent2);}
+.btn.primary{background:var(--accent2-dim); border-color:var(--accent2); color:var(--accent2);}
+.btn.ghost{background:none;}
+.btn.small{min-height:44px; padding:.45rem .8rem; font-size:.9rem; flex:none;}
+
+.grid{display:grid; grid-template-columns:repeat(auto-fill,minmax(220px,1fr)); gap:.8rem; margin:1rem 0;}
+.card{
+  background:var(--bg-card); border:1px solid var(--border); border-radius:var(--radius);
+  padding:1rem; position:relative; min-height:110px;
+}
+.card-link{display:block; width:100%; text-align:left; background:none; border:0; color:var(--text); min-height:110px;}
+.card h3{font-size:1.05rem; margin-bottom:.25rem;}
+.card p{color:var(--text-dim); font-size:.88rem; margin:0;}
+.card .ic{font-size:1.6rem; display:block; margin-bottom:.4rem;}
+.fav-btn{
+  position:absolute; top:.5rem; right:.5rem; min-width:40px; min-height:40px; background:none;
+  border:0; font-size:1.25rem; color:var(--text-dim2);
+}
+.fav-btn.active{color:var(--moderate);}
+
+.section{
+  background:var(--bg-card); border:1px solid var(--border); border-radius:var(--radius);
+  padding:1.1rem; margin-bottom:1rem;
+}
+.section h2{font-size:1.25rem; display:flex; align-items:center; gap:.5rem;}
+.section h3{font-size:1.05rem; margin-top:1rem;}
+
+.badge{
+  display:inline-block; padding:.2rem .6rem; border-radius:999px; font-size:.78rem; font-weight:800;
+  text-transform:uppercase; letter-spacing:.03em;
+}
+.badge.mild{background:var(--mild-bg); color:var(--mild);}
+.badge.moderate{background:var(--moderate-bg); color:var(--moderate);}
+.badge.severe{background:var(--severe-bg); color:var(--severe);}
+.badge.info{background:var(--info-bg); color:var(--info);}
+
+.result-card{border-radius:var(--radius); padding:1rem; margin:.7rem 0; border:2px solid; }
+.result-card.mild{border-color:var(--mild); background:var(--mild-bg);}
+.result-card.moderate{border-color:var(--moderate); background:var(--moderate-bg);}
+.result-card.severe{border-color:var(--severe); background:var(--severe-bg);}
+.result-card.info{border-color:var(--info); background:var(--info-bg);}
+.result-card h3{margin-top:0;}
+.result-card ol, .result-card ul{margin:.4rem 0 0; padding-left:1.3rem;}
+.result-card li{margin-bottom:.4rem;}
+
+.notdo{
+  border:2px dashed var(--severe); background:var(--severe-bg); border-radius:12px;
+  padding:.8rem 1rem; margin-top:.8rem;
+}
+.notdo h4{color:var(--severe); margin:0 0 .4rem; display:flex; align-items:center; gap:.4rem;}
+.notdo ul{margin:0; padding-left:1.2rem;}
+.notdo li{margin-bottom:.3rem;}
+
+.qbtn-list{display:flex; flex-direction:column; gap:.6rem; margin-top:.8rem;}
+.qbtn{
+  min-height:56px; text-align:left; background:var(--bg-card2); border:1px solid var(--border);
+  border-radius:12px; padding:.7rem 1rem; font-weight:700; font-size:1.02rem; color:var(--text);
+  display:flex; justify-content:space-between; align-items:center; gap:.5rem;
+}
+.qbtn:hover{border-color:var(--accent2); background:var(--info-bg);}
+.qbtn .arrow{color:var(--text-dim2);}
+
+.entry-grid{display:grid; grid-template-columns:repeat(auto-fill,minmax(200px,1fr)); gap:.6rem; margin-top:.8rem;}
+.entry-btn{
+  min-height:64px; background:var(--bg-card2); border:1px solid var(--border); border-radius:12px;
+  padding:.6rem .9rem; font-weight:700; text-align:left; display:flex; align-items:center; gap:.6rem;
+  position:relative;
+}
+.entry-btn:hover{border-color:var(--accent);}
+.entry-btn .ic{font-size:1.4rem;}
+
+.breadcrumb{display:flex; gap:.4rem; align-items:center; color:var(--text-dim2); font-size:.85rem; margin-bottom:.6rem; flex-wrap:wrap;}
+.breadcrumb button{background:none;border:0;color:var(--accent2); font-size:.85rem; padding:.2rem;}
+
+.legend-row{display:flex; gap:.6rem; flex-wrap:wrap; margin:.6rem 0;}
+.legend-chip{display:flex; align-items:center; gap:.4rem; background:var(--bg-card2); border:1px solid var(--border); border-radius:999px; padding:.3rem .7rem; font-size:.85rem;}
+.dot{width:.7rem; height:.7rem; border-radius:50%; display:inline-block;}
+.dot.mild{background:var(--mild);} .dot.moderate{background:var(--moderate);} .dot.severe{background:var(--severe);}
+
+/* SVG viewers */
+.svg-viewer{background:var(--bg-card2); border:1px solid var(--border); border-radius:12px; padding:.8rem; margin:.8rem 0;}
+.svg-stage{width:100%; max-width:420px; margin:0 auto; display:block;}
+.svg-controls{display:flex; justify-content:space-between; align-items:center; margin-top:.6rem; gap:.5rem;}
+.svg-caption{text-align:center; color:var(--text-dim); font-size:.92rem; min-height:2.6em; margin-top:.4rem;}
+.step-dots{display:flex; gap:.35rem; justify-content:center;}
+.step-dots span{width:.55rem; height:.55rem; border-radius:50%; background:var(--border); display:inline-block;}
+.step-dots span.active{background:var(--accent2);}
+
+/* Calculators */
+.calc-row{display:flex; gap:.7rem; flex-wrap:wrap; align-items:flex-end; margin:.6rem 0;}
+.field{display:flex; flex-direction:column; gap:.3rem; flex:1 1 140px;}
+.field label{font-size:.85rem; color:var(--text-dim); font-weight:700;}
+.field input, .field select{
+  min-height:48px; border-radius:10px; border:1px solid var(--border); background:var(--bg-elev);
+  color:var(--text); padding:.5rem .7rem;
+}
+.field input:focus, .field select:focus{outline:3px solid var(--focus);}
+.calc-output{
+  background:var(--bg-elev); border:1px solid var(--border); border-radius:12px; padding:.9rem; margin-top:.6rem;
+}
+.calc-output .big-num{font-size:1.7rem; font-weight:900; color:var(--accent2);}
+.calc-output .lbl{color:var(--text-dim); font-size:.85rem;}
+.out-grid{display:grid; grid-template-columns:repeat(auto-fit,minmax(140px,1fr)); gap:.7rem;}
+
+table.ref-table{width:100%; border-collapse:collapse; margin:.6rem 0;}
+table.ref-table th, table.ref-table td{border-bottom:1px solid var(--border); padding:.5rem .4rem; text-align:left; font-size:.92rem;}
+table.ref-table th{color:var(--text-dim2); text-transform:uppercase; font-size:.72rem; letter-spacing:.04em;}
+
+.qr-grid{display:grid; grid-template-columns:repeat(auto-fill,minmax(240px,1fr)); gap:.7rem;}
+.qr-card{background:var(--bg-card2); border:1px solid var(--border); border-left:5px solid var(--accent2); border-radius:10px; padding:.8rem;}
+.qr-card h4{margin:0 0 .3rem; font-size:.98rem;}
+.qr-card p{margin:0; color:var(--text-dim); font-size:.88rem;}
+
+footer.appfoot{text-align:center; color:var(--text-dim2); font-size:.82rem; padding:1.2rem 0 .4rem;}
+
+@media (max-width:840px){
+  #sidebar{
+    position:fixed; left:0; top:0; height:100%; z-index:80; transform:translateX(-105%);
+    transition:transform .2s ease; box-shadow:0 0 40px rgba(0,0,0,.6); width:280px;
+  }
+  #sidebar.open{transform:translateX(0);}
+  #hamburger{display:inline-flex; align-items:center; justify-content:center;}
+  #sidebar-scrim{
+    display:none; position:fixed; inset:0; background:rgba(0,0,0,.55); z-index:70;
+  }
+  #sidebar-scrim.show{display:block;}
+  .brand span.full{display:none;}
+}
+@media (min-width:841px){
+  #sidebar-close{display:none;}
+}
+@media (max-width:520px){
+  .big-emergency{font-size:1.1rem;}
+  #topbar{gap:.4rem;}
+  .brand{font-size:.95rem;}
+}
+
+@media print{
+  #topbar, #sidebar, #sidebar-scrim, .no-print{display:none !important;}
+  #main{padding:0;}
+  body{background:#fff; color:#000;}
+  .section, .result-card, .card, .qr-card{border-color:#999 !important; background:#fff !important; color:#000 !important;}
+}
+
+/* Reduced motion */
+@media (prefers-reduced-motion: reduce){
+  *{animation-duration:.001ms !important; animation-iteration-count:1 !important; transition-duration:.001ms !important;}
+}
+</style>
+</head>
+<body>
+<div id="app-shell">
+  <nav id="sidebar" aria-label="Category navigation"></nav>
+  <div id="sidebar-scrim"></div>
+  <div style="flex:1; min-width:0; display:flex; flex-direction:column;">
+    <header id="topbar">
+      <button id="hamburger" aria-label="Open menu" aria-expanded="false">&#9776;</button>
+      <div class="brand"><span class="flag">&#9906;</span><span class="full">Survival Guide</span></div>
+      <div id="search-wrap">
+        <label class="visually-hidden" for="search-input">Search the guide</label>
+        <input id="search-input" type="search" placeholder="Search e.g. bleeding, water, north..." autocomplete="off">
+        <div id="search-results" role="listbox"></div>
+      </div>
+      <button class="icon-btn" id="fontsize-btn" title="Text size">A&plusmn;</button>
+      <button class="icon-btn" id="units-btn" title="Units">--</button>
+      <button id="emergency-btn" data-go="triage:entry:start">&#9888; Emergency</button>
+    </header>
+    <main id="main" tabindex="-1"></main>
+    <footer class="appfoot no-print">100% offline &middot; no data leaves this device &middot; not a substitute for professional medical care or emergency services when available</footer>
+  </div>
+</div>
+<script>
+(function(){
+"use strict";
+
+var state = {
+  route: {view:"home"},
+  history: [],
+  fontSize: 1, // index into FONT_SIZES
+  units: "imperial",
+  favorites: new Set(),
+  checklists: {},
+  quiz: {order: null, idx:0, score:0, answered:0, done:false}
+};
+var FONT_SIZES = [16,18,21,25];
+var FONT_LABELS = ["S","M","L","XL"];
+
+function galToL(g){ return g*3.78541; }
+function lToGal(l){ return l/3.78541; }
+function fToC(f){ return (f-32)*5/9; }
+function cToF(c){ return c*9/5+32; }
+function miToKm(m){ return m*1.60934; }
+function round1(n){ return Math.round(n*10)/10; }
+
+/* ---------------- CATEGORY DEFINITIONS ---------------- */
+var CATEGORIES = [
+  {id:"firstaid", name:"First Aid", ic:"&#9877;"},
+  {id:"water", name:"Water & Food", ic:"&#128167;"},
+  {id:"shelter", name:"Shelter", ic:"&#9974;"},
+  {id:"fire", name:"Fire", ic:"&#128293;"},
+  {id:"nav", name:"Navigation", ic:"&#129517;"},
+  {id:"signal", name:"Signaling", ic:"&#128225;"},
+  {id:"weather", name:"Weather", ic:"&#9928;"},
+  {id:"wildlife", name:"Wildlife", ic:"&#128062;"},
+  {id:"vehicle", name:"Vehicle Emergencies", ic:"&#128663;"}
+];
+
+/* ---------------- FIRST AID TRIAGE FLOWS ---------------- */
+function step(t){ return t; }
+var TRIAGE_FLOWS = {
+  entry:{
+    start:{type:"menu", title:"What's the situation?", items:[
+      {label:"Not breathing / unresponsive", ic:"&#128557;", go:"breathing:start"},
+      {label:"Severe bleeding", ic:"&#129656;", go:"bleeding:start"},
+      {label:"Choking", ic:"&#128557;", go:"choking:start"},
+      {label:"Burn", ic:"&#128293;", go:"burns:start"},
+      {label:"Broken bone / severe sprain", ic:"&#129446;", go:"fracture:start"},
+      {label:"Cold exposure / hypothermia", ic:"&#10052;", go:"hypothermia:start"},
+      {label:"Overheating / heat illness", ic:"&#9728;", go:"heat:start"},
+      {label:"Dehydration", ic:"&#128167;", go:"dehydration:start"},
+      {label:"Snake or animal bite", ic:"&#128013;", go:"snakebite:start"},
+      {label:"Shock (pale, cold, rapid pulse)", ic:"&#128148;", go:"shock:start"},
+      {label:"Allergic reaction / anaphylaxis", ic:"&#128163;", go:"allergic:start"}
+    ]}
+  },
+  breathing:{
+    start:{type:"q", text:"Is the person responsive? Tap their shoulder and shout.", options:[
+      {label:"Yes, responsive", next:"responsive"},
+      {label:"No response", next:"check_breathing"}
+    ]},
+    check_breathing:{type:"q", text:"Is the person breathing normally?", options:[
+      {label:"Yes, breathing normally", next:"recovery"},
+      {label:"No, not breathing or gasping", next:"no_breath"}
+    ]},
+    responsive:{type:"result", severity:"moderate", title:"Responsive",
+      steps:["Check for visible injuries and severe bleeding first.","Keep the person still and calm.","Call/send for emergency help if condition is serious or unclear.","Continue to monitor breathing and responsiveness."]},
+    recovery:{type:"result", severity:"moderate", title:"Breathing, unresponsive: recovery position",
+      steps:["Roll the person onto their side.","Tilt the head back slightly to keep the airway open.","Bend the top knee to stabilize the body.","Monitor breathing continuously until help arrives.","Call/send for emergency help."]},
+    no_breath:{type:"result", severity:"severe", title:"Not breathing: begin CPR now",
+      steps:["Call or send someone to call for emergency help immediately.","Begin chest compressions: push hard and fast in the center of the chest, about 2 in (5 cm) deep, 100-120 per minute.","Give 30 compressions, then 2 rescue breaths (tilt head, lift chin, pinch nose).","Repeat 30:2 continuously until the person responds, breathes normally, or help arrives.","Use an AED immediately if one is available - follow its voice prompts."],
+      notdo:["Don't stop compressions for long to search for a pulse.","Don't tilt the head back forcefully if a neck/spinal injury is suspected - use a jaw-thrust instead if trained.","Don't give up - continue CPR until help arrives or the person recovers."]}
+  },
+  bleeding:{
+    start:{type:"q", text:"Is blood spurting, pumping, or pooling rapidly?", options:[
+      {label:"Yes, severe/rapid", next:"severe"},
+      {label:"No, slow or oozing", next:"moderate_q"}
+    ]},
+    moderate_q:{type:"q", text:"Does the bleeding stop with a few minutes of firm direct pressure?", options:[
+      {label:"Yes, it slows/stops", next:"mild"},
+      {label:"No, it keeps bleeding", next:"severe"}
+    ]},
+    mild:{type:"result", severity:"mild", title:"Minor bleeding",
+      steps:["Clean the wound with clean water if available.","Apply direct pressure with a clean cloth until bleeding stops.","Apply antiseptic if available and cover with a clean bandage.","Watch for signs of infection over the following days (redness, swelling, warmth, pus)."]},
+    severe:{type:"result", severity:"severe", title:"Severe bleeding: act fast",
+      steps:["Apply firm, direct pressure on the wound with the cleanest cloth available.","If bleeding soaks through, add more layers on top - do not remove the original dressing.","For a life-threatening limb wound that won't stop, apply a tourniquet 2-3 in (5-8 cm) above the wound (not on a joint). Note the time it was applied.","Keep the person still; elevate the injury above heart level if possible and no fracture is suspected.","Treat for shock (see Shock) and get emergency help immediately."],
+      notdo:["Don't remove an embedded object - pack and bandage around it instead.","Don't loosen or remove a tourniquet once applied.","Don't repeatedly lift the dressing to check the wound - it disrupts clotting."]}
+  },
+  choking:{
+    start:{type:"q", text:"Can the person cough forcefully, speak, or breathe at all?", options:[
+      {label:"Yes, some air movement", next:"mild"},
+      {label:"No, silent and can't breathe", next:"severe"}
+    ]},
+    mild:{type:"result", severity:"mild", title:"Partial airway obstruction",
+      steps:["Encourage the person to keep coughing forcefully - this is the body's best way to clear it.","Stay with them and stay calm.","If it worsens to a silent, complete blockage, move to the severe steps immediately."]},
+    severe:{type:"result", severity:"severe", title:"Complete airway obstruction",
+      steps:["Stand behind the person, lean them forward.","Give 5 firm back blows between the shoulder blades with the heel of your hand.","If unresolved, give 5 abdominal thrusts (Heimlich maneuver): fist above navel, grasp with other hand, thrust sharply inward/upward.","Alternate 5 back blows and 5 abdominal thrusts until the object clears or the person becomes unresponsive.","If they become unresponsive, lower them to the ground and begin CPR - check the mouth for the object before rescue breaths."],
+      notdo:["Don't perform blind finger sweeps of the mouth.","For infants, use back blows and chest thrusts instead of abdominal thrusts.","Don't leave the person alone to go find help unless absolutely necessary."]}
+  },
+  burns:{
+    start:{type:"q", text:"Is the skin charred, white/leathery, or is the burn larger than the person's hand?", options:[
+      {label:"Yes", next:"severe"},
+      {label:"No", next:"blister_q"}
+    ]},
+    blister_q:{type:"q", text:"Are there blisters present?", options:[
+      {label:"Yes, blistering", next:"moderate"},
+      {label:"No, just red/painful skin", next:"mild"}
+    ]},
+    mild:{type:"result", severity:"mild", title:"Minor (first-degree) burn",
+      steps:["Cool under clean running water for 10-20 minutes.","Cover loosely with a clean, non-stick dressing.","Give pain relief if available and appropriate.","Do not apply ice directly."]},
+    moderate:{type:"result", severity:"moderate", title:"Moderate (second-degree) burn",
+      steps:["Cool with clean water for about 20 minutes.","Cover loosely with a clean, non-stick dressing - do not wrap tightly.","Do not pop or drain blisters.","Seek medical care if the burn is on the face, hands, feet, joints, or genitals, or is larger than a few inches."]},
+    severe:{type:"result", severity:"severe", title:"Severe (third-degree) burn: emergency",
+      steps:["Call/send for emergency help immediately.","Do not remove clothing stuck to the burn.","Cover loosely with a clean, dry cloth.","Watch closely for signs of shock and treat if present.","Keep the person warm and still while awaiting evacuation."],
+      notdo:["Don't apply ice, butter, oil, or ointments to any burn.","Don't pop blisters.","Don't peel away clothing that is stuck to burned skin."]}
+  },
+  fracture:{
+    start:{type:"q", text:"Is the bone visibly deformed, poking through the skin, or is the limb completely unusable?", options:[
+      {label:"Yes, obvious/open fracture", next:"severe"},
+      {label:"No", next:"moderate_q"}
+    ]},
+    moderate_q:{type:"q", text:"Is there significant swelling, bruising, or pain when moving it?", options:[
+      {label:"Yes", next:"moderate"},
+      {label:"No, mild tenderness only", next:"mild"}
+    ]},
+    mild:{type:"result", severity:"mild", title:"Possible sprain/strain",
+      steps:["Rest the area - avoid using it.","Ice or cool-cloth for 20 minutes at a time.","Compress lightly with an elastic wrap.","Elevate above heart level when possible.","Monitor - if pain/swelling worsens, treat as moderate."]},
+    moderate:{type:"result", severity:"moderate", title:"Suspected fracture (closed)",
+      steps:["Immobilize the limb in the position it's in using a splint (see Splinting guide).","Apply RICE: Rest, Ice, Compression, Elevation.","Avoid putting weight on the injury.","Seek medical care as soon as possible."]},
+    severe:{type:"result", severity:"severe", title:"Severe or open fracture",
+      steps:["Do not try to straighten or push the bone back in.","Control any bleeding around the wound with gentle direct pressure away from the bone.","Immobilize the limb in the position found - support above and below the injury (see Splinting guide).","Treat for shock and monitor closely.","Get emergency help / evacuate as soon as possible - do not let the person walk on it."],
+      notdo:["Don't try to realign or push a protruding bone back under the skin.","Don't test the injury by having them 'walk it off'.","Don't move the person more than necessary."]}
+  },
+  hypothermia:{
+    start:{type:"q", text:"Is the person shivering but alert, talking normally, and coordinated?", options:[
+      {label:"Yes", next:"mild"},
+      {label:"No", next:"q2"}
+    ]},
+    q2:{type:"q", text:"Are they confused, stumbling, or slurring words - but still shivering?", options:[
+      {label:"Yes", next:"moderate"},
+      {label:"No - shivering has stopped, very unresponsive, or muscles rigid", next:"severe"}
+    ]},
+    mild:{type:"result", severity:"mild", title:"Mild hypothermia",
+      steps:["Move to a warm, dry, sheltered place.","Remove wet clothing and replace with dry, insulating layers.","Give warm, sweet fluids only if fully alert.","Encourage light movement to generate body heat."]},
+    moderate:{type:"result", severity:"moderate", title:"Moderate hypothermia",
+      steps:["Move to shelter urgently and handle the person gently.","Remove wet clothing; insulate fully including the head, using dry layers or a sleeping bag.","Apply warmth to the core first: warm packs or skin-to-skin contact at neck, chest, and groin.","Do not give food or drink unless they are fully alert and able to swallow safely.","Evacuate for medical care as soon as possible."]},
+    severe:{type:"result", severity:"severe", title:"Severe hypothermia: life-threatening",
+      steps:["Handle extremely gently - rough movement can trigger cardiac arrest.","Insulate the whole body, including the head; prevent further heat loss.","Do not actively rewarm rapidly or massage limbs.","Do not give food or fluids.","Check breathing carefully for a full minute - begin CPR only if truly no breathing.","Evacuate for emergency medical care immediately."],
+      notdo:["Don't rub or massage cold extremities.","Don't give alcohol - it worsens heat loss.","Don't immerse in hot water or attempt rapid rewarming for moderate/severe cases.","Don't assume a very cold, still person is dead - hypothermia can mimic death; continue care."]}
+  },
+  heat:{
+    start:{type:"q", text:"Is the skin hot and dry (or barely sweaty) with confusion, seizure, or unconsciousness?", options:[
+      {label:"Yes - heat stroke signs", next:"heatstroke"},
+      {label:"No", next:"q2"}
+    ]},
+    q2:{type:"q", text:"Heavy sweating with cool/clammy skin, dizziness, nausea, or headache?", options:[
+      {label:"Yes", next:"heatexhaustion"},
+      {label:"No, just mild discomfort", next:"mild"}
+    ]},
+    mild:{type:"result", severity:"mild", title:"Mild heat stress", steps:["Move to shade or a cooler area.","Hydrate with water.","Rest and loosen clothing.","Avoid further exertion in the heat."]},
+    heatexhaustion:{type:"result", severity:"moderate", title:"Heat exhaustion",
+      steps:["Move to a cool, shaded area immediately.","Remove excess clothing; cool the skin with wet cloths and fanning.","Sip water or an electrolyte drink if fully alert.","Rest until symptoms fully resolve.","Seek medical care if not improving within 30 minutes."]},
+    heatstroke:{type:"result", severity:"severe", title:"Heat stroke: life-threatening emergency",
+      steps:["Call/send for emergency help immediately.","Cool aggressively: ice packs or cold wet cloths at neck, armpits, and groin; immerse in cool water if possible.","Do not give fluids by mouth if the person is not fully alert.","Monitor breathing and responsiveness closely until help arrives."],
+      notdo:["Don't give fluids to someone who isn't fully alert (choking/aspiration risk).","Don't wait to see if heat stroke signs pass on their own - it can be fatal within minutes.","Don't use ice-water immersion for mild heat stress - reserve aggressive cooling for heat stroke."]}
+  },
+  dehydration:{
+    start:{type:"q", text:"Is the person confused, not urinating, or having a rapid weak pulse/fainting?", options:[
+      {label:"Yes", next:"severe"},
+      {label:"No", next:"q2"}
+    ]},
+    q2:{type:"q", text:"Noticeable thirst, dry mouth, dark yellow urine, or fatigue?", options:[
+      {label:"Yes", next:"moderate"},
+      {label:"No, just mild thirst", next:"mild"}
+    ]},
+    mild:{type:"result", severity:"mild", title:"Mild dehydration", steps:["Drink water steadily, small amounts often.","Rest in the shade.","Monitor urine color - aim for pale yellow."]},
+    moderate:{type:"result", severity:"moderate", title:"Moderate dehydration",
+      steps:["Rehydrate with water plus electrolytes; a pinch of salt and sugar per liter can help if no electrolyte mix is available.","Rest and avoid further exertion.","Continue monitoring - progress to severe steps if symptoms worsen."]},
+    severe:{type:"result", severity:"severe", title:"Severe dehydration: emergency",
+      steps:["This requires medical care - begin evacuation.","If conscious and able to swallow, give oral rehydration solution slowly and steadily, not large amounts at once.","Keep the person cool and still.","Watch closely for worsening confusion or loss of consciousness."],
+      notdo:["Don't gulp large volumes of water quickly - it can cause vomiting.","Don't drink seawater or urine to rehydrate - it worsens dehydration.","Don't ignore dark urine combined with confusion - treat as severe."]}
+  },
+  snakebite:{
+    start:{type:"q", text:"Do you know with certainty the snake was non-venomous?", options:[
+      {label:"Yes, certain", next:"mild"},
+      {label:"No / unsure", next:"assess"}
+    ]},
+    assess:{type:"q", text:"Is there rapidly spreading swelling, severe pain, vomiting, trouble breathing, or drooping eyelids?", options:[
+      {label:"Yes", next:"severe"},
+      {label:"No, mild local pain/swelling only so far", next:"moderate"}
+    ]},
+    mild:{type:"result", severity:"mild", title:"Non-venomous bite", steps:["Clean the wound with water.","Cover with a clean dressing.","Still seek medical evaluation when possible."]},
+    moderate:{type:"result", severity:"moderate", title:"Possible venomous bite", steps:["Keep the person calm and as still as possible - movement spreads venom faster.","Keep the bitten limb below heart level.","Remove rings, watches, or tight clothing near the bite before swelling worsens.","Mark the edge of swelling and the time, and recheck every 15 minutes.","Get to medical care as soon as possible."]},
+    severe:{type:"result", severity:"severe", title:"Severe envenomation: emergency",
+      steps:["Call/send for emergency help immediately.","Keep the person still and calm - carry them if possible rather than letting them walk.","Immobilize the bitten limb below heart level, similar to a fracture splint.","Evacuate urgently - antivenom is time-critical."],
+      notdo:["Don't cut the wound.","Don't try to suck out the venom.","Don't apply a tight tourniquet or ice.","Don't try to catch or kill the snake - a photo from a safe distance is enough for identification."]}
+  },
+  shock:{
+    start:{type:"q", text:"Is the skin pale, cool, and clammy with a rapid weak pulse and confusion?", options:[
+      {label:"Yes", next:"severe"},
+      {label:"No, but there's a recent injury/blood loss/burn", next:"monitor"}
+    ]},
+    monitor:{type:"result", severity:"moderate", title:"Watch for shock", steps:["Keep monitoring closely - shock can develop after injury, blood loss, or burns.","Keep the person calm, warm, and still.","Treat the underlying injury (bleeding, burn, fracture).","Recheck skin color, pulse, and alertness frequently."]},
+    severe:{type:"result", severity:"severe", title:"Shock: emergency",
+      steps:["Call/send for emergency help immediately.","Lay the person down and elevate the legs about 12 in (30 cm), unless a head, spinal, or leg injury is suspected.","Keep them warm with a blanket and treat any obvious cause such as bleeding.","Do not give food or water.","Monitor breathing and responsiveness continuously until help arrives."],
+      notdo:["Don't give food or drink.","Don't leave the person alone.","Don't elevate the legs if a head, spinal, or leg fracture is suspected."]}
+  },
+  allergic:{
+    start:{type:"q", text:"Swelling of the face/throat, trouble breathing or swallowing, or widespread hives with dizziness?", options:[
+      {label:"Yes - severe reaction", next:"severe"},
+      {label:"No, localized itching/hives only", next:"mild"}
+    ]},
+    mild:{type:"result", severity:"mild", title:"Mild allergic reaction", steps:["Give an antihistamine if available and appropriate.","Remove the trigger if known (e.g., stinger, contact source).","Monitor closely for 30-60 minutes for signs of progression to a severe reaction."]},
+    severe:{type:"result", severity:"severe", title:"Anaphylaxis: life-threatening emergency",
+      steps:["Use an epinephrine auto-injector immediately if available - inject into the outer thigh.","Call/send for emergency help right away.","Lay the person flat with legs raised, unless breathing is difficult, in which case let them sit up.","Be ready to give a second epinephrine dose after 5-15 minutes if there's no improvement.","Begin CPR immediately if they become unresponsive or stop breathing."],
+      notdo:["Don't wait to see if it improves before using epinephrine.","Don't have the person stand or walk suddenly - it can cause a fatal drop in blood pressure.","Don't rely on an oral antihistamine alone for a severe reaction - it is not a substitute for epinephrine."]}
+  }
+};
+
+/* ---------------- SVG STEP SEQUENCES ---------------- */
+function svgFrame(inner, vb){ return '<svg class="svg-stage" viewBox="'+(vb||"0 0 300 220")+'" xmlns="http://www.w3.org/2000/svg" role="img" aria-hidden="true">'+inner+'</svg>'; }
+var COL_LINE = "#aab2bf", COL_SKIN="#d9a066", COL_RED="#ff4d4d", COL_WHITE="#f3f5f8", COL_ACC="#3ba7ff", COL_WOOD="#8a5a34", COL_GREEN="#3fbf7f";
+
+var BANDAGE_STEPS = [
+  {cap:"Step 1: Expose the wound and apply a clean dressing directly over it.",
+   svg:svgFrame('<rect x="40" y="70" width="220" height="60" rx="30" fill="'+COL_SKIN+'"/><circle cx="150" cy="100" r="16" fill="'+COL_RED+'"/><rect x="120" y="82" width="60" height="36" rx="6" fill="'+COL_WHITE+'" opacity="0"/>')},
+  {cap:"Step 2: Press the dressing firmly with your palm to apply direct pressure.",
+   svg:svgFrame('<rect x="40" y="70" width="220" height="60" rx="30" fill="'+COL_SKIN+'"/><rect x="115" y="78" width="70" height="44" rx="8" fill="'+COL_WHITE+'"/><circle cx="150" cy="100" r="10" fill="'+COL_RED+'" opacity=".5"/><path d="M150 40 v30 M130 45 l20 -20 l20 20" stroke="'+COL_ACC+'" stroke-width="4" fill="none" stroke-linecap="round"/>')},
+  {cap:"Step 3: Wrap a bandage snugly around the limb, over the dressing, working outward from the wound.",
+   svg:svgFrame('<rect x="40" y="70" width="220" height="60" rx="30" fill="'+COL_SKIN+'"/><rect x="110" y="76" width="80" height="48" rx="8" fill="'+COL_WHITE+'"/><path d="M100 68 q50 -14 100 0 M100 132 q50 14 100 0 M95 90 q55 -10 110 0 M95 110 q55 10 110 0" stroke="'+COL_ACC+'" stroke-width="6" fill="none" stroke-linecap="round"/>')},
+  {cap:"Step 4: Secure the end, check circulation past the bandage, and elevate the injury if possible.",
+   svg:svgFrame('<rect x="40" y="70" width="220" height="60" rx="30" fill="'+COL_SKIN+'"/><rect x="100" y="70" width="100" height="60" rx="10" fill="'+COL_ACC+'" opacity=".85"/><path d="M205 100 h30" stroke="'+COL_WHITE+'" stroke-width="6" stroke-linecap="round"/><path d="M225 92 l10 8 l-10 8" fill="none" stroke="'+COL_WHITE+'" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/><path d="M150 40 l0 20" stroke="'+COL_GREEN+'" stroke-width="4"/><path d="M140 50 l10 -14 l10 14" fill="none" stroke="'+COL_GREEN+'" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>')}
+];
+var SPLINT_STEPS = [
+  {cap:"Step 1: Support the injured limb above and below the injury without straightening it.",
+   svg:svgFrame('<rect x="30" y="120" width="240" height="26" rx="13" fill="'+COL_SKIN+'" transform="rotate(-8 150 133)"/><circle cx="150" cy="120" r="10" fill="'+COL_RED+'"/>')},
+  {cap:"Step 2: Place padding along the limb, then lay a rigid support (stick, pole, or board) alongside it.",
+   svg:svgFrame('<rect x="30" y="120" width="240" height="26" rx="13" fill="'+COL_SKIN+'" transform="rotate(-8 150 133)"/><rect x="35" y="150" width="230" height="14" rx="7" fill="'+COL_WOOD+'"/>')},
+  {cap:"Step 3: Tie the splint in place at several points - above the injury, below it, but never directly over it.",
+   svg:svgFrame('<rect x="30" y="120" width="240" height="26" rx="13" fill="'+COL_SKIN+'" transform="rotate(-8 150 133)"/><rect x="35" y="150" width="230" height="14" rx="7" fill="'+COL_WOOD+'"/><rect x="55" y="112" width="10" height="55" fill="'+COL_ACC+'"/><rect x="150" y="112" width="10" height="55" fill="'+COL_ACC+'"/><rect x="235" y="112" width="10" height="55" fill="'+COL_ACC+'"/>')},
+  {cap:"Step 4: Check that fingers/toes stay warm, pink, and can feel touch. Support or sling the limb and keep the person still.",
+   svg:svgFrame('<rect x="30" y="120" width="240" height="26" rx="13" fill="'+COL_SKIN+'" transform="rotate(-8 150 133)"/><rect x="35" y="150" width="230" height="14" rx="7" fill="'+COL_WOOD+'"/><rect x="55" y="112" width="10" height="55" fill="'+COL_ACC+'"/><rect x="150" y="112" width="10" height="55" fill="'+COL_ACC+'"/><rect x="235" y="112" width="10" height="55" fill="'+COL_ACC+'"/><path d="M270 60 q-40 30 -40 70" stroke="'+COL_GREEN+'" stroke-width="5" fill="none" stroke-dasharray="6 6"/>')}
+];
+
+function svgViewer(id, steps, startIdx){
+  return '<div class="svg-viewer" data-viewer="'+id+'" data-idx="'+(startIdx||0)+'">'+
+    '<div class="viewer-stage">'+steps[startIdx||0].svg+'</div>'+
+    '<div class="svg-caption">'+steps[startIdx||0].cap+'</div>'+
+    '<div class="svg-controls">'+
+      '<button class="btn small" data-viewer-prev="'+id+'">&larr; Prev</button>'+
+      '<div class="step-dots">'+steps.map(function(s,i){return '<span class="'+(i===(startIdx||0)?"active":"")+'"></span>';}).join("")+'</div>'+
+      '<button class="btn small" data-viewer-next="'+id+'">Next &rarr;</button>'+
+    '</div></div>';
+}
+var VIEWERS = {bandage:BANDAGE_STEPS, splint:SPLINT_STEPS};
+
+/* Shelter diagrams (static multi-callout) */
+function leanToSvg(){
+  return svgFrame('<line x1="20" y1="190" x2="280" y2="190" stroke="'+COL_LINE+'" stroke-width="3"/>'+
+    '<line x1="60" y1="190" x2="60" y2="70" stroke="'+COL_WOOD+'" stroke-width="8"/>'+
+    '<line x1="60" y1="70" x2="240" y2="190" stroke="'+COL_WOOD+'" stroke-width="8"/>'+
+    '<g stroke="'+COL_GREEN+'" stroke-width="4">'+
+      '<line x1="80" y1="90" x2="220" y2="185"/><line x1="100" y1="95" x2="220" y2="165"/>'+
+      '<line x1="120" y1="100" x2="220" y2="145"/><line x1="140" y1="105" x2="220" y2="125"/>'+
+      '<line x1="160" y1="112" x2="215" y2="112"/>'+
+    '</g>'+
+    '<text x="45" y="60" fill="'+COL_WHITE+'" font-size="14">1</text>'+
+    '<text x="230" y="200" fill="'+COL_WHITE+'" font-size="14">2</text>'+
+    '<text x="150" y="95" fill="'+COL_WHITE+'" font-size="14">3</text>', "0 0 300 210");
+}
+function debrisHutSvg(){
+  return svgFrame('<line x1="20" y1="190" x2="280" y2="190" stroke="'+COL_LINE+'" stroke-width="3"/>'+
+    '<path d="M40 190 L150 90 L260 190 Z" fill="none" stroke="'+COL_WOOD+'" stroke-width="6"/>'+
+    '<g stroke="'+COL_GREEN+'" stroke-width="4">'+
+      '<line x1="60" y1="185" x2="150" y2="100"/><line x1="90" y1="185" x2="150" y2="108"/>'+
+      '<line x1="120" y1="185" x2="150" y2="116"/><line x1="240" y1="185" x2="150" y2="100"/>'+
+      '<line x1="210" y1="185" x2="150" y2="108"/><line x1="180" y1="185" x2="150" y2="116"/>'+
+    '</g>'+
+    '<ellipse cx="150" cy="188" rx="18" ry="10" fill="'+COL_LINE+'" opacity=".5"/>'+
+    '<text x="55" y="170" fill="'+COL_WHITE+'" font-size="14">1</text>'+
+    '<text x="150" y="80" fill="'+COL_WHITE+'" font-size="14">2</text>'+
+    '<text x="130" y="205" fill="'+COL_WHITE+'" font-size="14">3</text>', "0 0 300 210");
+}
+
+/* Navigation diagrams */
+function shadowStickSvg(){
+  return '<svg class="svg-stage" id="shadow-stick-svg" viewBox="0 0 300 220" xmlns="http://www.w3.org/2000/svg" role="img" aria-hidden="true">'+
+    '<line x1="10" y1="190" x2="290" y2="190" stroke="'+COL_LINE+'" stroke-width="2"/>'+
+    '<circle cx="150" cy="190" r="4" fill="'+COL_WHITE+'"/>'+
+    '<line x1="150" y1="190" x2="150" y2="60" stroke="'+COL_WOOD+'" stroke-width="7"/>'+
+    '<circle cx="245" cy="40" r="16" fill="#f0c419"/>'+
+    '<g id="shadow-group" style="transform-origin:150px 190px; animation:shadowsweep 6s ease-in-out infinite;">'+
+      '<line x1="150" y1="190" x2="90" y2="192" stroke="#000" stroke-width="6" opacity=".55"/>'+
+    '</g>'+
+    '<circle cx="90" cy="192" r="5" fill="'+COL_ACC+'"/><text x="72" y="212" fill="'+COL_ACC+'" font-size="13">Mark 1 (W)</text>'+
+    '<circle cx="205" cy="192" r="5" fill="'+COL_GREEN+'"/><text x="190" y="212" fill="'+COL_GREEN+'" font-size="13">Mark 2 (E)</text>'+
+    '<line x1="90" y1="192" x2="205" y2="192" stroke="'+COL_WHITE+'" stroke-width="2" stroke-dasharray="4 4"/>'+
+  '</svg>'+
+  '<style>@keyframes shadowsweep{0%{transform:rotate(-18deg) scaleX(1.15);}50%{transform:rotate(18deg) scaleX(0.85);}100%{transform:rotate(-18deg) scaleX(1.15);}}</style>';
+}
+function bigDipperSvg(){
+  var pts = {a:[30,250],b:[70,225],c:[115,205],d:[150,190],e:[160,232],f:[222,238],g:[228,190]};
+  function seg(p1,p2){ return '<line x1="'+p1[0]+'" y1="'+p1[1]+'" x2="'+p2[0]+'" y2="'+p2[1]+'" stroke="'+COL_WHITE+'" stroke-width="2"/>'; }
+  function star(p,big){ return '<circle cx="'+p[0]+'" cy="'+p[1]+'" r="'+(big?6:4.5)+'" fill="#f0c419"/>'; }
+  return svgFrame(
+    seg(pts.a,pts.b)+seg(pts.b,pts.c)+seg(pts.c,pts.d)+seg(pts.d,pts.e)+seg(pts.e,pts.f)+seg(pts.f,pts.g)+seg(pts.g,pts.d)+
+    star(pts.a)+star(pts.b)+star(pts.c)+star(pts.d)+star(pts.e,true)+star(pts.f,true)+star(pts.g,true)+
+    '<line x1="228" y1="190" x2="252" y2="40" stroke="'+COL_ACC+'" stroke-width="2.5" stroke-dasharray="5 5"/>'+
+    '<circle cx="252" cy="40" r="7" fill="'+COL_ACC+'"/>'+
+    '<text x="185" y="185" fill="'+COL_ACC+'" font-size="11">pointer stars</text>'+
+    '<text x="200" y="30" fill="'+COL_ACC+'" font-size="13">Polaris (North)</text>',
+    "0 0 300 260");
+}
+
+/* ---------------- SEARCH INDEX (built after content defs) ---------------- */
+var SEARCH_INDEX = [];
+function idx(cat, title, kw, go){ SEARCH_INDEX.push({cat:cat, title:title, kw:(title+" "+kw).toLowerCase(), go:go}); }
+
+/* ---------------- QUICK REFERENCE ---------------- */
+var QUICK_REF = [
+  {t:"Severe bleeding", d:"Direct firm pressure. If life-threatening on a limb, tourniquet 2-3 in above the wound; note the time."},
+  {t:"SOS signal", d:"3 short, 3 long, 3 short - by whistle, flashlight, or mirror flashes."},
+  {t:"Water purification", d:"8 drops unscented bleach per gallon (clear water), double if cloudy - wait 30 min. Or boil 1 min (3 min above 6,500 ft)."},
+  {t:"Hypothermia stages", d:"Mild: shivering, alert. Moderate: confused, stumbling. Severe: shivering stops, unresponsive - handle very gently."},
+  {t:"Heat stroke", d:"Hot/dry skin + confusion or seizure = emergency. Cool aggressively now, call for help."},
+  {t:"Lightning: 30-30 rule", d:"Shelter if thunder follows lightning in under 30 sec. Wait 30 min after the last thunder before going back out."},
+  {t:"Rule of 3s", d:"3 min without air, 3 hrs without shelter in harsh exposure, 3 days without water, 3 weeks without food."},
+  {t:"Choking", d:"5 back blows, then 5 abdominal thrusts. Alternate until clear or person becomes unresponsive."},
+  {t:"Flood water", d:"Never cross moving water: 6 in can knock you down, 12-24 in can float a vehicle."},
+  {t:"Shadow-stick north", d:"Mark shadow tip, wait 15-20 min, mark again. First-to-second mark line runs roughly west to east; perpendicular = north-south."}
+];
+
+/* ---------------- WATER/FOOD, SHELTER, FIRE, NAV, SIGNAL, WEATHER, WILDLIFE, VEHICLE CONTENT ---------------- */
+var FIRE_METHODS = [
+  {name:"Lighter / matches", difficulty:"Very low", reliability:"High (if dry)"},
+  {name:"Ferro rod / firesteel", difficulty:"Low", reliability:"High, works wet"},
+  {name:"Battery + steel wool", difficulty:"Low", reliability:"High if battery available"},
+  {name:"Magnifying lens / glasses", difficulty:"Low", reliability:"Needs direct sun"},
+  {name:"Flint & steel + char cloth", difficulty:"Medium", reliability:"Medium-high, needs practice"},
+  {name:"Bow drill", difficulty:"High", reliability:"Medium, skill dependent"},
+  {name:"Hand drill", difficulty:"Very high", reliability:"Low, needs dry materials and practice"}
+];
+var GROUND_SIGNALS = [
+  {sym:"V", meaning:"Require assistance"},
+  {sym:"X", meaning:"Require medical assistance"},
+  {sym:"N", meaning:"No / negative"},
+  {sym:"Y", meaning:"Yes / affirmative"},
+  {sym:"&#8593;", meaning:"Proceeding in this direction"},
+  {sym:"F", meaning:"Need food and water"},
+  {sym:"&#9632;&#9632;", meaning:"All is well"}
+];
+
+/* ---------------- QUIZ ---------------- */
+var QUIZ_QUESTIONS = [
+  {q:"For severe limb bleeding that won't stop, where do you place a tourniquet?", a:["Directly on the wound","2-3 in above the wound, not on a joint","On the nearest joint"], correct:1},
+  {q:"What is the universal SOS pattern?", a:["1 long, 1 short, 1 long","3 short, 3 long, 3 short","5 short blasts"], correct:1},
+  {q:"How many drops of unscented bleach purify 1 gallon of clear water?", a:["About 8 drops","About 1 drop","About 50 drops"], correct:0},
+  {q:"A person is shivering but alert and coordinated. That's which hypothermia stage?", a:["Severe","Moderate","Mild"], correct:2},
+  {q:"Hot, dry skin with confusion or seizure in the heat means:", a:["Mild heat stress, just rest","Heat stroke - a life-threatening emergency","Normal exertion"], correct:1},
+  {q:"The 30-30 lightning rule means:", a:["Shelter if thunder follows lightning within 30 sec, wait 30 min after last thunder","Only go outside for 30 minutes","Lightning strikes 30 miles away"], correct:0},
+  {q:"For choking with a completely blocked airway, you should:", a:["Give water to wash it down","Alternate 5 back blows and 5 abdominal thrusts","Wait for it to clear itself"], correct:1},
+  {q:"How deep is safe to cross moving flood water on foot?", a:["Any depth is fine if you're careful","6 inches can already knock you down - avoid it","Up to 3 feet"], correct:1},
+  {q:"For a snake bite, you should:", a:["Cut the wound and suck out venom","Apply a tight tourniquet","Keep the person calm, still, and the limb below heart level"], correct:2},
+  {q:"When stranded in snow in a vehicle, the best move is usually to:", a:["Walk to find help immediately","Stay with the vehicle and run the engine briefly each hour for heat","Turn the engine off completely and stay silent"], correct:1}
+];
+
+/* ---------------- RENDER HELPERS ---------------- */
+function esc(s){ return String(s).replace(/[&<>]/g, function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;"}[c];}); }
+function favKey(k){ return state.favorites.has(k); }
+function favBtn(key, label){
+  return '<button class="fav-btn '+(favKey(key)?"active":"")+'" data-fav="'+key+'" aria-label="Favorite '+esc(label)+'" title="Favorite">'+(favKey(key)?"&#9733;":"&#9734;")+'</button>';
+}
+function severityBadge(sev){
+  var labels = {mild:"Mild", moderate:"Moderate", severe:"Severe", info:"Info"};
+  return '<span class="badge '+sev+'">'+labels[sev]+'</span>';
+}
+function renderNotDo(list){
+  if(!list || !list.length) return "";
+  return '<div class="notdo"><h4>&#128683; What NOT to do</h4><ul>'+list.map(function(i){return "<li>"+esc(i)+"</li>";}).join("")+'</ul></div>';
+}
+function renderSteps(steps){
+  return '<ol>'+steps.map(function(s){return "<li>"+esc(s)+"</li>";}).join("")+'</ol>';
+}
+
+function displayVol(litersLow, litersHigh){ return null; }
+
+function unitLabelVol(){ return state.units==="imperial" ? "gal" : "L"; }
+function unitLabelTemp(){ return state.units==="imperial" ? "&deg;F" : "&deg;C"; }
+function unitLabelDist(){ return state.units==="imperial" ? "mi" : "km"; }
+
+/* ---------------- VIEWS ---------------- */
+function go(route, opts){
+  opts = opts || {};
+  if(opts.push !== false){ state.history.push(state.route); }
+  state.route = route;
+  render();
+  var m = document.getElementById("main");
+  if(m){ m.scrollTop = 0; m.focus({preventScroll:true}); window.scrollTo(0,0); }
+  closeSidebar();
+}
+function goBack(){
+  if(state.history.length){ state.route = state.history.pop(); render(); }
+  else { go({view:"home"}, {push:false}); }
+}
+
+function renderHome(){
+  var html = '';
+  html += '<div class="hero">';
+  html += '<h1>Offline Survival Guide</h1>';
+  html += '<p>Everything below works with no signal and no internet. In a real emergency, tap the red button first.</p>';
+  html += '<button class="big-emergency" data-go="triage:entry:start">&#9888; EMERGENCY NOW<small>Start First Aid triage</small></button>';
+  html += '<div class="secondary-row">';
+  html += '<button class="btn primary" data-go="browse">&#128218; Browse &amp; Learn</button>';
+  html += '<button class="btn" data-go="quickref">&#128203; Quick Reference</button>';
+  html += '<button class="btn" data-go="quiz">&#10067; Knowledge Check</button>';
+  html += '</div></div>';
+
+  html += '<div class="section"><h2>Categories</h2><div class="grid">';
+  CATEGORIES.forEach(function(c){
+    html += '<div class="card">'+favBtn("cat:"+c.id, c.name)+
+      '<button class="card-link" data-go="cat:'+c.id+'"><span class="ic">'+c.ic+'</span><h3>'+c.name+'</h3><p>'+catBlurb(c.id)+'</p></button></div>';
+  });
+  html += '</div></div>';
+
+  if(state.favorites.size){
+    html += '<div class="section"><h2>&#9733; Favorites</h2>'+renderFavList()+'</div>';
+  }
+  return html;
+}
+function catBlurb(id){
+  var m = {
+    firstaid:"Tap-through triage for bleeding, breathing, burns, and more.",
+    water:"Purify water and plan food rations.",
+    shelter:"Lean-to and debris hut builds.",
+    fire:"Methods, tinder, and fire safety.",
+    nav:"Find direction without a compass.",
+    signal:"Get found: SOS, mirrors, ground signals.",
+    weather:"Lightning, heat, cold, floods, storms.",
+    wildlife:"Bears, snakes, cougars, insects, ticks.",
+    vehicle:"Stranded, breakdown, overheating, submersion."
+  };
+  return m[id]||"";
+}
+function renderFavList(){
+  if(!state.favorites.size) return '<p style="color:var(--text-dim)">No favorites yet. Tap the star on any card or item to save it here.</p>';
+  var html = '<div class="qbtn-list">';
+  state.favorites.forEach(function(key){
+    var label = favLabel(key);
+    html += '<button class="qbtn" data-go="fav:'+key+'"><span>'+esc(label)+'</span><span class="arrow">&rarr;</span></button>';
+  });
+  html += '</div>';
+  return html;
+}
+function favLabel(key){
+  var parts = key.split(":");
+  if(parts[0]==="cat"){ var c=CATEGORIES.filter(function(x){return x.id===parts[1];})[0]; return c?c.name:key; }
+  if(parts[0]==="triage"){ var f=parts[1]; var item = TRIAGE_FLOWS.entry.start.items.filter(function(i){return i.go.split(":")[0]===f;})[0]; return item?item.label:key; }
+  if(parts[0]==="qr"){ return "Quick Ref: "+QUICK_REF[+parts[1]].t; }
+  return key;
+}
+function goFav(key){
+  var parts = key.split(":");
+  if(parts[0]==="cat") return go({view:"category", cat:parts[1]});
+  if(parts[0]==="triage") return go({view:"triage", flow:parts[1], node:"start"});
+  if(parts[0]==="qr") return go({view:"quickref"});
+  return go({view:"home"});
+}
+
+function renderQuickRef(){
+  var html = '<div class="breadcrumb"><button data-go="home">&larr; Home</button></div>';
+  html += '<div class="section">';
+  html += '<h2>&#128203; Quick Reference <button class="btn small no-print" style="margin-left:auto" id="print-btn">&#128424; Print</button></h2>';
+  html += '<p>The ~10 most critical facts, condensed for a single screen or printed page.</p>';
+  html += '<div class="qr-grid">';
+  QUICK_REF.forEach(function(item, i){
+    html += '<div class="qr-card">'+favBtn("qr:"+i, item.t)+'<h4>'+esc(item.t)+'</h4><p>'+esc(item.d)+'</p></div>';
+  });
+  html += '</div></div>';
+  return html;
+}
+
+function renderBrowse(){
+  var html = '<div class="breadcrumb"><button data-go="home">&larr; Home</button></div>';
+  html += '<div class="section"><h2>&#128218; Browse &amp; Learn</h2><p>Calm-context reading, organized by topic.</p><div class="grid">';
+  CATEGORIES.forEach(function(c){
+    html += '<div class="card">'+favBtn("cat:"+c.id, c.name)+
+      '<button class="card-link" data-go="cat:'+c.id+'"><span class="ic">'+c.ic+'</span><h3>'+c.name+'</h3><p>'+catBlurb(c.id)+'</p></button></div>';
+  });
+  html += '</div></div>';
+  return html;
+}
+
+/* ---- First Aid category ---- */
+function renderFirstAidCat(){
+  var html = '<div class="breadcrumb"><button data-go="home">&larr; Home</button></div>';
+  html += '<div class="section"><h2>&#9877; First Aid</h2>';
+  html += '<button class="big-emergency" data-go="triage:entry:start">&#9888; START TRIAGE<small>Tap-through decision flow</small></button>';
+  html += '<div class="legend-row">'+
+    '<span class="legend-chip"><span class="dot mild"></span> Mild - manage yourself</span>'+
+    '<span class="legend-chip"><span class="dot moderate"></span> Moderate - prompt care</span>'+
+    '<span class="legend-chip"><span class="dot severe"></span> Severe - emergency</span>'+
+  '</div>';
+  html += '<h3>Jump straight to a condition</h3><div class="entry-grid">';
+  TRIAGE_FLOWS.entry.start.items.forEach(function(item){
+    var flow = item.go.split(":")[0];
+    html += '<button class="entry-btn" data-go="triage:'+flow+':start"><span class="ic">'+item.ic+'</span><span>'+esc(item.label)+'</span></button>';
+  });
+  html += '</div></div>';
+
+  html += '<div class="section"><h2>Step-through: Pressure Bandaging</h2>'+svgViewer("bandage", BANDAGE_STEPS, 0)+'</div>';
+  html += '<div class="section"><h2>Step-through: Basic Splinting</h2>'+svgViewer("splint", SPLINT_STEPS, 0)+'</div>';
+
+  html += '<div class="section"><h2>Common Myths - What NOT to Do</h2>';
+  html += renderNotDo(["Don't suck out snake venom - it doesn't work and risks the helper.","Don't rub or massage frostbitten skin - it damages tissue further.","Don't remove an embedded object from a wound - stabilize it in place.","Don't apply ice directly to a burn.","Don't tilt a choking person's head back and give water.","Don't move someone with a suspected spinal injury unless there's immediate danger."]);
+  html += '</div>';
+  return html;
+}
+
+function renderTriage(flowId, nodeId){
+  var flow = TRIAGE_FLOWS[flowId];
+  var node = flow ? flow[nodeId] : null;
+  var html = '<div class="breadcrumb"><button data-go="cat:firstaid">&larr; First Aid</button><span>/</span><span>Triage</span></div>';
+  html += '<div class="section">';
+  if(!node){ html += '<p>Not found.</p></div>'; return html; }
+
+  if(node.type === "menu"){
+    html += '<h2>&#9888; '+esc(node.title)+'</h2><p style="color:var(--text-dim)">Tap the situation that matches. Each leads to a short set of yes/no questions.</p>';
+    html += '<div class="entry-grid">';
+    node.items.forEach(function(item){
+      var fkey = "triage:"+item.go.split(":")[0];
+      html += '<div style="position:relative">'+favBtn(fkey, item.label)+
+        '<button class="entry-btn" style="width:100%" data-go="triage:'+esc(item.go)+'"><span class="ic">'+item.ic+'</span><span>'+esc(item.label)+'</span></button></div>';
+    });
+    html += '</div>';
+  } else if(node.type === "q"){
+    html += '<div class="badge info">Question</div>';
+    html += '<h2 style="margin-top:.5rem">'+esc(node.text)+'</h2>';
+    html += '<div class="qbtn-list">';
+    node.options.forEach(function(opt){
+      html += '<button class="qbtn" data-go="triage:'+flowId+':'+opt.next+'"><span>'+esc(opt.label)+'</span><span class="arrow">&rarr;</span></button>';
+    });
+    html += '</div>';
+  } else if(node.type === "result"){
+    html += '<div class="result-card '+node.severity+'">';
+    html += severityBadge(node.severity)+'<h3>'+esc(node.title)+'</h3>';
+    html += renderSteps(node.steps);
+    html += '</div>';
+    html += renderNotDo(node.notdo);
+    html += '<div class="secondary-row" style="margin-top:1rem">';
+    html += '<button class="btn" data-go="triage:'+flowId+':start">&#8635; Start this flow over</button>';
+    html += '<button class="btn" data-go="triage:entry:start">&#9776; Choose different situation</button>';
+    html += '</div>';
+  }
+  html += '</div>';
+  return html;
+}
+
+/* ---- Water & Food ---- */
+function renderWater(){
+  var html = '<div class="breadcrumb"><button data-go="home">&larr; Home</button></div>';
+  html += '<div class="section"><h2>&#128167; Water &amp; Food</h2>';
+  html += '<h3>Water purification calculator</h3>';
+  html += '<div class="calc-row">'+
+    '<div class="field"><label for="wf-vol">Water volume ('+unitLabelVol()+')</label><input id="wf-vol" type="number" min="0" step="0.1" value="1"></div>'+
+    '</div><div id="wf-output" class="calc-output"></div>';
+  html += '<h3>Purification methods</h3><table class="ref-table"><tr><th>Method</th><th>Notes</th></tr>'+
+    '<tr><td>Boiling</td><td>Rolling boil 1 min (3 min above 6,500 ft / 2,000 m). Most reliable, kills all pathogens.</td></tr>'+
+    '<tr><td>Unscented bleach</td><td>5-9% sodium hypochlorite, no added scents/soaps. Wait 30 min before drinking.</td></tr>'+
+    '<tr><td>Purification tablets</td><td>Follow product label; wait time varies (often 30-60 min).</td></tr>'+
+    '<tr><td>Filter</td><td>Removes bacteria/protozoa; check if it also removes viruses.</td></tr>'+
+    '<tr><td>UV pen</td><td>Needs clear water and working batteries.</td></tr></table>';
+  html += '<h3>Finding water</h3><p>Priority: flowing water over stagnant, moving over still. Avoid water near dead animals, algae blooms, or industrial runoff. Collect dew or rainwater when possible - both are relatively clean but should still be treated if time allows.</p>';
+
+  html += '<h3>Calorie / ration calculator</h3>';
+  html += '<div class="calc-row">'+
+    '<div class="field"><label for="cal-people">People</label><input id="cal-people" type="number" min="1" step="1" value="1"></div>'+
+    '<div class="field"><label for="cal-days">Days</label><input id="cal-days" type="number" min="1" step="1" value="3"></div>'+
+    '<div class="field"><label for="cal-activity">Activity level</label><select id="cal-activity">'+
+      '<option value="low">Low (resting/sheltering)</option>'+
+      '<option value="moderate" selected>Moderate (hiking, tasks)</option>'+
+      '<option value="high">High (strenuous exertion)</option>'+
+    '</select></div>'+
+  '</div><div id="cal-output" class="calc-output"></div>';
+  html += '<h3>Food safety &amp; foraging</h3><p>When food is uncertain, prioritize known-safe sources. Never eat mushrooms unless positively identified. Cook wild game and fish thoroughly. If forced to test an unknown plant, use extreme caution: separate parts, test a small skin patch, wait between steps - this can still be dangerous and is a last resort only.</p>';
+  html += '</div>';
+  return html;
+}
+function computeWater(){
+  var volInput = parseFloat(document.getElementById("wf-vol").value) || 0;
+  var liters = state.units === "imperial" ? galToL(volInput) : volInput;
+  var dropsClear = Math.ceil(liters * 2);
+  var dropsCloudy = Math.ceil(liters * 4);
+  var tablets = Math.max(1, Math.ceil(liters));
+  var out = document.getElementById("wf-output");
+  if(!out) return;
+  out.innerHTML = '<div class="out-grid">'+
+    '<div><div class="big-num">'+dropsClear+'</div><div class="lbl">bleach drops (clear water)</div></div>'+
+    '<div><div class="big-num">'+dropsCloudy+'</div><div class="lbl">bleach drops (cloudy water)</div></div>'+
+    '<div><div class="big-num">'+tablets+'</div><div class="lbl">purification tablets (~1/liter)</div></div>'+
+    '</div><p style="margin-top:.6rem; color:var(--text-dim)">Use unscented bleach, 5-9% sodium hypochlorite, no additives. Mix, stir, and wait 30 minutes before drinking.</p>';
+}
+var CAL_RATES = {low:2000, moderate:2800, high:4000};
+function computeCalories(){
+  var people = parseInt(document.getElementById("cal-people").value) || 0;
+  var days = parseInt(document.getElementById("cal-days").value) || 0;
+  var act = document.getElementById("cal-activity").value;
+  var rate = CAL_RATES[act];
+  var daily = people * rate;
+  var total = daily * days;
+  var minSurvival = people * 1200 * days;
+  var out = document.getElementById("cal-output");
+  if(!out) return;
+  out.innerHTML = '<div class="out-grid">'+
+    '<div><div class="big-num">'+daily.toLocaleString()+'</div><div class="lbl">kcal / day, all people</div></div>'+
+    '<div><div class="big-num">'+total.toLocaleString()+'</div><div class="lbl">kcal total over '+days+' day(s)</div></div>'+
+    '<div><div class="big-num">'+minSurvival.toLocaleString()+'</div><div class="lbl">kcal, bare minimum ration (short-term only)</div></div>'+
+    '</div><p style="margin-top:.6rem; color:var(--text-dim)">If supplies are limited, prioritize water first, then ration food evenly rather than front-loading. A minimum ~1,200 kcal/person/day can sustain short emergencies but is not adequate long-term.</p>';
+}
+
+/* ---- Shelter ---- */
+function renderShelter(){
+  var html = '<div class="breadcrumb"><button data-go="home">&larr; Home</button></div>';
+  html += '<div class="section"><h2>&#9974; Shelter</h2>';
+  html += '<p>Insulating yourself from the ground matters as much as blocking wind - most body heat is lost downward into cold ground.</p>';
+  html += '<h3>Siting your shelter</h3><ul><li>Avoid low ground and dry creek beds (flash flood risk).</li><li>Check overhead for dead branches ("widow makers").</li><li>Stay near, but not in, a water source.</li><li>Face the entrance away from prevailing wind.</li></ul>';
+  html += '</div>';
+
+  html += '<div class="section"><h2>Lean-to shelter</h2>'+leanToSvg()+
+    renderSteps(["Find or set a sturdy ridge pole against a tree fork or two uprights, angled about 45 degrees.","Lay ribbing branches along one side of the ridge pole, spaced a few inches apart.","Thatch with debris (leaves, boughs, bark) from the bottom up, like shingles, for water shedding.","Add a thick insulating floor layer of dry leaves or boughs.","Block the open end you're not using to cut wind."])+'</div>';
+
+  html += '<div class="section"><h2>Debris hut</h2>'+debrisHutSvg()+
+    renderSteps(["Build a low ridge pole tunnel just barely wider than your body, one end propped on a support.","Lean a rib lattice of branches along both sides of the ridge pole.","Pile debris (leaves, pine needles, duff) at least 2-3 ft (60-90 cm) thick over the whole frame.","Stuff the interior with loose, dry insulating debris.","Leave a small entrance and plug it with a debris \"door\" once inside."])+'</div>';
+  return html;
+}
+
+/* ---- Fire ---- */
+function renderFire(){
+  var html = '<div class="breadcrumb"><button data-go="home">&larr; Home</button></div>';
+  html += '<div class="section"><h2>&#128293; Fire</h2>';
+  html += '<h3>Starting methods</h3><table class="ref-table"><tr><th>Method</th><th>Difficulty</th><th>Reliability</th></tr>'+
+    FIRE_METHODS.map(function(m){return '<tr><td>'+esc(m.name)+'</td><td>'+esc(m.difficulty)+'</td><td>'+esc(m.reliability)+'</td></tr>';}).join("")+
+    '</table>';
+  html += '<h3>Tinder, kindling, fuel</h3><ul>'+
+    '<li><b>Tinder</b> (catches a spark): dry grass, birch bark, fine wood shavings, cotton, dryer lint.</li>'+
+    '<li><b>Kindling</b> (grows the flame): pencil- to thumb-thick dry twigs, smallest first.</li>'+
+    '<li><b>Fuel</b> (sustains the fire): wrist-thick and larger dry, seasoned wood.</li>'+
+  '</ul>';
+  html += '<h3>Fire lay structures</h3><p><b>Teepee:</b> tinder in the center, kindling leaned around it in a cone - burns hot and fast, good for starting. <b>Log cabin:</b> fuel stacked in a square around the teepee - burns longer, good for cooking coals.</p>';
+  html += '<h3>Fire safety</h3><ul><li>Clear a wide area down to bare soil; ring with stones if available.</li><li>Never leave a fire unattended.</li><li>Fully extinguish: drown with water, stir the ashes, drown again, and feel for heat before leaving.</li></ul>';
+  html += '</div>';
+  return html;
+}
+
+/* ---- Navigation ---- */
+function renderNav(){
+  var html = '<div class="breadcrumb"><button data-go="home">&larr; Home</button></div>';
+  html += '<div class="section"><h2>&#129517; Navigation</h2>';
+  html += '<h3>Shadow-stick method</h3><p>Push a straight stick upright into open ground.</p>';
+  html += '<div class="svg-viewer">'+shadowStickSvg()+'</div>';
+  html += renderSteps(["Mark the tip of the stick's shadow (this is roughly the west mark).","Wait 15-20 minutes without moving the stick.","Mark the new shadow tip (roughly the east mark).","Draw a line between the two marks: it runs approximately west to east.","A line perpendicular to it, crossing between the marks, points roughly north-south."]);
+  html += '<h3>Big Dipper &rarr; North Star</h3>'+bigDipperSvg()+
+    '<p>Find the two \"pointer stars\" at the front edge of the Big Dipper\'s bowl. Draw an imaginary line through them, extending about 5 times the distance between them - it lands on Polaris, the North Star, which sits above true north.</p>';
+  html += '<h3>Moon-phase direction (rough estimate only)</h3><p>A waxing moon (lit on the right side, Northern Hemisphere) rises in the afternoon and sets after sunset roughly in the west. A waning moon (lit on the left side) rises before sunrise roughly in the east. This is only a rough estimate - prefer the sun, stars, or a compass whenever available.</p>';
+  html += '</div>';
+  return html;
+}
+
+/* ---- Signaling ---- */
+function renderSignal(){
+  var html = '<div class="breadcrumb"><button data-go="home">&larr; Home</button></div>';
+  html += '<div class="section"><h2>&#128225; Signaling</h2>';
+  html += '<h3>SOS - the universal distress signal</h3><p style="font-size:1.4rem; font-weight:800; letter-spacing:.05em">&middot;&middot;&middot; &ndash;&ndash;&ndash; &middot;&middot;&middot;</p><p>3 short signals, 3 long, 3 short - repeat. Works with a whistle, flashlight, mirror flashes, or shouted/radio calls.</p>';
+  html += '<h3>Signal mirror</h3><p>Hold the mirror close to your eye. Extend your other hand and make a V with two fingers, framing the target (aircraft, boat, ridge). Angle the mirror so the reflected sunlight spot passes through the V toward the target, then sweep slowly across the horizon. Effective for miles in direct sun.</p>';
+  html += '<h3>Whistle</h3><p>3 sharp blasts is a universally recognized distress call - far less effort than shouting and carries much farther.</p>';
+  html += '<h3>Fire &amp; smoke</h3><p>Three fires arranged in a triangle or straight line is a recognized distress pattern. Green boughs thrown on a fire create heavy white smoke by day; a clear, bright fire is more visible at night.</p>';
+  html += '<h3>Ground-to-air symbols</h3><table class="ref-table"><tr><th>Symbol</th><th>Meaning</th></tr>'+
+    GROUND_SIGNALS.map(function(g){return '<tr><td style="font-weight:800; font-size:1.1rem">'+g.sym+'</td><td>'+esc(g.meaning)+'</td></tr>';}).join("")+
+    '</table><p>Make symbols large (at least 10 ft / 3 m) using rocks, logs, trampled vegetation, or dug trenches so they are visible from the air.</p>';
+  html += '<h3>General tips</h3><ul><li>Straight lines, right angles, and bright colors rarely occur in nature - they draw the eye.</li><li>Movement and contrast attract attention faster than a static object.</li><li>Sound and light travel farther at night and in calm, still air.</li></ul>';
+  html += '</div>';
+  return html;
+}
+
+/* ---- Weather ---- */
+function renderWeather(){
+  var html = '<div class="breadcrumb"><button data-go="home">&larr; Home</button></div>';
+  html += '<div class="section"><h2>&#9928; Weather</h2>';
+  html += '<h3>Lightning - the 30-30 rule</h3><p>If the gap between seeing lightning and hearing thunder is less than 30 seconds, take shelter. Wait 30 minutes after the last thunder before going back outside. Avoid open fields, isolated tall trees, water, and metal objects. Caught in the open, crouch low on the balls of your feet - don\'t lie flat.</p>';
+  html += '<h3>Extreme heat</h3><p>Drink water before you feel thirsty. Seek shade during peak midday hours. Wear light, loose clothing. Watch companions for heat exhaustion/heat stroke signs (see First Aid).</p>';
+  html += '<h3>Extreme cold / wind chill</h3><p>Layer clothing and cover extremities - most heat is lost from the head, hands, and feet. Watch for frostbite: numbness and white or waxy-looking skin. Stay dry; wet clothing loses insulating value fast.</p>';
+  html += '<h3>Flash floods</h3><p>Never cross moving water: 6 in (15 cm) can knock an adult off their feet, and 12-24 in (30-60 cm) can float a vehicle. Move to higher ground immediately during heavy rain and avoid camping in dry washes or canyon bottoms.</p>';
+  html += '<h3>Tornado</h3><p>Get to the lowest level, interior room, away from windows. Avoid vehicles and mobile structures. If caught outside with no shelter, lie flat in a low ditch and cover your head.</p>';
+  html += '<h3>Hurricane / high wind</h3><p>Secure or shelter well before arrival. Avoid coastal and flood-prone areas. Prepare for extended power and communication outages.</p>';
+  html += '</div>';
+  return html;
+}
+
+/* ---- Wildlife ---- */
+function renderWildlife(){
+  var html = '<div class="breadcrumb"><button data-go="home">&larr; Home</button></div>';
+  html += '<div class="section"><h2>&#128062; Wildlife</h2>';
+  html += '<h3>Bear encounters</h3><p>Never run - it can trigger a chase instinct. Speak in a low, calm voice and back away slowly, giving the bear an escape route. Make yourself look larger and use bear spray if charged. If a brown/grizzly bear makes contact, play dead: lie flat, protect your neck and head. If a black bear attacks, fight back aggressively, targeting the face and muzzle. Store food well away from your camp using a hang or canister.</p>';
+  html += '<h3>Snakes</h3><p>Give snakes a wide berth and watch where you step and reach, especially around rocks and brush. Most bites happen when a snake is handled or provoked - leave them alone. If bitten, use the First Aid snake bite flow.</p>';
+  html += '<h3>Mountain lion / cougar</h3><p>Don\'t run. Make noise, appear as large as possible, and keep children close and picked up. If attacked, fight back hard, targeting the eyes and face.</p>';
+  html += '<h3>Insect stings &amp; allergic reactions</h3><p>Remove a stinger by scraping it out sideways (not pinching, which injects more venom). Watch for signs of a severe allergic reaction - see First Aid &gt; Allergic reaction.</p>';
+  html += '<h3>Ticks</h3><p>Check your whole body after time in brush or woods. Remove a tick promptly using fine-tipped tweezers, grasping close to the skin, and pulling straight up with steady pressure. Watch for rash or fever in the following weeks.</p>';
+  html += '</div>';
+  return html;
+}
+
+/* ---- Vehicle ---- */
+function renderVehicle(){
+  var html = '<div class="breadcrumb"><button data-go="home">&larr; Home</button></div>';
+  html += '<div class="section"><h2>&#128663; Vehicle Emergencies</h2>';
+  html += '<h3>Stranded in snow</h3><p>Stay with the vehicle - it\'s far easier for rescuers to find than a person on foot. Run the engine about 10 minutes each hour for heat, cracking a window for ventilation. Make sure the exhaust pipe isn\'t blocked by snow (carbon monoxide risk). Stay visible: tie bright cloth to the antenna, use the dome light at night. Keep moving your arms and legs to maintain circulation.</p>';
+  html += '<h3>Breakdown on the road</h3><p>Pull as far off the roadway as possible and turn on hazard lights. Place flares or reflective triangles behind the vehicle if available. If it\'s safer, exit away from traffic to a location off the road; if you stay inside, keep your seatbelt on.</p>';
+  html += '<h3>Stuck in mud or sand</h3><p>Don\'t spin the wheels - it digs you in deeper. Clear debris/sand from around the tires, use traction aids like boards or floor mats, and for sand, slightly deflating tires can help. Rock the vehicle gently forward and back if safe to do so.</p>';
+  html += '<h3>Overheating engine</h3><p>Pull over safely and turn off the AC, turning on the heater to draw heat away from the engine. Let it cool 15-20 minutes before opening the hood. Never open a hot radiator cap - pressurized coolant can cause severe burns.</p>';
+  html += '<h3>Submerged / sinking vehicle</h3><p>Unbuckle your seatbelt immediately and open a window or break it right away, before the vehicle fully submerges - power windows and doors can fail once underwater. Get out through the window if the door won\'t open, get children or the lightest occupants out first, then swim to the surface.</p>';
+  html += '<h3>Keep in the vehicle</h3><p>Blanket, water, flashlight, basic tools, jumper cables, and some food make up a solid baseline emergency kit.</p>';
+  html += '</div>';
+  return html;
+}
+
+/* ---- Quiz ---- */
+function shuffle(arr){ var a=arr.slice(); for(var i=a.length-1;i>0;i--){ var j=Math.floor(Math.random()*(i+1)); var t=a[i]; a[i]=a[j]; a[j]=t; } return a; }
+function renderQuiz(){
+  if(!state.quiz.order){ state.quiz.order = shuffle(QUIZ_QUESTIONS.map(function(_,i){return i;})); state.quiz.idx=0; state.quiz.score=0; state.quiz.answered=0; state.quiz.done=false; }
+  var html = '<div class="breadcrumb"><button data-go="home">&larr; Home</button></div>';
+  html += '<div class="section"><h2>&#10067; Knowledge Check</h2>';
+  if(state.quiz.done){
+    html += '<div class="result-card '+(state.quiz.score>=8?"mild":state.quiz.score>=5?"moderate":"severe")+'">';
+    html += '<h3>Score: '+state.quiz.score+' / '+QUIZ_QUESTIONS.length+'</h3>';
+    html += '<p>This score lives only in memory for this session - nothing is saved.</p></div>';
+    html += '<button class="btn primary" id="quiz-retry">&#8635; Retake quiz</button>';
+  } else {
+    var qi = state.quiz.order[state.quiz.idx];
+    var q = QUIZ_QUESTIONS[qi];
+    html += '<p style="color:var(--text-dim)">Question '+(state.quiz.idx+1)+' of '+QUIZ_QUESTIONS.length+' &middot; Score so far: '+state.quiz.score+'</p>';
+    html += '<h3>'+esc(q.q)+'</h3><div class="qbtn-list">';
+    q.a.forEach(function(ans, ai){
+      html += '<button class="qbtn" data-quiz-answer="'+ai+'"><span>'+esc(ans)+'</span></button>';
+    });
+    html += '</div><div id="quiz-feedback"></div>';
+  }
+  html += '</div>';
+  return html;
+}
+
+/* ---------------- MAIN RENDER ---------------- */
+function renderCategory(id){
+  var fns = {firstaid:renderFirstAidCat, water:renderWater, shelter:renderShelter, fire:renderFire, nav:renderNav, signal:renderSignal, weather:renderWeather, wildlife:renderWildlife, vehicle:renderVehicle};
+  return fns[id] ? fns[id]() : "<p>Not found.</p>";
+}
+
+function render(){
+  var main = document.getElementById("main");
+  var r = state.route;
+  var html = "";
+  if(r.view === "home") html = renderHome();
+  else if(r.view === "browse") html = renderBrowse();
+  else if(r.view === "quickref") html = renderQuickRef();
+  else if(r.view === "quiz") html = renderQuiz();
+  else if(r.view === "category") html = renderCategory(r.cat);
+  else if(r.view === "triage") html = renderTriage(r.flow, r.node);
+  else html = renderHome();
+  main.innerHTML = html;
+  renderSidebar();
+  wireDynamic();
+}
+
+function renderSidebar(){
+  var sb = document.getElementById("sidebar");
+  var r = state.route;
+  var html = '<button id="sidebar-close" class="icon-btn" style="margin-bottom:.5rem" aria-label="Close menu">&times; Close</button>';
+  html += '<button class="nav-btn '+(r.view==="home"?"active":"")+'" data-go="home"><span class="ic">&#127968;</span>Home</button>';
+  html += '<button class="nav-btn '+(r.view==="quickref"?"active":"")+'" data-go="quickref"><span class="ic">&#128203;</span>Quick Reference</button>';
+  html += '<button class="nav-btn '+(r.view==="browse"?"active":"")+'" data-go="browse"><span class="ic">&#128218;</span>Browse &amp; Learn</button>';
+  html += '<button class="nav-btn '+(r.view==="quiz"?"active":"")+'" data-go="quiz"><span class="ic">&#10067;</span>Knowledge Check</button>';
+  html += '<div class="nav-group-label">Categories</div>';
+  CATEGORIES.forEach(function(c){
+    var active = (r.view==="category" && r.cat===c.id) || (r.view==="triage" && c.id==="firstaid");
+    html += '<button class="nav-btn '+(active?"active":"")+'" data-go="cat:'+c.id+'"><span class="ic">'+c.ic+'</span>'+c.name+'</button>';
+  });
+  sb.innerHTML = html;
+}
+
+/* ---------------- EVENT WIRING ---------------- */
+function parseGo(goStr){
+  var parts = goStr.split(":");
+  if(parts[0]==="home") return {view:"home"};
+  if(parts[0]==="browse") return {view:"browse"};
+  if(parts[0]==="quickref") return {view:"quickref"};
+  if(parts[0]==="quiz") return {view:"quiz"};
+  if(parts[0]==="cat") return {view:"category", cat:parts[1]};
+  if(parts[0]==="triage") return {view:"triage", flow:parts[1], node:parts[2]};
+  return {view:"home"};
+}
+
+document.addEventListener("click", function(e){
+  var t = e.target.closest("[data-go]");
+  if(t){ go(parseGo(t.getAttribute("data-go"))); return; }
+  var fav = e.target.closest("[data-fav]");
+  if(fav){
+    var key = fav.getAttribute("data-fav");
+    if(state.favorites.has(key)) state.favorites.delete(key); else state.favorites.add(key);
+    render();
+    return;
+  }
+  var fitem = e.target.closest("[data-go-fav]");
+  if(fitem){ goFav(fitem.getAttribute("data-go-fav")); return; }
+  var prev = e.target.closest("[data-viewer-prev]");
+  if(prev){ stepViewer(prev.getAttribute("data-viewer-prev"), -1); return; }
+  var next = e.target.closest("[data-viewer-next]");
+  if(next){ stepViewer(next.getAttribute("data-viewer-next"), 1); return; }
+  var qa = e.target.closest("[data-quiz-answer]");
+  if(qa){ handleQuizAnswer(parseInt(qa.getAttribute("data-quiz-answer"))); return; }
+  var qretry = e.target.closest("#quiz-retry");
+  if(qretry){ state.quiz.order=null; render(); return; }
+  var pbtn = e.target.closest("#print-btn");
+  if(pbtn){ window.print(); return; }
+});
+
+/* favorites list items use data-go="fav:key" mapping - patch renderFavList to use goFav */
+document.addEventListener("click", function(e){
+  var t = e.target.closest('[data-go^="fav:"]');
+  if(t){ e.stopPropagation(); goFav(t.getAttribute("data-go").split(":").slice(1).join(":")); }
+}, true);
+
+function stepViewer(id, dir){
+  var steps = VIEWERS[id];
+  var wrap = document.querySelector('[data-viewer="'+id+'"]');
+  if(!wrap || !steps) return;
+  var idx = parseInt(wrap.getAttribute("data-idx")) || 0;
+  idx = (idx + dir + steps.length) % steps.length;
+  wrap.setAttribute("data-idx", idx);
+  wrap.querySelector(".viewer-stage").innerHTML = steps[idx].svg;
+  wrap.querySelector(".svg-caption").textContent = steps[idx].cap;
+  var dots = wrap.querySelectorAll(".step-dots span");
+  dots.forEach(function(d,i){ d.classList.toggle("active", i===idx); });
+}
+
+function handleQuizAnswer(ai){
+  var qi = state.quiz.order[state.quiz.idx];
+  var q = QUIZ_QUESTIONS[qi];
+  var correct = ai === q.correct;
+  if(correct) state.quiz.score++;
+  state.quiz.answered++;
+  var fb = document.getElementById("quiz-feedback");
+  if(fb){
+    fb.innerHTML = '<div class="result-card '+(correct?"mild":"severe")+'" style="margin-top:.8rem"><h3>'+(correct?"Correct!":"Not quite")+'</h3><p>'+esc(q.a[q.correct])+' is the safer answer.</p></div>';
+  }
+  setTimeout(function(){
+    state.quiz.idx++;
+    if(state.quiz.idx >= QUIZ_QUESTIONS.length){ state.quiz.done = true; }
+    render();
+  }, 900);
+}
+
+/* Sidebar / hamburger */
+function openSidebar(){
+  document.getElementById("sidebar").classList.add("open");
+  document.getElementById("sidebar-scrim").classList.add("show");
+  document.getElementById("hamburger").setAttribute("aria-expanded","true");
+}
+function closeSidebar(){
+  var sb = document.getElementById("sidebar");
+  if(sb) sb.classList.remove("open");
+  var sc = document.getElementById("sidebar-scrim");
+  if(sc) sc.classList.remove("show");
+  var hb = document.getElementById("hamburger");
+  if(hb) hb.setAttribute("aria-expanded","false");
+}
+document.getElementById("hamburger").addEventListener("click", function(){
+  var sb = document.getElementById("sidebar");
+  if(sb.classList.contains("open")) closeSidebar(); else openSidebar();
+});
+document.getElementById("sidebar-scrim").addEventListener("click", closeSidebar);
+
+/* Font size + units toggles */
+function applyFontSize(){
+  document.documentElement.style.fontSize = FONT_SIZES[state.fontSize] + "px";
+  document.getElementById("fontsize-btn").textContent = "A " + FONT_LABELS[state.fontSize];
+}
+document.getElementById("fontsize-btn").addEventListener("click", function(){
+  state.fontSize = (state.fontSize + 1) % FONT_SIZES.length;
+  applyFontSize();
+});
+function applyUnits(){
+  document.getElementById("units-btn").textContent = state.units === "imperial" ? "Imperial" : "Metric";
+  if(state.route.view === "category" && state.route.cat === "water"){ render(); }
+}
+document.getElementById("units-btn").addEventListener("click", function(){
+  state.units = state.units === "imperial" ? "metric" : "imperial";
+  applyUnits();
+});
+
+/* Live calculator wiring (delegated on input) */
+document.addEventListener("input", function(e){
+  if(e.target.id === "wf-vol") computeWater();
+  if(["cal-people","cal-days","cal-activity"].indexOf(e.target.id) !== -1) computeCalories();
+});
+document.addEventListener("change", function(e){
+  if(e.target.id === "cal-activity") computeCalories();
+});
+
+function wireDynamic(){
+  if(document.getElementById("wf-vol")) computeWater();
+  if(document.getElementById("cal-people")) computeCalories();
+}
+
+/* ---------------- SEARCH ---------------- */
+function buildSearchIndex(){
+  SEARCH_INDEX.length = 0;
+  idx("Home","Emergency Now","start first aid triage help sos",{view:"triage",flow:"entry",node:"start"});
+  idx("Home","Quick Reference","cheat sheet critical facts printable",{view:"quickref"});
+  idx("Home","Knowledge Check","quiz test score",{view:"quiz"});
+  CATEGORIES.forEach(function(c){ idx(c.name, c.name, catBlurb(c.id), {view:"category", cat:c.id}); });
+  Object.keys(TRIAGE_FLOWS).forEach(function(flowId){
+    if(flowId==="entry") return;
+    var flow = TRIAGE_FLOWS[flowId];
+    var titleNode = flow.start;
+    var label = (TRIAGE_FLOWS.entry.start.items.filter(function(i){return i.go.split(":")[0]===flowId;})[0]||{}).label || flowId;
+    idx("First Aid", label, "triage first aid "+flowId, {view:"triage", flow:flowId, node:"start"});
+  });
+  QUICK_REF.forEach(function(item){ idx("Quick Reference", item.t, item.d, {view:"quickref"}); });
+  idx("Water & Food","Water purification calculator","bleach drops tablets gallons liters",{view:"category",cat:"water"});
+  idx("Water & Food","Calorie / ration calculator","food headcount days activity",{view:"category",cat:"water"});
+  idx("Shelter","Lean-to shelter","build steps diagram",{view:"category",cat:"shelter"});
+  idx("Shelter","Debris hut","build steps diagram insulation",{view:"category",cat:"shelter"});
+  FIRE_METHODS.forEach(function(m){ idx("Fire", m.name, "fire starting difficulty reliability", {view:"category",cat:"fire"}); });
+  idx("Navigation","Shadow-stick method","find north sun stick shadow",{view:"category",cat:"nav"});
+  idx("Navigation","Big Dipper North Star","polaris stars pointer",{view:"category",cat:"nav"});
+  idx("Navigation","Moon phase direction","waxing waning moon east west",{view:"category",cat:"nav"});
+  idx("Signaling","SOS signal","distress whistle mirror light morse",{view:"category",cat:"signal"});
+  idx("Signaling","Signal mirror","reflect sun aircraft",{view:"category",cat:"signal"});
+  idx("Signaling","Ground to air symbols","V X N Y assistance medical",{view:"category",cat:"signal"});
+  idx("Weather","Lightning 30-30 rule","thunder storm safety",{view:"category",cat:"weather"});
+  idx("Weather","Flash floods","moving water crossing",{view:"category",cat:"weather"});
+  idx("Weather","Extreme heat cold","wind chill frostbite",{view:"category",cat:"weather"});
+  idx("Weather","Tornado hurricane","high wind shelter",{view:"category",cat:"weather"});
+  idx("Wildlife","Bear encounters","grizzly black bear spray play dead",{view:"category",cat:"wildlife"});
+  idx("Wildlife","Snake safety","avoid bite",{view:"category",cat:"wildlife"});
+  idx("Wildlife","Mountain lion cougar","attack fight back",{view:"category",cat:"wildlife"});
+  idx("Wildlife","Ticks","lyme disease removal tweezers",{view:"category",cat:"wildlife"});
+  idx("Vehicle Emergencies","Stranded in snow","engine run heat exhaust",{view:"category",cat:"vehicle"});
+  idx("Vehicle Emergencies","Breakdown on road","hazards flares",{view:"category",cat:"vehicle"});
+  idx("Vehicle Emergencies","Stuck in mud or sand","traction wheels",{view:"category",cat:"vehicle"});
+  idx("Vehicle Emergencies","Overheating engine","radiator coolant burn",{view:"category",cat:"vehicle"});
+  idx("Vehicle Emergencies","Submerged vehicle","seatbelt window escape",{view:"category",cat:"vehicle"});
+}
+
+var searchInput = document.getElementById("search-input");
+var searchResults = document.getElementById("search-results");
+function renderSearch(q){
+  q = q.trim().toLowerCase();
+  if(!q){ searchResults.classList.remove("show"); searchResults.innerHTML=""; return; }
+  var matches = SEARCH_INDEX.filter(function(item){ return item.kw.indexOf(q) !== -1; }).slice(0,20);
+  if(!matches.length){
+    searchResults.innerHTML = '<div class="sr-empty">No results for "'+esc(q)+'"</div>';
+  } else {
+    searchResults.innerHTML = matches.map(function(m, i){
+      return '<button type="button" class="sr-item" data-search-idx="'+i+'"><div class="sr-cat">'+esc(m.cat)+'</div><div class="sr-title">'+esc(m.title)+'</div></button>';
+    }).join("");
+  }
+  searchResults._matches = matches;
+  searchResults.classList.add("show");
+}
+searchInput.addEventListener("input", function(){ renderSearch(searchInput.value); });
+searchInput.addEventListener("focus", function(){ if(searchInput.value.trim()) renderSearch(searchInput.value); });
+searchResults.addEventListener("click", function(e){
+  var t = e.target.closest("[data-search-idx]");
+  if(!t) return;
+  var m = searchResults._matches[parseInt(t.getAttribute("data-search-idx"))];
+  if(m){ go(m.go); searchInput.value=""; searchResults.classList.remove("show"); searchResults.innerHTML=""; }
+});
+document.addEventListener("click", function(e){
+  if(!e.target.closest("#search-wrap")){ searchResults.classList.remove("show"); }
+});
+document.addEventListener("keydown", function(e){
+  if(e.key === "Escape"){ searchResults.classList.remove("show"); closeSidebar(); }
+});
+
+/* ---------------- INIT ---------------- */
+buildSearchIndex();
+applyFontSize();
+applyUnits();
+render();
+})();
+</script>
+</body>
+</html>
