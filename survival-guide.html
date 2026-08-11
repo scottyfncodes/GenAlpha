@@ -192,6 +192,9 @@ p{margin:0 0 .75em;}
 
 .legend-row{display:flex; gap:.6rem; flex-wrap:wrap; margin:.6rem 0;}
 .legend-chip{display:flex; align-items:center; gap:.4rem; background:var(--bg-card2); border:1px solid var(--border); border-radius:999px; padding:.3rem .7rem; font-size:.85rem;}
+.jump-row{display:flex; gap:.5rem; flex-wrap:wrap; margin:.9rem 0;}
+.jump-chip{background:var(--bg-card2); border:1px solid var(--border); border-radius:999px; padding:.5rem .9rem; font-size:.85rem; font-weight:700; color:var(--accent2); text-decoration:none; min-height:44px; display:inline-flex; align-items:center;}
+.jump-chip:hover{border-color:var(--accent2);}
 .dot{width:.7rem; height:.7rem; border-radius:50%; display:inline-block;}
 .dot.mild{background:var(--mild);} .dot.moderate{background:var(--moderate);} .dot.severe{background:var(--severe);}
 
@@ -320,7 +323,8 @@ var CATEGORIES = [
   {id:"signal", name:"Signaling", ic:"&#128225;"},
   {id:"weather", name:"Weather", ic:"&#9928;"},
   {id:"wildlife", name:"Wildlife", ic:"&#128062;"},
-  {id:"vehicle", name:"Vehicle Emergencies", ic:"&#128663;"}
+  {id:"vehicle", name:"Vehicle Emergencies", ic:"&#128663;"},
+  {id:"longterm", name:"Long-Term Survival", ic:"&#127806;"}
 ];
 
 /* ---------------- FIRST AID TRIAGE FLOWS ---------------- */
@@ -665,6 +669,10 @@ function renderNotDo(list){
   if(!list || !list.length) return "";
   return '<div class="notdo"><h4>&#128683; What NOT to do</h4><ul>'+list.map(function(i){return "<li>"+esc(i)+"</li>";}).join("")+'</ul></div>';
 }
+function renderWarning(title, list){
+  if(!list || !list.length) return "";
+  return '<div class="notdo"><h4>&#9888; '+esc(title)+'</h4><ul>'+list.map(function(i){return "<li>"+esc(i)+"</li>";}).join("")+'</ul></div>';
+}
 function renderSteps(steps){
   return '<ol>'+steps.map(function(s){return "<li>"+esc(s)+"</li>";}).join("")+'</ol>';
 }
@@ -724,7 +732,8 @@ function catBlurb(id){
     signal:"Get found: SOS, mirrors, ground signals.",
     weather:"Lightning, heat, cold, floods, storms.",
     wildlife:"Bears, snakes, cougars, insects, ticks.",
-    vehicle:"Stranded, breakdown, overheating, submersion."
+    vehicle:"Stranded, breakdown, overheating, submersion.",
+    longterm:"Farming, plant ID, preservation, sanitation, barter, power, and community for extended scenarios."
   };
   return m[id]||"";
 }
@@ -1009,6 +1018,91 @@ function renderVehicle(){
   return html;
 }
 
+/* ---- Long-Term Survival ---- */
+function renderLongTerm(){
+  var html = '<div class="breadcrumb"><button data-go="home">&larr; Home</button></div>';
+  html += '<div class="section"><h2>&#127806; Long-Term Survival</h2>';
+  html += '<p>For extended, infrastructure-down scenarios rather than a single emergency: growing and preserving food, staying healthy without hospitals, and building resilience over months, not hours.</p>';
+  html += '<div class="jump-row">'+
+    '<a class="jump-chip" href="#lt-farming">Farming</a>'+
+    '<a class="jump-chip" href="#lt-plants">Plants</a>'+
+    '<a class="jump-chip" href="#lt-preservation">Preservation &amp; Water</a>'+
+    '<a class="jump-chip" href="#lt-health">Sanitation &amp; Medicine</a>'+
+    '<a class="jump-chip" href="#lt-barter">Barter</a>'+
+    '<a class="jump-chip" href="#lt-power">Power &amp; Tools</a>'+
+    '<a class="jump-chip" href="#lt-community">Community</a>'+
+  '</div></div>';
+
+  html += '<div class="section" id="lt-farming"><h2>&#127793; Farming &amp; Food Production</h2>';
+  html += '<h3>Start with reliable staples</h3><p>Potatoes, beans, and squash are traditionally grown together as the "Three Sisters": corn or another tall stalk supports climbing bean vines, beans fix nitrogen into the soil for the other two, and squash leaves shade out weeds and hold in moisture.</p>';
+  html += '<ul><li><b>Potatoes</b> - calorie-dense and store well through winter in a cool, dark space.</li><li><b>Beans</b> - a reliable protein source that also improves the soil they grow in.</li><li><b>Squash</b> - many varieties store for months without refrigeration.</li><li><b>Leafy greens</b> - fast-growing (30-60 days), useful for quick nutrition between larger harvests.</li></ul>';
+  html += '<h3>Seed saving</h3><p>Only open-pollinated or heirloom seeds reliably breed true year after year - most hybrid seeds do not. Beans, peas, tomatoes, peppers, and lettuce are the easiest crops to save seed from, since they are self-pollinating and rarely cross with other varieties. Dry seeds completely before storing them in a cool, dark, dry container; well-dried seeds can remain viable for several years.</p>';
+  html += '<h3>Composting and soil building</h3><p>Alternate "greens" (kitchen scraps, grass clippings, for nitrogen) with "browns" (dry leaves, cardboard, straw, for carbon). Turn the pile every couple of weeks to add oxygen, and keep it about as damp as a wrung-out sponge. Leave out meat, dairy, and fats in a basic compost pile, since they attract pests and smell. Finished compost usually takes a few months to a year.</p>';
+  html += '<h3>Basic livestock</h3><p>Chickens and rabbits are the two most practical animals to start with: both breed quickly, need modest space, and convert scraps and forage into food. Chickens provide eggs without needing to be slaughtered, but require a secure, predator-proof coop. Rabbits are quiet, breed fast, and convert grass efficiently into meat, but require dedicated care through slaughter. Keep any livestock housing predator-proof and well ventilated.</p>';
+  html += '</div>';
+
+  html += '<div class="section" id="lt-plants"><h2>&#127807; Edible &amp; Poisonous Plants</h2>';
+  html += '<p>Misidentifying a wild plant can be fatal. Never eat anything from a plant you cannot positively identify, and cross-check more than one source before relying on any wild plant as food.</p>';
+  html += '<h3>Common, widespread edibles</h3><table class="ref-table"><tr><th>Plant</th><th>Notes</th></tr>'+
+    '<tr><td>Dandelion</td><td>Leaves, flowers, and roots are all edible; leaves grow more bitter as the plant matures.</td></tr>'+
+    '<tr><td>Plantain (the weed, not the fruit)</td><td>Broad, low-growing leaves; also used topically as a poultice for minor skin irritation and stings.</td></tr>'+
+    '<tr><td>Cattail</td><td>Young shoots and roots are edible; grows in wet ground near water.</td></tr>'+
+    '<tr><td>Clover</td><td>Edible in small amounts, best cooked; raw clover in quantity can cause bloating.</td></tr>'+
+    '<tr><td>Chickweed</td><td>Low, tender edible green common in disturbed soil and gardens.</td></tr>'+
+    '<tr><td>Wild blackberry / raspberry</td><td>Recognizable bramble fruit; avoid unfamiliar white or pale berries entirely.</td></tr>'+
+    '</table>';
+  html += renderWarning("Dangerous look-alikes", ["Poison hemlock and water hemlock closely resemble wild carrot (Queen Anne's Lace) and wild parsnip - both hemlocks are extremely toxic and can be fatal in small amounts. Hemlock stems usually show purple blotches and are smooth; wild carrot stems are hairy.","Death cap and destroying angel mushrooms closely resemble edible varieties - never eat wild mushrooms without expert identification. Symptoms can appear many hours after serious damage is already done.","Pokeweed berries look like edible dark berries, but the entire plant is toxic.","Treat any white or pale berries as inedible by default."]);
+  html += '<h3>Universal Edibility Test (last resort only)</h3><p>Use this only when no positively identified food source is available, and only on a plant that is abundant nearby, since a full test uses small amounts over many hours. Do not eat anything else for several hours beforehand, and test only one plant part at a time.</p>';
+  html += renderSteps(["Separate the plant into parts (leaves, stem, roots) and test only one part at a time.","Smell it - a strong, unpleasant, or almond-like odor is a bad sign. Stop if so.","Rub a piece on the inner wrist or elbow and wait 15 minutes. Stop at any burning, itching, rash, or numbness.","Touch a small piece to the lips for 3 minutes. Stop at any burning or tingling.","Hold a small piece on the tongue for 15 minutes without swallowing. Stop at any bad reaction.","Chew a small piece for 15 minutes without swallowing, then spit it out. Stop at any bad reaction.","Swallow a small amount and wait 8 hours, eating or drinking nothing else. Stop at any nausea, cramping, or other symptoms.","If there is no reaction after 8 hours, eat a slightly larger amount and wait another 8 hours before treating that plant part as food."]);
+  html += renderWarning("Stop the test immediately if", ["Any burning, numbness, tingling, or rash appears at any stage.","Nausea, vomiting, or stomach cramps develop.","Dizziness or difficulty breathing occurs."]);
+  html += '</div>';
+
+  html += '<div class="section" id="lt-preservation"><h2>&#128230; Food Preservation &amp; Long-Term Water</h2>';
+  html += '<h3>Drying</h3><p>The oldest and most reliable preservation method - it removes the moisture pathogens need to grow. Thin-slice meat or vegetables and dry using sun, air, or gentle heat until leathery and brittle, then store fully dried food in a sealed, dry container.</p>';
+  html += '<h3>Smoking</h3><p>Cold smoking adds flavor and some short-term preservation at low temperatures without fully cooking the food. Hot smoking cooks the meat while adding smoke flavor and extends storage somewhat longer. Neither replaces proper curing or refrigeration for long-term safety.</p>';
+  html += '<h3>Salt curing and brining</h3><p>Salt draws out moisture and creates an environment hostile to most bacteria. A basic dry cure works salt thoroughly into meat, then leaves it in a cool location for days depending on thickness. Brining (salt dissolved in water) works similarly for smaller cuts.</p>';
+  html += '<h3>Root cellaring</h3><p>A cool, humid, dark space - a dug-out cellar, buried barrel, or unheated basement corner - can store root vegetables for months. Potatoes, carrots, beets, and cabbage store well; leafy greens and most fruit do not.</p>';
+  html += '<h3>Canning</h3><p>High-acid foods (fruit, pickles, most tomatoes) can be safely preserved with a water-bath canner. Low-acid foods (most vegetables, meat) require pressure canning to reach a high enough temperature to destroy Clostridium botulinum spores.</p>';
+  html += renderWarning("Botulism risk", ["Never water-bath can low-acid vegetables or meat - it does not reach a temperature high enough to kill botulism spores.","Discard any canned food with a bulging lid, off smell, or spurting liquid when opened. Do not taste it to check."]);
+  html += '<h3>Long-term water</h3><p>Rainwater catchment from a roof into a covered, food-grade container is one of the most reliable long-term water sources; divert the first flush of runoff, which carries the most roof debris, away from storage. A simple biosand or ceramic filter can make cloudy water usable for washing, and combined with boiling or chemical treatment, safer to drink. Rotate stored drinking water every six to twelve months and keep containers out of direct sunlight.</p>';
+  html += '</div>';
+
+  html += '<div class="section" id="lt-health"><h2>&#129532; Sanitation, Hygiene &amp; Extended Medicine</h2>';
+  html += renderWarning("Sanitation is a priority, not an afterthought", ["Poor sanitation has historically caused more deaths after a disaster than violence or starvation - treat it accordingly."]);
+  html += '<h3>Latrines</h3><p>A simple cathole - roughly 6-8 in (15-20 cm) deep, at least 200 ft (60 m) from any water source - works for a short stay. For longer-term use, a deeper pit latrine with a simple cover and seat reduces smell and flies; add a layer of ash or dry soil after each use to speed breakdown and control odor.</p>';
+  html += '<h3>Handwashing without plumbing</h3><p>A "tippy-tap" - a hanging, tilted container with a small hole that releases a trickle of water when tipped by a foot pedal or string - uses very little water for effective handwashing. Ash can serve as a rough soap substitute in a true emergency. Wash hands after using the latrine, before handling food or water, and after handling raw meat.</p>';
+  html += '<h3>Extended wound care</h3><p>Without access to a hospital, clean wounds daily with the cleanest available water, change dressings regularly, and watch closely for spreading redness, warmth, red streaking, fever, or pus - all signs of infection needing urgent care if at all possible. Raw honey has genuine antimicrobial properties and has been used as a wound dressing when nothing else is available.</p>';
+  html += '<h3>Managing chronic conditions</h3><p>Stockpiling a longer supply of any regular medication, along with a written list of dosages and conditions, is worth far more than any improvised alternative. Herbal or folk remedies are not a substitute for insulin, blood pressure medication, or other prescribed treatment.</p>';
+  html += '<h3>Herbal remedies (supportive care only)</h3>';
+  html += renderWarning("Not a substitute for real medicine", ["Herbal remedies are supportive care at best, not a substitute for antibiotics or emergency medical treatment.","When in doubt about a plant's identity or safety, do not use it medicinally."]);
+  html += '<p>A few widely documented supportive uses: crushed plantain leaf as a poultice for minor skin irritation or insect stings, garlic for its mild antimicrobial properties in food, and chamomile or mint as a calming tea. None of these treat serious infection, injury, or illness.</p>';
+  html += '</div>';
+
+  html += '<div class="section" id="lt-barter"><h2>&#128260; Barter &amp; Scavenging</h2>';
+  html += '<h3>What holds trade value</h3><p>Small, practical, consumable goods tend to hold the most trade value: batteries, over-the-counter medication and first aid supplies, hygiene products, hand tools, seeds, fuel, and clean water containers. Skills - the ability to fix things, treat injuries, or grow food - are often worth more than any physical good.</p>';
+  html += '<h3>Scavenging safely</h3><ul>'+
+    '<li>Avoid entering a structure alone if possible, and tell someone where you are going.</li>'+
+    '<li>Test floors and stairs before putting full weight on them - fire, water, and time weaken structures quickly.</li>'+
+    '<li>Watch for gas smells, standing water near electrical sources, and mold - all can be more dangerous than the search itself.</li>'+
+    '<li>Note your exit before going further inside.</li>'+
+    '<li>Take only what is needed and can be carried - overloading slows you down when it matters most.</li>'+
+  '</ul></div>';
+
+  html += '<div class="section" id="lt-power"><h2>&#128295; Off-Grid Power &amp; Tool Maintenance</h2>';
+  html += '<h3>Basic solar and battery power</h3><p>A small solar panel paired with a battery bank can keep essentials running - a radio, lights, and small medical devices - though it will not power large appliances. Prioritize charging what actually matters (communication, light, medical needs) over convenience items, and keep panels clean and angled toward the sun for the best output.</p>';
+  html += '<h3>Hand-crank and battery basics</h3><p>Hand-crank radios and flashlights remove batteries as a point of failure entirely. Store spare batteries in a cool, dry place, and rotate stock so nothing sits unused for years.</p>';
+  html += '<h3>Tool maintenance</h3><p>A well-maintained hand tool will outlast several cheap replacements. Keep cutting edges sharp - a dull blade is more dangerous, not less, since it requires more force to use. Wipe metal tools dry and lightly oil them to prevent rust, especially in humid conditions. Learning basic repair - resharpening, re-handling, patching - matters more long-term than any single tool owned.</p>';
+  html += '</div>';
+
+  html += '<div class="section" id="lt-community"><h2>&#129309; Community Resilience</h2>';
+  html += '<h3>Low profile</h3><p>Avoid signaling that supplies are available when others may not have them - lit windows at night, visible food stores, or loose talk about what is stocked can draw unwanted attention. This is not about secrecy from trusted neighbors, but about not broadcasting vulnerability to strangers.</p>';
+  html += '<h3>Mutual aid</h3><p>A small, trusted group pooling skills and labor is consistently more resilient than any individual or household alone - one person who can treat injuries, one who can fix things, and one who can grow food cover far more ground together than any one of them could alone. Build these relationships before they are needed.</p>';
+  html += '<h3>Conflict de-escalation</h3><p>The safest outcome in almost any tense encounter is the one that ends without confrontation. Stay calm, keep hands visible, give people an easy way to back down without losing face, and prioritize disengaging and creating distance over standing your ground. Avoiding a conflict entirely is always the better outcome than winning one.</p>';
+  html += '</div>';
+
+  return html;
+}
+
 /* ---- Quiz ---- */
 function shuffle(arr){ var a=arr.slice(); for(var i=a.length-1;i>0;i--){ var j=Math.floor(Math.random()*(i+1)); var t=a[i]; a[i]=a[j]; a[j]=t; } return a; }
 function renderQuiz(){
@@ -1036,7 +1130,7 @@ function renderQuiz(){
 
 /* ---------------- MAIN RENDER ---------------- */
 function renderCategory(id){
-  var fns = {firstaid:renderFirstAidCat, water:renderWater, shelter:renderShelter, fire:renderFire, nav:renderNav, signal:renderSignal, weather:renderWeather, wildlife:renderWildlife, vehicle:renderVehicle};
+  var fns = {firstaid:renderFirstAidCat, water:renderWater, shelter:renderShelter, fire:renderFire, nav:renderNav, signal:renderSignal, weather:renderWeather, wildlife:renderWildlife, vehicle:renderVehicle, longterm:renderLongTerm};
   return fns[id] ? fns[id]() : "<p>Not found.</p>";
 }
 
@@ -1235,6 +1329,17 @@ function buildSearchIndex(){
   idx("Vehicle Emergencies","Stuck in mud or sand","traction wheels",{view:"category",cat:"vehicle"});
   idx("Vehicle Emergencies","Overheating engine","radiator coolant burn",{view:"category",cat:"vehicle"});
   idx("Vehicle Emergencies","Submerged vehicle","seatbelt window escape",{view:"category",cat:"vehicle"});
+  idx("Long-Term Survival","Farming and food production","gardening three sisters potatoes beans squash seed saving compost livestock chickens rabbits",{view:"category",cat:"longterm"});
+  idx("Long-Term Survival","Edible and poisonous plants","dandelion plantain cattail clover chickweed berries foraging",{view:"category",cat:"longterm"});
+  idx("Long-Term Survival","Dangerous plant look-alikes","poison hemlock water hemlock wild carrot death cap mushroom pokeweed",{view:"category",cat:"longterm"});
+  idx("Long-Term Survival","Universal Edibility Test","test unknown plant safe to eat wild food",{view:"category",cat:"longterm"});
+  idx("Long-Term Survival","Food preservation","drying smoking salt curing brining root cellar canning botulism",{view:"category",cat:"longterm"});
+  idx("Long-Term Survival","Long-term water","rainwater catchment biosand filter storage rotation",{view:"category",cat:"longterm"});
+  idx("Long-Term Survival","Sanitation and hygiene","latrine cathole handwashing tippy-tap disease",{view:"category",cat:"longterm"});
+  idx("Long-Term Survival","Extended wound care and chronic conditions","medicine honey herbal remedies infection",{view:"category",cat:"longterm"});
+  idx("Long-Term Survival","Barter and scavenging","trade value salvage looting structural safety",{view:"category",cat:"longterm"});
+  idx("Long-Term Survival","Off-grid power and tool maintenance","solar battery hand-crank sharpening rust repair",{view:"category",cat:"longterm"});
+  idx("Long-Term Survival","Community resilience","opsec mutual aid conflict de-escalation low profile",{view:"category",cat:"longterm"});
 }
 
 var searchInput = document.getElementById("search-input");
