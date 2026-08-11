@@ -10,6 +10,7 @@ import {
 } from '../../systems/trace';
 import { SKINS, type SkinId } from '../../content/skins';
 import { RiskMeter } from '../RiskMeter';
+import { TensionCue } from '../TensionCue';
 import type { RunOutcome } from '../../systems/missions';
 import './trace.css';
 import { play } from '../../systems/audio';
@@ -72,6 +73,7 @@ export function TraceMinigame({
         max={state.config.traceCounterBudget}
         ceiling={state.config.baseCounterBudget}
       />
+      <TensionCue value={state.counter} max={state.config.traceCounterBudget} />
 
       <div
         className="trace__grid"

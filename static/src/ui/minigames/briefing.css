@@ -78,3 +78,13 @@
   font-size: 13px;
   opacity: 0.85;
 }
+
+/* The upside, same directness as the cost above it — colour-coded orange
+   rather than the red the cost box uses, so the eye tells them apart at a
+   glance. */
+.briefing__hazard {
+  margin: calc(var(--step) * -0.5) 0 var(--step);
+  font-size: 13px;
+  color: var(--b-orange);
+  font-weight: 700;
+}

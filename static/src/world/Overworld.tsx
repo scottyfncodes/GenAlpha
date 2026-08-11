@@ -32,11 +32,26 @@ import { pendingScenes, scenesAt, type Scene } from '../systems/scenes';
 import { SceneView } from '../ui/SceneView';
 import { drawTown } from './draw';
 import { Market } from '../ui/Market';
+import { play } from '../systems/audio';
 import './overworld.css';
 
 const SPEED = 110; // world units per second
 /** The whole pitch for owning a car — twice the street, same feet. */
 const DRIVING_MULTIPLIER = 2;
+/** Sprint, on foot only — a car already covers "faster". Real movement
+ * expression instead of pure point-to-point transit: Shift, or the touch
+ * Run button, for as long as it's held. */
+const SPRINT_MULTIPLIER = 1.6;
+/** A van that clocks you while you're running hears you twice as well —
+ * getting somewhere fast costs more if you get seen doing it. Applied only
+ * at the moment a sighting actually charges Heat, so it's felt exactly when
+ * it's paid, not as an invisible always-on tax. */
+const SPRINT_HEAT_MULTIPLIER = 2;
+/** A close call: standing in a hunting van's circle for this long before
+ * stepping back out is close enough to feel it, without it being the catch
+ * itself — a fraction of `LINGER_CATCH_MS` below, tuned so it fires with
+ * real time to spare rather than right at the wire. */
+const CLOSE_CALL_MS = 1200;
 const PLAYER_W = 12;
 const PLAYER_H = 18;
 const SCALE = 2; // pixel-art integer scale
@@ -141,6 +156,11 @@ export function Overworld() {
    * separate from `spotted` because this is a real cost, not ambient
    * pressure, and deserves its own line rather than overwriting one. */
   const [caught, setCaught] = useState<string | null>(null);
+  /** A close call: got out of a hunting van's circle with real time already
+   * spent in it. Nothing was lost — this is the payoff for the tension, not
+   * another cost — so it gets its own line rather than reusing `spotted`'s
+   * ambient tone or `caught`'s consequence one. */
+  const [closeCall, setCloseCall] = useState<string | null>(null);
   /** Whether the player has a car at all — checked every render off
    * inventory rather than a schema field, same as any other owned gear. */
   const hasCar = owns(save, BEATER_CAR);
@@ -224,6 +244,10 @@ export function Overworld() {
   const pos = useRef(spawnFor(save.player.currentLocation));
   const keys = useRef<Set<string>>(new Set());
   const touch = useRef({ dx: 0, dy: 0 });
+  /** The touch Run button's held state — a ref, not React state, for the same
+   * reason the joystick's own `touch` is: it's read every animation frame
+   * and nothing outside the loop needs to know about it. */
+  const touchSprint = useRef(false);
   const nearbyRef = useRef<OverworldLocation | null>(null);
   const enterRef = useRef<(loc: OverworldLocation) => void>(() => {});
   const nearbyCameraRef = useRef<CameraNode | null>(null);
@@ -294,6 +318,12 @@ export function Overworld() {
 
       const len = Math.hypot(dx, dy) || 1;
 
+      // A car already means "faster" — sprint is on-foot expression, not a
+      // stack. Read fresh every frame off the same keys set movement already
+      // reads, plus the touch button's held ref.
+      const sprinting =
+        moving && !drivingRef.current && (keys.current.has('shift') || touchSprint.current);
+
       /*
        * Buildings are solid: the player can no longer walk through or over
        * one. Whichever building the player is already standing in (the one
@@ -316,7 +346,8 @@ export function Overworld() {
       // A skull-cracked consequence leaves this behind for a day — a cost
       // that's felt rather than a screen that says so.
       const hurt = Number(flagsRef.current[HURT_UNTIL_DAY_FLAG] ?? 0) > saveRef.current.world.day;
-      const speed = (drivingRef.current ? SPEED * DRIVING_MULTIPLIER : SPEED) * (hurt ? 0.6 : 1);
+      const base = drivingRef.current ? SPEED * DRIVING_MULTIPLIER : SPEED * (sprinting ? SPRINT_MULTIPLIER : 1);
+      const speed = base * (hurt ? 0.6 : 1);
       const nx = clamp(pos.current.x + (dx / len) * speed * dt, 8, MAP_WIDTH - 8);
       if (!solid.some((l) => overlapsBuilding(nx, pos.current.y, l))) pos.current.x = nx;
 
@@ -435,6 +466,15 @@ export function Overworld() {
 
         const dist = Math.hypot(p.x - pos.current.x, p.y - pos.current.y);
         if (dist >= tuning.detectionRadius) {
+          // Getting out with real time already spent inside is the payoff
+          // for the tension the chase mechanic adds — nothing was lost, but
+          // it was close, and that's worth its own moment.
+          const spentInside = patrolLingerRef.current.get(route.id);
+          if (tuning.hunting && spentInside !== undefined && now - spentInside >= CLOSE_CALL_MS) {
+            play('trap'); // the same "close call" cue the hacking minigame's trap uses
+            setCloseCall('Too close.');
+            window.setTimeout(() => setCloseCall((m) => (m === 'Too close.' ? null : m)), 1600);
+          }
           patrolLingerRef.current.delete(route.id);
           continue;
         }
@@ -475,13 +515,17 @@ export function Overworld() {
         const lastHit = patrolCooldownRef.current.get(route.id) ?? -Infinity;
         if (now - lastHit > tuning.cooldownMs) {
           patrolCooldownRef.current.set(route.id, now);
+          // Running past a van is louder than walking past one — charged
+          // only at the moment it's actually paid, same as every other Heat
+          // cost in this loop, and said out loud in the line the player sees.
+          const heatOnSpot = tuning.heatOnSpot * (sprinting ? SPRINT_HEAT_MULTIPLIER : 1);
           dispatch({
             type: 'ADD_HEAT',
             eventId: `patrol_spotted_${route.id}`,
-            delta: tuning.heatOnSpot,
+            delta: heatOnSpot,
             logToHistory: false,
           });
-          setSpotted('A Helio van slows near you.');
+          setSpotted(sprinting ? 'Running got you noticed — that’s double the Heat.' : 'A Helio van slows near you.');
           window.setTimeout(() => setSpotted((m) => (m === null ? m : null)), 1800);
         }
       }
@@ -521,7 +565,7 @@ export function Overworld() {
 
     const down = (e: KeyboardEvent) => {
       const k = e.key.toLowerCase();
-      const isGameKey = k === 'e' || k === ' ' || MOVE.includes(k);
+      const isGameKey = k === 'e' || k === ' ' || k === 'shift' || MOVE.includes(k);
       // The browser's own scroll-on-arrow-key default has to be cancelled
       // whether or not the game is currently blocked — the earlier version
       // returned before this ran while a scene or location card was open,
@@ -578,6 +622,12 @@ export function Overworld() {
       {caught && (
         <p className="overworld__caught" role="status">
           {caught}
+        </p>
+      )}
+
+      {closeCall && (
+        <p className="overworld__closecall" role="status">
+          {closeCall}
         </p>
       )}
 
@@ -657,6 +707,23 @@ export function Overworld() {
       )}
 
       <Joystick onChange={(dx, dy) => (touch.current = { dx, dy })} />
+
+      {/* Keyboard players have Shift; this is the same hold-to-run for touch,
+          same reasoning as the joystick replacing four buttons — one surface,
+          pressed and released, no state to toggle back off. Hidden on a
+          hover-capable pointer the same way the joystick already is. */}
+      <button
+        className="overworld__sprint"
+        aria-label="Hold to run"
+        onPointerDown={(e) => {
+          e.currentTarget.setPointerCapture(e.pointerId);
+          touchSprint.current = true;
+        }}
+        onPointerUp={() => (touchSprint.current = false)}
+        onPointerCancel={() => (touchSprint.current = false)}
+      >
+        Run
+      </button>
 
       {!open && (
         <p className="overworld__hint">

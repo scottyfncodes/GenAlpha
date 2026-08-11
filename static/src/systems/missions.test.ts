@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { heatFor, isOnCooldown, isPrepped, nextRecord, resolveRun } from './missions';
+import { hazardBonusFor, heatFor, isOnCooldown, isPrepped, nextRecord, resolveRun } from './missions';
 import { createNewSave } from '../state/defaults';
 import type { MissionRecord } from '../state/schema';
 
@@ -87,5 +87,51 @@ describe('resolveRun — the mission cycle', () => {
     save.economy.inventory = [{ itemId: 'signal_jammer', quantity: 1, acquiredVia: 'purchase' }];
     const after = resolveRun(save, { missionId: 'm', kind: 'sabotage', outcome: 'clean' }, ['signal_jammer']);
     expect(after.economy.inventory).toEqual([]);
+  });
+});
+
+describe('hazard pay', () => {
+  const hot = (tier: 'clear' | 'watched' | 'flagged' | 'hunted') => {
+    const save = createNewSave('Wren');
+    save.heat.threshold_tier = tier;
+    return save;
+  };
+
+  it('pays nothing at clear, and pays more the hotter the tier', () => {
+    expect(hazardBonusFor('clear')).toBe(0);
+    expect(hazardBonusFor('watched')).toBeGreaterThan(0);
+    expect(hazardBonusFor('flagged')).toBeGreaterThan(hazardBonusFor('watched'));
+    expect(hazardBonusFor('hunted')).toBeGreaterThan(hazardBonusFor('flagged'));
+  });
+
+  it('pays out on a landed run at an elevated tier', () => {
+    const before = hot('flagged');
+    const after = resolveRun(before, { missionId: 'm', kind: 'hacking', outcome: 'clean' });
+    expect(after.economy.cashOnHand).toBe(before.economy.cashOnHand + hazardBonusFor('flagged'));
+  });
+
+  it('never pays on a failed or aborted run, no matter how hot', () => {
+    const before = hot('hunted');
+    const failed = resolveRun(before, { missionId: 'm', kind: 'hacking', outcome: 'failed' });
+    const aborted = resolveRun(before, { missionId: 'm2', kind: 'hacking', outcome: 'aborted' });
+    expect(failed.economy.cashOnHand).toBe(before.economy.cashOnHand);
+    expect(aborted.economy.cashOnHand).toBe(before.economy.cashOnHand);
+  });
+
+  it('pays nothing extra at clear even on a clean landing', () => {
+    const before = hot('clear');
+    const after = resolveRun(before, { missionId: 'm', kind: 'hacking', outcome: 'clean' });
+    expect(after.economy.cashOnHand).toBe(before.economy.cashOnHand);
+  });
+
+  it('rates the bonus off the tier the player walked in with, not the one this run\'s own Heat pushes them into', () => {
+    // Just under the flagged threshold (50) — this run's own Heat gain would
+    // cross into flagged, but the bonus should still be watched's rate.
+    const save = createNewSave('Wren');
+    save.heat.current = 48;
+    save.heat.threshold_tier = 'watched';
+    const after = resolveRun(save, { missionId: 'm', kind: 'sabotage', outcome: 'clean' });
+    expect(after.heat.threshold_tier).toBe('flagged');
+    expect(after.economy.cashOnHand).toBe(save.economy.cashOnHand + hazardBonusFor('watched'));
   });
 });

@@ -1,6 +1,6 @@
 import type { MissionRecord, SaveState, ThresholdTier } from '../state/schema';
 import { applyHeat, decayTo } from './heat';
-import { eventsFromRun, heatReliefFor, startEvent, tickMarket } from './market';
+import { addCash, eventsFromRun, heatReliefFor, startEvent, tickMarket } from './market';
 import { burn, burnRoll, tickSafehouses } from './safehouse';
 
 /**
@@ -97,6 +97,25 @@ export function budgetNudge(tier: ThresholdTier): number {
   return tier === 'hunted' ? -2 : tier === 'flagged' ? -1 : 0;
 }
 
+/**
+ * Heat has been pure downside — a cost the player minimizes and nothing more.
+ * Hazard pay gives operating hot an actual upside: a landed run (clean or
+ * messy — not failed, not aborted) pays a cash bonus scaled to the tier the
+ * player was in when they took the job. Doesn't touch the Heat table itself,
+ * so a briefing's cost preview stays exactly what it always was; this is
+ * counted and shown separately (MissionBriefing's "Hazard pay" line).
+ */
+export const HAZARD_BONUS: Record<ThresholdTier, number> = {
+  clear: 0,
+  watched: 6,
+  flagged: 14,
+  hunted: 25,
+};
+
+export function hazardBonusFor(tier: ThresholdTier): number {
+  return HAZARD_BONUS[tier];
+}
+
 export function missionRecord(save: SaveState, missionId: string): MissionRecord | undefined {
   return save.missions[missionId];
 }
@@ -137,8 +156,16 @@ export function resolveRun(
     logToHistory: true,
   });
 
+  // Hazard pay: the tier the player was actually operating in when they took
+  // the job, not the tier this run's own Heat gain just pushed them into —
+  // the risk that earned the bonus is the one they walked in carrying.
+  const landed = result.outcome === 'clean' || result.outcome === 'messy';
+  const withHazardPay = landed
+    ? addCash({ ...state, heat: gained }, hazardBonusFor(state.heat.threshold_tier))
+    : { ...state, heat: gained };
+
   const spent = new Set(toolsUsed);
-  const inventory = state.economy.inventory
+  const inventory = withHazardPay.economy.inventory
     .map((i) => (spent.has(i.itemId) ? { ...i, quantity: i.quantity - 1 } : i))
     .filter((i) => i.quantity > 0);
 
@@ -151,14 +178,14 @@ export function resolveRun(
   const burned = result.outcome === 'failed' && burnRoll(state, result.missionId);
 
   const settled: SaveState = {
-    ...state,
+    ...withHazardPay,
     heat: decayTo(gained, day),
     world: { ...state.world, day },
     missions: {
       ...state.missions,
       [result.missionId]: nextRecord(state.missions[result.missionId], result, day),
     },
-    economy: { ...state.economy, inventory },
+    economy: { ...withHazardPay.economy, inventory },
   };
 
   /*

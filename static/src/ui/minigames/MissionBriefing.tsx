@@ -1,5 +1,5 @@
 import { RiskMeter } from '../RiskMeter';
-import { heatPreview, type MissionKind } from '../../systems/missions';
+import { hazardBonusFor, heatPreview, type MissionKind } from '../../systems/missions';
 import { useSave } from '../../state/GameContext';
 import './briefing.css';
 
@@ -37,6 +37,13 @@ export function MissionBriefing({
 }) {
   const save = useSave();
   const [low, high] = heatRange ?? heatPreview(kind, relief);
+  /*
+   * Hazard pay only ever pays out through `resolveRun`, which a practice node
+   * (the scene owns its own cost — `heatRange` is how it signals that) never
+   * calls. Showing a bonus here that a practice run can't actually pay would
+   * be the same broken promise as hiding a real one.
+   */
+  const hazardBonus = heatRange ? 0 : hazardBonusFor(save.heat.threshold_tier);
 
   return (
     <div className={`briefing ${language === 'B' ? 'lang-b' : 'lang-a'}`}>
@@ -75,6 +82,13 @@ export function MissionBriefing({
         /* Said out loud for the same reason a cost is: the player should never
            find out what their gear did by comparing two numbers afterwards. */
         <p className="briefing__relief">Burner phone — {relief} less Heat than this would cost you.</p>
+      )}
+
+      {hazardBonus > 0 && (
+        /* The upside to Heat this game has never had — operating hot pays,
+         * if it lands. Stated with the same directness as a cost, and with
+         * the same honesty: fail or walk away and it's not paid. */
+        <p className="briefing__hazard">Hazard pay — +${hazardBonus} if this lands clean or messy.</p>
       )}
 
       <div className="briefing__actions">

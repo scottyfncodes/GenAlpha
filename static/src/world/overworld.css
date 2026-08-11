@@ -96,6 +96,25 @@
   pointer-events: none;
 }
 
+/* The payoff for a close call — nothing was lost, so amber rather than
+   `caught`'s red, and gone quicker. Same slot: the two never fire in the
+   same breath, one is an escape and the other is what it escaped. */
+.overworld__closecall {
+  position: absolute;
+  left: 50%;
+  top: calc(var(--step) * 14);
+  transform: translateX(-50%);
+  margin: 0;
+  background: rgba(16, 14, 13, 0.9);
+  color: var(--b-paper);
+  border: 2px solid var(--b-orange);
+  padding: 8px 16px;
+  font-family: var(--font-a);
+  font-weight: 700;
+  font-size: 13px;
+  pointer-events: none;
+}
+
 .overworld__prompt {
   position: absolute;
   left: 50%;
@@ -212,6 +231,33 @@
 
 @media (hover: hover) and (pointer: fine) {
   .joystick { display: none; }
+}
+
+/* Touch's Shift key — held, not toggled, same as the joystick it sits next
+   to. Left of the joystick rather than stacked with `.overworld__drive`, so
+   a run with a car showing on screen doesn't crowd two buttons together. */
+.overworld__sprint {
+  position: absolute;
+  right: calc(var(--step) * 16);
+  bottom: calc(var(--step) * 6);
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  background: rgba(20, 17, 15, 0.45);
+  border: 2px solid rgba(236, 226, 208, 0.35);
+  color: var(--b-paper);
+  font-family: var(--font-a);
+  font-weight: 700;
+  font-size: 13px;
+  touch-action: none;
+}
+
+.overworld__sprint:active {
+  background: rgba(236, 226, 208, 0.25);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .overworld__sprint { display: none; }
 }
 
 /* Several threads open in one place — the player picks. Hooks as authored,

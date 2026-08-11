@@ -10,6 +10,7 @@ import {
 } from '../../systems/cipher';
 import { SKINS, type SkinId } from '../../content/skins';
 import { RiskMeter } from '../RiskMeter';
+import { TensionCue } from '../TensionCue';
 import type { RunOutcome } from '../../systems/missions';
 import './cipher.css';
 import { play } from '../../systems/audio';
@@ -92,6 +93,7 @@ export function CipherMinigame({
         max={state.config.guessBudget}
         ceiling={state.config.baseGuessBudget}
       />
+      <TensionCue value={state.guessesUsed} max={state.config.guessBudget} />
 
       <div className="cipher__slots" role="group" aria-label="Current guess">
         {state.current.map((symbol, i) => (
