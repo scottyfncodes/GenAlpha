@@ -70,6 +70,10 @@ const PALETTE = {
   hedge: '#48684f',
   carBody: '#7a8a5c',
   carGlass: '#a9c4d6',
+  atmBody: '#3c7a4e',
+  atmDark: '#1f4029',
+  phoneBody: '#8a7a5c',
+  phoneDark: '#4a4030',
 } as const;
 
 const px = Math.round;
@@ -92,6 +96,7 @@ export function drawTown(
   obstacles: Obstacle[],
   patrols: { x: number; y: number; radius: number }[],
   cameraNodes: { x: number; y: number; dismantlable: boolean }[],
+  hackNodes: { x: number; y: number; kind: 'atm' | 'phone'; hackable: boolean }[],
   moving: boolean,
   now: number,
   driving: boolean,
@@ -131,6 +136,11 @@ export function drawTown(
   // just whether the player is close enough to act on it right now; a camera
   // on cooldown after a dismantle isn't in this list at all.
   for (const c of cameraNodes) drawSabotageCamera(ctx, c, c.dismantlable);
+
+  // ATMs and phone lines — a street hack is visible whether or not the
+  // player owns the rig to actually crack it, same as a locked door is
+  // still a door; the prompt itself is what says no.
+  for (const h of hackNodes) drawStreetHack(ctx, h);
 
   // Detection rings under the vans, so a van sitting still doesn't visually
   // "arrive" on top of its own danger zone.
@@ -442,6 +452,42 @@ function drawSabotageCamera(
   ctx.strokeRect(x - 0.5, y - 0.5, size + 1, size + 1);
 
   if (dismantlable) {
+    ctx.strokeStyle = PALETTE.spriteShirt;
+    ctx.lineWidth = 2;
+    ctx.strokeRect(x - 4, y - 4, size + 8, size + 8);
+  }
+}
+
+/**
+ * A street hack — cash-register green for an ATM, sun-bleached tan for a
+ * payphone, so the two read apart at a glance the same way a camera's blue
+ * reads apart from either. Same footprint and the same "close enough to act
+ * on it" ring as `drawSabotageCamera`, because it's the same kind of object
+ * wearing different paint.
+ */
+function drawStreetHack(
+  ctx: CanvasRenderingContext2D,
+  node: { x: number; y: number; kind: 'atm' | 'phone'; hackable: boolean },
+) {
+  const size = 14;
+  const x = px(node.x - size / 2);
+  const y = px(node.y - size / 2);
+  const body = node.kind === 'atm' ? PALETTE.atmBody : PALETTE.phoneBody;
+  const dark = node.kind === 'atm' ? PALETTE.atmDark : PALETTE.phoneDark;
+
+  ctx.fillStyle = body;
+  ctx.fillRect(x, y, size, size);
+  ctx.strokeStyle = dark;
+  ctx.lineWidth = 1;
+  ctx.strokeRect(x - 0.5, y - 0.5, size + 1, size + 1);
+
+  // A small pale slot/screen so the two kinds also read apart at a distance,
+  // not just by hue — a card slot low and wide, a keypad centred and square.
+  ctx.fillStyle = PALETTE.windowLit;
+  if (node.kind === 'atm') ctx.fillRect(x + 2, y + size - 5, size - 4, 2);
+  else ctx.fillRect(x + size / 2 - 2, y + 3, 4, 4);
+
+  if (node.hackable) {
     ctx.strokeStyle = PALETTE.spriteShirt;
     ctx.lineWidth = 2;
     ctx.strokeRect(x - 4, y - 4, size + 8, size + 8);

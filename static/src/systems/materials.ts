@@ -23,11 +23,17 @@ import { applyHeat } from './heat';
  * namespace is enough to keep them apart.
  */
 
-/** `defaultRespawnDays` only matters when a record exists but was stamped
+/**
+ * `defaultRespawnDays` only matters when a record exists but was stamped
  * without its own override — every current writer always stamps one for a
  * camera (see `markCollected`), so this is really just a floor for data from
- * before tiers existed. */
-function onCooldown(save: SaveState, nodeId: string, defaultRespawnDays: number): boolean {
+ * before tiers existed.
+ *
+ * Exported for `systems/streethacks.ts` — a street hack is a third shape on
+ * the same "place that gives something back on a day-keyed timer" log this
+ * file's own doc comment already describes, not a reason for a second one.
+ */
+export function onCooldown(save: SaveState, nodeId: string, defaultRespawnDays: number): boolean {
   const record = save.world.collectedNodes.find((c) => c.nodeId === nodeId);
   if (!record) return false;
   const respawnDays = record.respawnDays ?? defaultRespawnDays;
@@ -37,7 +43,7 @@ function onCooldown(save: SaveState, nodeId: string, defaultRespawnDays: number)
 /** `respawnDays` is stamped on the record itself when a node's timer isn't
  * fixed — a camera's varies by which sabotage action took it down. Omitted
  * for a hidden pickup, which always uses its own one fixed value. */
-function markCollected(save: SaveState, nodeId: string, respawnDays?: number): SaveState {
+export function markCollected(save: SaveState, nodeId: string, respawnDays?: number): SaveState {
   const collectedNodes = [
     ...save.world.collectedNodes.filter((c) => c.nodeId !== nodeId),
     { nodeId, collectedOnDay: save.world.day, ...(respawnDays !== undefined ? { respawnDays } : {}) },

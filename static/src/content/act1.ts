@@ -104,7 +104,57 @@ const B1_OPEN: Scene = {
         { text: 'She walks the rest of the way with you, phone in her pocket, which she doesn’t do for everyone.' },
         { speaker: 'Ellen', text: 'You’re so weird and quiet. It’s restful. Don’t change.' },
       ],
-      effects: [{ kind: 'chapter', chapterId: 'act1_glitch_02' }],
+      effects: [{ kind: 'chapter', chapterId: 'act1_glitch_01b' }],
+      end: true,
+    },
+  },
+};
+
+const B1B_THE_IDEA: Scene = {
+  id: 'act1_01b_the_idea',
+  beat: 1,
+  locationId: 'home',
+  hook: 'Back home. There’s a whole evening left.',
+  language: 'A',
+  requires: { chapter: 'act1_glitch_01b' },
+  start: 'drawer',
+  nodes: {
+    /*
+     * Beat 1 is the warmest material in the game and this rides on that
+     * warmth rather than complicating it — no wrongness yet, just a kid
+     * alone with a junk drawer. The system payload (a flag, nothing costed)
+     * matters more than the words: this is the moment the salvage/market
+     * loop stops being background fact on a headline ticker and becomes
+     * something the player has a reason to go do.
+     */
+    drawer: {
+      id: 'drawer',
+      lines: [
+        { text: 'The junk drawer in the kitchen has three dead remotes, a charger for a phone nobody in this house has owned in years, and a battery that might still be good.' },
+        { text: 'You’ve walked past this drawer a thousand times. Tonight, for no reason you could explain, you actually open it.' },
+      ],
+      choices: [{ text: 'See what’s actually in here.', goto: 'parts' }],
+    },
+    parts: {
+      id: 'parts',
+      lines: [
+        { text: 'None of it is one whole thing. All of it is pieces of things — a coil of copper, a board with half its chips still good, a battery holding eighty percent of a charge forever.' },
+        { text: 'You don’t know yet what you’d build with any of it. You know it would be yours. Not the library’s, not signed out on a fifteen-minute timer with a librarian watching the clock.' },
+      ],
+      next: 'plan',
+    },
+    plan: {
+      id: 'plan',
+      lines: [
+        { text: 'A cyberdeck. You read the word somewhere and it stuck the way words do right before they matter.' },
+        { text: 'This drawer isn’t enough on its own. But the same kind of junk is sitting all over Bellhaven, if you actually look — a loose board under the right bush, wire nobody’s bothered to coil up.' },
+        { text: 'And every one of those cameras on every corner is built out of precisely the parts you’d need. If you were willing to take one apart instead of just staring at it.' },
+        { text: 'Whatever you end up with too much of, somebody apparently wants — there’s a whole quiet economy running underneath this town for exactly that. SHDW is what it runs on. You didn’t know that this morning either.', glitch: true },
+      ],
+      effects: [
+        { kind: 'flag', key: 'cyberdeck_plan_started', value: true },
+        { kind: 'chapter', chapterId: 'act1_glitch_02' },
+      ],
       end: true,
     },
   },
@@ -541,6 +591,7 @@ const B7_FIRST_CONTACT: Scene = {
 
 export const ACT1_SCENES: Scene[] = [
   B1_OPEN,
+  B1B_THE_IDEA,
   B2_SMALL_WRONGNESS,
   B2B_THE_HOUSE,
   B3_FIRST_DIG,

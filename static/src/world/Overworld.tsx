@@ -20,7 +20,7 @@ import { useGame, useSave } from '../state/GameContext';
 import type { ThresholdTier } from '../state/schema';
 import { LIE_LOW_DECAY, lieLowBlocked } from '../systems/heat';
 import { safehouseBlocked, safehouseDecay } from '../systems/safehouse';
-import { canCollectHidden, canSabotage } from '../systems/materials';
+import { canCollectHidden, canSabotage, onCooldown } from '../systems/materials';
 import { owns } from '../systems/market';
 import { consequenceFor, HURT_UNTIL_DAY_FLAG } from '../systems/consequences';
 import { MATERIALS_BY_ID } from '../content/materials';
@@ -30,6 +30,9 @@ import { SAFEHOUSE_ID } from '../content/safehouse';
 import { ALL_SCENES } from '../content/all';
 import { pendingScenes, scenesAt, type Scene } from '../systems/scenes';
 import { SceneView } from '../ui/SceneView';
+import { StreetHackModal } from '../ui/StreetHackModal';
+import { STREET_HACK_INTERACT_RADIUS, STREET_HACK_NODES, type StreetHackNode } from './streethacks';
+import { canHackStreetNode } from '../systems/streethacks';
 import { drawTown } from './draw';
 import { Market } from '../ui/Market';
 import { play } from '../systems/audio';
@@ -144,6 +147,14 @@ export function Overworld() {
   /** The camera close enough to dismantle right now, if any — this one keeps
    * its prompt, since spending Heat on purpose is a decision, not a walk. */
   const [nearbyCamera, setNearbyCamera] = useState<CameraNode | null>(null);
+  /** The ATM or phone close enough to hack right now, if any. Visible and
+   * promptable whether or not the player owns a cyberdeck — the node is
+   * there either way, same as a camera is; only whether the prompt is
+   * clickable depends on the rig. */
+  const [nearbyHack, setNearbyHack] = useState<StreetHackNode | null>(null);
+  /** The street hack actually running right now — its own overlay, same
+   * "held in state, not derived" reasoning as `active`. */
+  const [activeHack, setActiveHack] = useState<StreetHackNode | null>(null);
   /**
    * Held in state, not derived: a scene's own effects change the chapter part
    * way through, which would otherwise unmount the scene mid-read.
@@ -218,6 +229,10 @@ export function Overworld() {
    */
   const nearbyScenes = nearby ? scenesAt(save, ALL_SCENES, nearby.id) : [];
   const nearbyScene = nearbyScenes[0] ?? null;
+  /** True until Beat 1 closes out — the chapter every new save starts on
+   * (`createNewSave`) and `act1.ts`'s own opening scene requires. Drives the
+   * one-time "tap to start" callout below; nothing reads this afterward. */
+  const isFirstBeat = save.player.currentChapter === 'act1_glitch_01';
   /**
    * Act 1 has one open thread at a time. Once the mentor missions unlock there
    * are up to four, so the hint names the first and says how many others are
@@ -244,13 +259,10 @@ export function Overworld() {
   const pos = useRef(spawnFor(save.player.currentLocation));
   const keys = useRef<Set<string>>(new Set());
   const touch = useRef({ dx: 0, dy: 0 });
-  /** The touch Run button's held state — a ref, not React state, for the same
-   * reason the joystick's own `touch` is: it's read every animation frame
-   * and nothing outside the loop needs to know about it. */
-  const touchSprint = useRef(false);
   const nearbyRef = useRef<OverworldLocation | null>(null);
   const enterRef = useRef<(loc: OverworldLocation) => void>(() => {});
   const nearbyCameraRef = useRef<CameraNode | null>(null);
+  const nearbyHackRef = useRef<StreetHackNode | null>(null);
   /** Hidden pickups currently underfoot, so one fires once on approach rather
    * than every single frame the player happens to be standing on it. */
   const contactRef = useRef<Set<string>>(new Set());
@@ -280,7 +292,7 @@ export function Overworld() {
   const patrolLingerRef = useRef<Map<string, number>>(new Map());
 
   enterRef.current = enter;
-  blockedRef.current = Boolean(open);
+  blockedRef.current = Boolean(open) || Boolean(activeHack);
 
   // Movement + render loop.
   useEffect(() => {
@@ -319,10 +331,11 @@ export function Overworld() {
       const len = Math.hypot(dx, dy) || 1;
 
       // A car already means "faster" — sprint is on-foot expression, not a
-      // stack. Read fresh every frame off the same keys set movement already
-      // reads, plus the touch button's held ref.
-      const sprinting =
-        moving && !drivingRef.current && (keys.current.has('shift') || touchSprint.current);
+      // stack. Keyboard only: Shift, held, read fresh off the same keys set
+      // movement already reads. No touch equivalent — the joystick is
+      // already the whole surface touch gets, and a second held button
+      // crowded the corner for a mechanic keyboard players get for free.
+      const sprinting = moving && !drivingRef.current && keys.current.has('shift');
 
       /*
        * Buildings are solid: the player can no longer walk through or over
@@ -413,6 +426,31 @@ export function Overworld() {
       if (closestCamera?.id !== nearbyCameraRef.current?.id) {
         nearbyCameraRef.current = closestCamera;
         setNearbyCamera(closestCamera);
+      }
+
+      /*
+       * Street hacks: ATMs, phone lines. Visible and promptable on cooldown
+       * rules alone — same `onCooldown` log the cameras use — regardless of
+       * whether the player owns a cyberdeck yet; a locked door is still a
+       * door. Whether it's actually openable is a `canHackStreetNode` check
+       * at the point of interaction, not a reason to hide it from the map.
+       */
+      const hackDraw: { x: number; y: number; kind: StreetHackNode['kind']; hackable: boolean }[] = [];
+      let closestHack: StreetHackNode | null = null;
+      let closestHackDist = STREET_HACK_INTERACT_RADIUS;
+      for (const node of STREET_HACK_NODES) {
+        if (onCooldown(saveRef.current, node.id, node.respawnDays)) continue;
+        const dist = Math.hypot(node.x - pos.current.x, node.y - pos.current.y);
+        const inRange = dist < STREET_HACK_INTERACT_RADIUS;
+        hackDraw.push({ x: node.x, y: node.y, kind: node.kind, hackable: inRange });
+        if (inRange && dist < closestHackDist) {
+          closestHackDist = dist;
+          closestHack = node;
+        }
+      }
+      if (closestHack?.id !== nearbyHackRef.current?.id) {
+        nearbyHackRef.current = closestHack;
+        setNearbyHack(closestHack);
       }
 
       /*
@@ -543,6 +581,7 @@ export function Overworld() {
         OBSTACLES,
         patrolDraw,
         cameraDraw,
+        hackDraw,
         moving,
         now,
         drivingRef.current,
@@ -632,13 +671,25 @@ export function Overworld() {
       )}
 
       {nearby && !open && (
-        <button className="overworld__prompt" onClick={() => enter(nearby)}>
-          {nearbyScenes.length > 1
-            ? `${nearbyScenes.length} things here · ${nearby.label}`
-            : nearbyScene
-              ? nearbyScene.hook
-              : nearby.label}
-        </button>
+        <>
+          {/* The very first thing a new player sees is this bubble, and
+              nothing else on screen says "click here" — no tutorial, no
+              quest arrow, nothing. `isFirstBeat` is true only until Beat 1
+              closes out (the chapter `createNewSave` starts every save on),
+              so this teaches the one interaction the whole game runs on and
+              then gets out of the way for good. */}
+          {isFirstBeat && <p className="overworld__firsthint">Tap to start</p>}
+          <button
+            className={`overworld__prompt ${isFirstBeat ? 'overworld__prompt--first' : ''}`}
+            onClick={() => enter(nearby)}
+          >
+            {nearbyScenes.length > 1
+              ? `${nearbyScenes.length} things here · ${nearby.label}`
+              : nearbyScene
+                ? nearbyScene.hook
+                : nearby.label}
+          </button>
+        </>
       )}
 
       {/* Same slot as the location prompt, mutually exclusive with it — three
@@ -659,6 +710,23 @@ export function Overworld() {
           ))}
         </div>
       )}
+
+      {/* Same slot again, one step further down the priority order: a
+          location wins, a camera wins over this, and only then does an ATM
+          or a phone line get to offer itself. Disabled rather than hidden
+          without a cyberdeck — the machine is right there, the reason you
+          can't touch it yet is the whole point of building one. */}
+      {!nearby && !nearbyCamera && nearbyHack && !open && (
+        <button
+          className="overworld__prompt overworld__prompt--hack"
+          disabled={!canHackStreetNode(save, nearbyHack)}
+          onClick={() => setActiveHack(nearbyHack)}
+        >
+          {nearbyHack.label} · {canHackStreetNode(save, nearbyHack) ? 'Crack it' : 'Needs a cyberdeck'}
+        </button>
+      )}
+
+      {activeHack && <StreetHackModal node={activeHack} onClose={() => setActiveHack(null)} />}
 
       {active && <SceneView scene={active} onClose={leave} />}
 
@@ -707,23 +775,6 @@ export function Overworld() {
       )}
 
       <Joystick onChange={(dx, dy) => (touch.current = { dx, dy })} />
-
-      {/* Keyboard players have Shift; this is the same hold-to-run for touch,
-          same reasoning as the joystick replacing four buttons — one surface,
-          pressed and released, no state to toggle back off. Hidden on a
-          hover-capable pointer the same way the joystick already is. */}
-      <button
-        className="overworld__sprint"
-        aria-label="Hold to run"
-        onPointerDown={(e) => {
-          e.currentTarget.setPointerCapture(e.pointerId);
-          touchSprint.current = true;
-        }}
-        onPointerUp={() => (touchSprint.current = false)}
-        onPointerCancel={() => (touchSprint.current = false)}
-      >
-        Run
-      </button>
 
       {!open && (
         <p className="overworld__hint">

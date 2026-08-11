@@ -92,4 +92,23 @@ export const RECIPES: Recipe[] = [
     outputItemId: 'beater_car',
     description: 'Nobody sells you a whole car built from parts. It still counts.',
   },
+  {
+    /*
+     * The first real reason to look twice at a bush or take a camera apart —
+     * the whole economy loop (salvage, sell, build) exists before this, but
+     * nothing until now paid it off with something the player actually
+     * wanted. Priced under the beater on purpose: this is the thing a kid
+     * with a tin under the bed can actually finish building.
+     */
+    id: 'craft_cyberdeck',
+    label: 'The Cyberdeck',
+    inputs: [
+      { itemId: 'cracked_chipset', quantity: 2 },
+      { itemId: 'salvaged_board', quantity: 2 },
+      { itemId: 'copper_wire', quantity: 2 },
+      { itemId: 'spare_battery', quantity: 1 },
+    ],
+    outputItemId: 'cyberdeck',
+    description: 'Everything it needs is already lying around Bellhaven, if you know which bushes to check and which cameras to take apart.',
+  },
 ];

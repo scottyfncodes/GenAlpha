@@ -130,6 +130,34 @@
   white-space: nowrap;
 }
 
+/* The one-time nudge toward the only interaction a brand-new player needs to
+   discover. A slow glow rather than a shake or a bounce — this is an
+   invitation, not an alarm, and it has to sit comfortably on screen for
+   however long the player takes to read the opening lines above it. */
+@keyframes overworld-first-glow {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(230, 64, 42, 0.55); }
+  50% { box-shadow: 0 0 0 10px rgba(230, 64, 42, 0); }
+}
+
+.overworld__prompt--first {
+  animation: overworld-first-glow 1.8s ease-out infinite;
+}
+
+.overworld__firsthint {
+  position: absolute;
+  left: 50%;
+  bottom: calc(var(--step) * 27);
+  transform: translateX(-50%);
+  margin: 0;
+  color: var(--b-paper);
+  font-family: var(--font-a);
+  font-weight: 700;
+  font-size: 13px;
+  letter-spacing: 0.04em;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.6);
+  pointer-events: none;
+}
+
 /* Three risk/reward tiers stacked in the location prompt's own slot, instead
    of one pill — occupies the same footprint whether it's one button or
    three, so it never collides with the hint line below. */
@@ -157,6 +185,22 @@
   border-radius: var(--radius-b, 8px);
 }
 
+/* A street hack, in the same red-accent "this costs something" language the
+   camera actions use — but on its own, unnested, since there's only ever
+   one of these at a time (a card slot doesn't offer three risk tiers).
+   Disabled reads exactly like the Salvage app's own "not enough parts yet"
+   buttons: dimmer, not gone, because the machine is right there. */
+.overworld__prompt--hack {
+  background: var(--b-red);
+  color: var(--b-paper);
+  border-color: var(--b-ink);
+  font-size: 13px;
+}
+
+.overworld__prompt--hack:disabled {
+  opacity: 0.55;
+  cursor: default;
+}
 
 .overworld__scene {
   position: absolute;
@@ -231,33 +275,6 @@
 
 @media (hover: hover) and (pointer: fine) {
   .joystick { display: none; }
-}
-
-/* Touch's Shift key — held, not toggled, same as the joystick it sits next
-   to. Left of the joystick rather than stacked with `.overworld__drive`, so
-   a run with a car showing on screen doesn't crowd two buttons together. */
-.overworld__sprint {
-  position: absolute;
-  right: calc(var(--step) * 16);
-  bottom: calc(var(--step) * 6);
-  width: 64px;
-  height: 64px;
-  border-radius: 50%;
-  background: rgba(20, 17, 15, 0.45);
-  border: 2px solid rgba(236, 226, 208, 0.35);
-  color: var(--b-paper);
-  font-family: var(--font-a);
-  font-weight: 700;
-  font-size: 13px;
-  touch-action: none;
-}
-
-.overworld__sprint:active {
-  background: rgba(236, 226, 208, 0.25);
-}
-
-@media (hover: hover) and (pointer: fine) {
-  .overworld__sprint { display: none; }
 }
 
 /* Several threads open in one place — the player picks. Hooks as authored,

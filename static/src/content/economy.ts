@@ -90,6 +90,13 @@ export const ITEMS: GoodsItem[] = [
     category: 'gear',
     effect: 'Runs. Doubles your speed on the street — the same money bought on the corner as it did built from parts.',
   },
+  {
+    itemId: 'cyberdeck',
+    name: 'The Cyberdeck',
+    basePrice: 300,
+    category: 'gear',
+    effect: 'Yours, not borrowed from a library terminal. Opens up whatever on the street still has a chip in it worth reading.',
+  },
 ];
 
 export const ITEMS_BY_ID: Record<string, GoodsItem> = Object.fromEntries(
@@ -106,6 +113,7 @@ export const CLEAN_SIM = 'clean_sim';
 export const FORGED_ID = 'forged_id';
 export const INTEL_TIP = 'intel_tip';
 export const BEATER_CAR = 'beater_car';
+export const CYBERDECK = 'cyberdeck';
 
 /** Heat a burner takes off a digital job. Small: it's an edge, not a bypass. */
 export const BURNER_HEAT_RELIEF = 2;

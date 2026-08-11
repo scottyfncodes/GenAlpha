@@ -3,7 +3,7 @@
  * changes, not the rules. This is also where the two visual languages collide
  * most directly — a Language A system being broken into with Language B tools.
  */
-export type SkinId = 'records' | 'resistance' | 'villain' | 'heist' | 'infrastructure' | 'datacenter';
+export type SkinId = 'records' | 'resistance' | 'villain' | 'heist' | 'infrastructure' | 'datacenter' | 'atm';
 
 export interface Skin {
   id: SkinId;
@@ -55,5 +55,12 @@ export const SKINS: Record<SkinId, Skin> = {
     language: 'A',
     title: 'Bellhaven Data Annex',
     framing: 'Deja’s mother’s crew services this building.',
+  },
+  atm: {
+    id: 'atm',
+    language: 'A',
+    title: 'Bellhaven Community Credit — Kiosk',
+    framing: 'It isn’t really a bank. It just plays one on the corner.',
+    revealAdjacentCounts: true,
   },
 };

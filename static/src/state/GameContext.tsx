@@ -11,7 +11,7 @@ import {
   type ReactNode,
 } from 'react';
 import type { SaveState, SettingsState, StoryFlags, ThresholdTier } from './schema';
-import { resolveRun, type RunResult } from '../systems/missions';
+import { resolveRun, type RunOutcome, type RunResult } from '../systems/missions';
 import type { Effect } from '../systems/scenes';
 import { createNewSave } from './defaults';
 import { clearSave, loadSave, writeSave } from './persistence';
@@ -22,6 +22,7 @@ import { tickSafehouses } from '../systems/safehouse';
 import { drain } from '../systems/heist';
 import { collectHidden, craft, sabotageCamera, sellMaterial } from '../systems/materials';
 import { applyCatch } from '../systems/consequences';
+import { resolveStreetHack } from '../systems/streethacks';
 import type { SabotageActionId } from '../world/collectibles';
 import { HOME_LOCATION_ID } from '../world/locations';
 
@@ -59,7 +60,8 @@ type Action =
   | { type: 'SABOTAGE_CAMERA'; nodeId: string; actionId: SabotageActionId }
   | { type: 'SELL_MATERIAL'; itemId: string }
   | { type: 'CRAFT_ITEM'; recipeId: string }
-  | { type: 'CAUGHT'; tier: ThresholdTier };
+  | { type: 'CAUGHT'; tier: ThresholdTier }
+  | { type: 'HACK_STREET_NODE'; nodeId: string; outcome: RunOutcome };
 
 function reducer(state: SaveState | null, action: Action): SaveState | null {
   if (action.type === 'NEW_GAME') return createNewSave(action.name);
@@ -177,6 +179,12 @@ function reducer(state: SaveState | null, action: Action): SaveState | null {
      * systems/consequences.ts — no hard fail, ever, just a cost. */
     case 'CAUGHT':
       return applyCatch(state, action.tier);
+
+    /** A cyberdeck job against an ATM or a phone line — cash on a landed
+     * run, the same Heat table as any other hack, no mission record. See
+     * systems/streethacks.ts. */
+    case 'HACK_STREET_NODE':
+      return resolveStreetHack(state, action.nodeId, action.outcome);
 
     /**
      * The drain writes cash, Heat history, town trust and the drained-wallet
