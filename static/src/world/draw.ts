@@ -83,6 +83,15 @@ const PALETTE = {
   atmDark: '#1f4029',
   phoneBody: '#8a7a5c',
   phoneDark: '#4a4030',
+  parkedCarBody: '#5a6270',
+  parkedCarGlass: '#7d8ea0',
+  binBody: '#333a2c',
+  binLid: '#242a1f',
+  binRust: 'rgba(150, 96, 46, 0.4)',
+  bgWall: '#3a4150',
+  bgRoof: '#2a2f3a',
+  bgWindow: 'rgba(240, 192, 122, 0.32)',
+  bgWindowDark: 'rgba(42, 50, 66, 0.6)',
 } as const;
 
 const px = Math.round;
@@ -186,6 +195,12 @@ function drawObstacle(ctx: CanvasRenderingContext2D, obstacle: Obstacle) {
       return drawHedge(ctx, obstacle);
     case 'fence':
       return drawFence(ctx, obstacle);
+    case 'car':
+      return drawParkedCar(ctx, obstacle);
+    case 'bin':
+      return drawBin(ctx, obstacle);
+    case 'building':
+      return drawDecorativeBuilding(ctx, obstacle);
   }
 }
 
@@ -271,6 +286,39 @@ function drawHedge(ctx: CanvasRenderingContext2D, o: Obstacle) {
   }
 }
 
+/**
+ * A background building — the fill-out pass's whole point: an empty block
+ * reads as a gap in the town, and a building in it (even a mute one) reads
+ * as more town. Deliberately duller and flatter than `drawBuilding`: no
+ * colour band, no "you are here" outline, windows a third as bright — a
+ * background layer that never competes with an actual, interactive
+ * location for the eye. `noise` keyed on the obstacle's own id, same as
+ * every other obstacle, so it doesn't reshuffle every frame.
+ */
+function drawDecorativeBuilding(ctx: CanvasRenderingContext2D, o: Obstacle) {
+  const roofH = 12;
+
+  ctx.fillStyle = PALETTE.bgWall;
+  ctx.fillRect(o.x, o.y + roofH, o.w, o.h - roofH);
+  ctx.fillStyle = PALETTE.bgRoof;
+  ctx.fillRect(o.x + 3, o.y, o.w - 6, roofH);
+
+  const rand = noise(`deco:${o.id}`);
+  const w = 7;
+  const h = 9;
+  const gap = 9;
+  const top = o.y + roofH + 6;
+  const cols = Math.max(1, Math.floor((o.w - gap) / (w + gap)));
+  const rows = Math.max(1, Math.floor((o.h - roofH - 14) / (h + gap)));
+  const startX = o.x + px((o.w - (cols * (w + gap) - gap)) / 2);
+  for (let r = 0; r < rows; r++) {
+    for (let c = 0; c < cols; c++) {
+      ctx.fillStyle = rand() < 0.22 ? PALETTE.bgWindow : PALETTE.bgWindowDark;
+      ctx.fillRect(startX + c * (w + gap), top + r * (h + gap), w, h);
+    }
+  }
+}
+
 /** Chain-link, the one obstacle that reads as industrial rather than grown —
  * posts at each end and a diamond lattice between, standing in for the
  * fencing Act 1's Annex Fence ambient text already talks about. The one
@@ -308,6 +356,46 @@ function drawFence(ctx: CanvasRenderingContext2D, o: Obstacle) {
 
   ctx.fillStyle = PALETTE.chainPost;
   ctx.fillRect(px(o.x), px(o.y + o.h - 3), o.w, 3);
+}
+
+/** A parked car, kerbside — a flat body and a glass strip, no wheel nubs and
+ * no windshield stroke the way `drawBeater` gets: this one isn't going
+ * anywhere, and the plainer shape is the tell that it's furniture, not a
+ * vehicle either the player or a patrol will ever occupy. */
+function drawParkedCar(ctx: CanvasRenderingContext2D, o: Obstacle) {
+  const x = px(o.x);
+  const y = px(o.y);
+
+  ctx.fillStyle = 'rgba(0,0,0,0.25)';
+  ctx.fillRect(x - 1, y + o.h - 1, o.w + 2, 2);
+
+  ctx.fillStyle = PALETTE.parkedCarBody;
+  ctx.fillRect(x, y, o.w, o.h);
+  ctx.fillStyle = PALETTE.parkedCarGlass;
+  ctx.fillRect(x + o.w * 0.2, y + 2, o.w * 0.6, o.h - 4);
+
+  ctx.strokeStyle = PALETTE.outline;
+  ctx.lineWidth = 1;
+  ctx.strokeRect(x - 0.5, y - 0.5, o.w + 1, o.h + 1);
+}
+
+/** A dumpster/bin: a dark box, a lid line, and a rust smear — the one piece
+ * of furniture that leans into the Annex's own grit rather than every
+ * district's, though nothing stops it turning up elsewhere. */
+function drawBin(ctx: CanvasRenderingContext2D, o: Obstacle) {
+  const x = px(o.x);
+  const y = px(o.y);
+
+  ctx.fillStyle = PALETTE.binBody;
+  ctx.fillRect(x, y, o.w, o.h);
+  ctx.fillStyle = PALETTE.binLid;
+  ctx.fillRect(x, y, o.w, px(o.h * 0.3));
+  ctx.fillStyle = PALETTE.binRust;
+  ctx.fillRect(x + 1, y + o.h - 5, o.w - 2, 4);
+
+  ctx.strokeStyle = PALETTE.outline;
+  ctx.lineWidth = 1;
+  ctx.strokeRect(x - 0.5, y - 0.5, o.w + 1, o.h + 1);
 }
 
 /**
