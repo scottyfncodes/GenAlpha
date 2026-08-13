@@ -356,7 +356,11 @@ var CATEGORIES = [
   {id:"vehicle", name:"Vehicle Emergencies", ic:"&#128663;"},
   {id:"longterm", name:"Long-Term Survival", ic:"&#127806;"},
   {id:"disasters", name:"Natural Disasters", ic:"&#127755;"},
-  {id:"home", name:"Home Survival", ic:"&#127968;"}
+  {id:"home", name:"Home Survival", ic:"&#127968;"},
+  {id:"pandemic", name:"Pandemic & Illness", ic:"&#128567;"},
+  {id:"unrest", name:"Civil Unrest & Public Safety", ic:"&#128274;"},
+  {id:"outages", name:"Power Outages", ic:"&#128268;"},
+  {id:"specialneeds", name:"Infants, Elderly & Pets", ic:"&#128118;"}
 ];
 
 /* ---------------- FIRST AID TRIAGE FLOWS ---------------- */
@@ -767,7 +771,11 @@ function catBlurb(id){
     vehicle:"Stranded, breakdown, overheating, submersion.",
     longterm:"Farming, plant ID, preservation, sanitation, barter, power, and community for extended scenarios.",
     disasters:"Earthquakes, wildfires, tsunamis, volcanic ashfall, and landslides.",
-    home:"Emergency kits, utility shutoffs, fire safety, generators, and shelter-in-place decisions."
+    home:"Emergency kits, utility shutoffs, fire safety, generators, and shelter-in-place decisions.",
+    pandemic:"Stockpiling, infection control, isolation basics, and when to seek care.",
+    unrest:"Situational awareness, home security, communication blackouts, and active threats.",
+    outages:"Food safety, safe heat and light, and backup power for medical needs.",
+    specialneeds:"Prep for infants, elderly and mobility needs, and pets."
   };
   return m[id]||"";
 }
@@ -1248,6 +1256,148 @@ function renderHomeSurvival(){
   return html;
 }
 
+/* ---- Pandemic & Illness ---- */
+function renderPandemic(){
+  var html = '<div class="breadcrumb"><button data-go="home">&larr; Home</button></div>';
+  html += '<div class="section"><h2>&#128567; Pandemic &amp; Illness Preparedness</h2>';
+  html += '<p>For a widespread outbreak or an extended illness at home, separate from single-injury First Aid.</p>';
+  html += '<div class="jump-row">'+
+    '<a class="jump-chip" href="#pd-stock">Stockpiling</a>'+
+    '<a class="jump-chip" href="#pd-infection">Infection Control</a>'+
+    '<a class="jump-chip" href="#pd-isolation">Isolation &amp; Quarantine</a>'+
+    '<a class="jump-chip" href="#pd-care">When To Seek Care</a>'+
+    '<a class="jump-chip" href="#pd-mental">Isolation &amp; Mental Health</a>'+
+  '</div></div>';
+
+  html += '<div class="section" id="pd-stock"><h2>&#128230; Stockpiling for Illness</h2>';
+  html += '<p>On top of the standard emergency kit (see Home Survival), keep at least 2 extra weeks of the following on hand:</p>';
+  html += '<ul>'+
+    '<li>Thermometer, fever and pain reducers, and an electrolyte or rehydration solution.</li>'+
+    '<li>Basic over-the-counter cold and flu medication.</li>'+
+    '<li>N95 or similar masks, disposable gloves, and hand sanitizer.</li>'+
+    '<li>Household disinfecting supplies for surfaces.</li>'+
+    '<li>A pulse oximeter, useful for monitoring respiratory illness at home.</li>'+
+    '<li>An extra supply of any regular prescription medications.</li>'+
+  '</ul></div>';
+
+  html += '<div class="section" id="pd-infection"><h2>&#129440; Infection Control at Home</h2>';
+  html += renderSteps(["Set up a separate sick room if possible, with a separate bathroom if available.","Use dedicated dishes, cups, and linens for the sick person until they recover.","Wash hands frequently and disinfect high-touch surfaces (doorknobs, light switches, phones) daily.","Improve ventilation where possible - open windows or run a fan to increase air circulation.","Wear a mask when caring for a sick household member, and have the sick person mask if moving through shared spaces."]);
+  html += '</div>';
+
+  html += '<div class="section" id="pd-isolation"><h2>&#128683; Isolation &amp; Quarantine Basics</h2>';
+  html += '<p><b>Isolation</b> means separating someone who is already sick from healthy household members. <b>Quarantine</b> means separating someone who was exposed but is not yet sick, to see whether illness develops. As a general rule, stay home when sick rather than going to work, school, or public spaces, and follow local public health guidance for how long to isolate or quarantine for a specific illness.</p>';
+  html += '</div>';
+
+  html += '<div class="section" id="pd-care"><h2>&#128680; When To Seek Care</h2>';
+  html += renderWarning("Seek urgent medical care for", ["Difficulty breathing or shortness of breath at rest.","Persistent chest pain or pressure.","New confusion or difficulty waking.","Bluish lips or face.","Inability to keep fluids down.","Symptoms that seem to improve, then suddenly worsen again."]);
+  html += '<p>Milder symptoms - low fever, cough, fatigue, aches - are generally manageable at home with rest, fluids, and over-the-counter medication.</p>';
+  html += '</div>';
+
+  html += '<div class="section" id="pd-mental"><h2>&#128172; Isolation &amp; Mental Health</h2>';
+  html += '<p>Extended isolation takes a real toll. Keep a daily routine, stay connected with others by phone or video even when physically apart, limit continuous news consumption, and keep moving physically if health allows, even just stretching or walking indoors.</p>';
+  html += '</div>';
+  return html;
+}
+
+/* ---- Civil Unrest & Public Safety ---- */
+function renderUnrest(){
+  var html = '<div class="breadcrumb"><button data-go="home">&larr; Home</button></div>';
+  html += '<div class="section"><h2>&#128274; Civil Unrest &amp; Public Safety</h2>';
+  html += '<p>Focused on awareness and avoidance. For interpersonal conflict de-escalation, see Long-Term Survival &gt; Community Resilience.</p>';
+  html += '<div class="jump-row">'+
+    '<a class="jump-chip" href="#cu-awareness">Situational Awareness</a>'+
+    '<a class="jump-chip" href="#cu-home">Securing Your Home</a>'+
+    '<a class="jump-chip" href="#cu-comms">Communication Blackouts</a>'+
+    '<a class="jump-chip" href="#cu-active">Active Threats</a>'+
+  '</div></div>';
+
+  html += '<div class="section" id="cu-awareness"><h2>&#128065; Situational Awareness</h2>';
+  html += '<ul>'+
+    '<li>Follow reliable local news or official channels rather than unverified social media during a developing situation.</li>'+
+    '<li>Avoid crowds and known flashpoints where possible, and steer clear of areas with a heavy, tense police or security presence.</li>'+
+    '<li>Always have an exit in mind wherever you are, and identify it as soon as you arrive somewhere.</li>'+
+    '<li>Trust your instincts - leaving early because something feels wrong costs little; leaving too late can cost a great deal.</li>'+
+  '</ul></div>';
+
+  html += '<div class="section" id="cu-home"><h2>&#128273; Securing Your Home</h2>';
+  html += '<p>Reinforce and lock doors and windows. Keep a low profile - avoid visibly displaying valuables, supplies, or anything that suggests the household is well stocked. Identify an interior room away from windows as a fallback gathering point. Keep your emergency kit and important documents where they can be grabbed quickly if you need to leave.</p>';
+  html += '</div>';
+
+  html += '<div class="section" id="cu-comms"><h2>&#128241; Communication When Networks Are Down</h2>';
+  html += '<p>Cell networks can become congested or intentionally limited during large-scale unrest. Agree on a family plan in advance: an out-of-area contact everyone can reach, and a physical meeting point if local communication fails (see Home Survival &gt; Shelter in Place or Evacuate). Text messages often get through when voice calls fail, since they need far less bandwidth. Handheld FRS/GMRS radios are a useful backup for short-range family communication that does not depend on cell networks at all.</p>';
+  html += '</div>';
+
+  html += '<div class="section" id="cu-active"><h2>&#128680; Active Threats: Run, Hide, Fight</h2>';
+  html += '<p>Standard public safety guidance for an active violent threat, in order of preference:</p>';
+  html += renderSteps(["Run - if there is a safe escape route, leave the area, leave your belongings behind, and keep your hands visible.","Hide - if you cannot safely leave, get out of the threat's view, lock or barricade the door, stay low, and silence your phone.","Fight - only as an absolute last resort, if your life is in imminent danger and there is no other option, act with full commitment.","Once safe or once help arrives, keep your hands visible and follow the instructions of responding officers."]);
+  html += '</div>';
+  return html;
+}
+
+/* ---- Power Outages ---- */
+function renderOutages(){
+  var html = '<div class="breadcrumb"><button data-go="home">&larr; Home</button></div>';
+  html += '<div class="section"><h2>&#128268; Power Outages</h2>';
+  html += '<p>Short outages are mostly an inconvenience; the risks show up around food safety, heating, and medical equipment. For generator-specific carbon monoxide safety, see Home Survival.</p>';
+  html += '<div class="jump-row">'+
+    '<a class="jump-chip" href="#po-food">Food Safety</a>'+
+    '<a class="jump-chip" href="#po-heat">Safe Heat &amp; Light</a>'+
+    '<a class="jump-chip" href="#po-medical">Medical Equipment</a>'+
+    '<a class="jump-chip" href="#po-general">General Steps</a>'+
+  '</div></div>';
+
+  html += '<div class="section" id="po-food"><h2>&#129482; Food Safety</h2>';
+  html += '<p>An unopened refrigerator keeps food safely cold for about 4 hours. A full freezer holds its temperature for about 48 hours unopened (24 hours if only half full). Use an appliance thermometer if available - when in doubt, discard perishable food that has been above 40&deg;F (4&deg;C) for more than 2 hours.</p>';
+  html += '</div>';
+
+  html += '<div class="section" id="po-heat"><h2>&#128367; Safe Heat &amp; Light</h2>';
+  html += renderWarning("Never use indoors", ["A charcoal or gas grill, or any outdoor cooking equipment, as an indoor heat source - carbon monoxide risk.","A generator inside the house or garage, even with doors open."]);
+  html += '<p>Battery-powered or hand-crank lanterns are safer than open flame. If candles are the only option, never leave them unattended and keep them well clear of anything flammable.</p>';
+  html += '</div>';
+
+  html += '<div class="section" id="po-medical"><h2>&#128137; Medical Equipment &amp; Refrigerated Medication</h2>';
+  html += '<p>Know in advance how your specific medication tolerates being unrefrigerated - many, including insulin, can handle brief periods at room temperature, but check the guidance for your prescription. A cooler with ice packs can bridge a short outage. For powered medical devices (oxygen concentrators, CPAP machines), have a backup plan: a battery backup, a generator, or a known alternate location such as a relative\'s home or a hospital for an extended outage.</p>';
+  html += '</div>';
+
+  html += '<div class="section" id="po-general"><h2>&#128161; General Outage Steps</h2><ul>'+
+    '<li>Unplug sensitive electronics to protect them from a power surge when service is restored.</li>'+
+    '<li>Keep one corded phone on hand - it does not need separate power the way most cordless phones do.</li>'+
+    '<li>Leave one light switched on so you know when power returns.</li>'+
+    '<li>Conserve device and vehicle battery use for when it is actually needed.</li>'+
+  '</ul></div>';
+  return html;
+}
+
+/* ---- Infants, Elderly & Pets ---- */
+function renderSpecialNeeds(){
+  var html = '<div class="breadcrumb"><button data-go="home">&larr; Home</button></div>';
+  html += '<div class="section"><h2>&#128118; Infants, Elderly &amp; Pets</h2>';
+  html += '<p>The parts of a preparedness plan that are easy to forget until they are needed.</p>';
+  html += '<div class="jump-row">'+
+    '<a class="jump-chip" href="#sn-infants">Infants &amp; Children</a>'+
+    '<a class="jump-chip" href="#sn-elderly">Elderly &amp; Mobility Needs</a>'+
+    '<a class="jump-chip" href="#sn-pets">Pets</a>'+
+    '<a class="jump-chip" href="#sn-disability">Other Disabilities</a>'+
+  '</div></div>';
+
+  html += '<div class="section" id="sn-infants"><h2>&#128118; Infants &amp; Young Children</h2>';
+  html += '<p>Stock extra formula, diapers, and wipes beyond the standard kit duration, along with any medications a child needs regularly. For formula-fed infants under 6 months, avoid mixing formula with plain untreated water unless following specific package or medical guidance. Pack a comfort item, and keep explanations simple and calm for what is happening, matched to the child\'s age.</p>';
+  html += '</div>';
+
+  html += '<div class="section" id="sn-elderly"><h2>&#129491; Elderly &amp; Mobility Needs</h2>';
+  html += '<p>Keep an extra supply of all prescription medications along with a written list of dosages, conditions, and allergies. Keep mobility aids - power wheelchairs, scooters, walkers - charged and accessible, along with spare hearing aid batteries and a backup pair of glasses. A written list of physicians and their contact information is worth having on paper, not just a phone. For anyone living alone, consider a medical alert method that does not depend on a working phone line.</p>';
+  html += '</div>';
+
+  html += '<div class="section" id="sn-pets"><h2>&#128062; Pets</h2>';
+  html += '<p>Stock pet food and water for a comparable duration to the household supply, and keep a carrier or leash ready to go. Keep ID tags current and microchip information up to date. Bring copies of vaccination records - many emergency shelters require them, and some emergency shelters do not accept pets at all, so it is worth knowing which ones near you do before an emergency happens.</p>';
+  html += '</div>';
+
+  html += '<div class="section" id="sn-disability"><h2>&#9855; Other Disabilities</h2>';
+  html += '<p>Keep essential equipment - mobility aids, communication devices - charged and within reach. Make sure at least one trusted contact outside the household is aware of specific needs and how to help. A service animal should have the same preparation as any pet, plus its working gear kept together and ready.</p>';
+  html += '</div>';
+  return html;
+}
+
 /* ---- Quiz ---- */
 function shuffle(arr){ var a=arr.slice(); for(var i=a.length-1;i>0;i--){ var j=Math.floor(Math.random()*(i+1)); var t=a[i]; a[i]=a[j]; a[j]=t; } return a; }
 function renderQuiz(){
@@ -1275,7 +1425,7 @@ function renderQuiz(){
 
 /* ---------------- MAIN RENDER ---------------- */
 function renderCategory(id){
-  var fns = {firstaid:renderFirstAidCat, water:renderWater, shelter:renderShelter, fire:renderFire, nav:renderNav, signal:renderSignal, weather:renderWeather, wildlife:renderWildlife, vehicle:renderVehicle, longterm:renderLongTerm, disasters:renderDisasters, home:renderHomeSurvival};
+  var fns = {firstaid:renderFirstAidCat, water:renderWater, shelter:renderShelter, fire:renderFire, nav:renderNav, signal:renderSignal, weather:renderWeather, wildlife:renderWildlife, vehicle:renderVehicle, longterm:renderLongTerm, disasters:renderDisasters, home:renderHomeSurvival, pandemic:renderPandemic, unrest:renderUnrest, outages:renderOutages, specialneeds:renderSpecialNeeds};
   return fns[id] ? fns[id]() : "<p>Not found.</p>";
 }
 
@@ -1496,6 +1646,22 @@ function buildSearchIndex(){
   idx("Home Survival","Generator and carbon monoxide safety","CO poisoning detector indoors",{view:"category",cat:"home"});
   idx("Home Survival","Shelter in place or evacuate","family communication plan meeting point",{view:"category",cat:"home"});
   idx("Home Survival","Post-disaster home check","structural damage gas leak downed power lines insurance",{view:"category",cat:"home"});
+  idx("Pandemic & Illness","Stockpiling for illness","masks thermometer medication pulse oximeter",{view:"category",cat:"pandemic"});
+  idx("Pandemic & Illness","Infection control at home","sick room disinfect ventilation dedicated dishes",{view:"category",cat:"pandemic"});
+  idx("Pandemic & Illness","Isolation and quarantine basics","exposed sick stay home",{view:"category",cat:"pandemic"});
+  idx("Pandemic & Illness","When to seek care","breathing chest pain confusion warning signs",{view:"category",cat:"pandemic"});
+  idx("Pandemic & Illness","Isolation and mental health","routine connected news",{view:"category",cat:"pandemic"});
+  idx("Civil Unrest & Public Safety","Situational awareness","crowds flashpoints exit plan instincts",{view:"category",cat:"unrest"});
+  idx("Civil Unrest & Public Safety","Securing your home","lock reinforce low profile",{view:"category",cat:"unrest"});
+  idx("Civil Unrest & Public Safety","Communication when networks are down","FRS GMRS radio text message family plan",{view:"category",cat:"unrest"});
+  idx("Civil Unrest & Public Safety","Active threats run hide fight","active shooter violence escape hide",{view:"category",cat:"unrest"});
+  idx("Power Outages","Food safety during an outage","refrigerator freezer four hours forty eight hours",{view:"category",cat:"outages"});
+  idx("Power Outages","Safe heat and light without power","candle carbon monoxide grill indoors",{view:"category",cat:"outages"});
+  idx("Power Outages","Medical equipment and refrigerated medication","insulin CPAP oxygen concentrator cooler",{view:"category",cat:"outages"});
+  idx("Infants, Elderly & Pets","Infants and young children","formula diapers wipes comfort item",{view:"category",cat:"specialneeds"});
+  idx("Infants, Elderly & Pets","Elderly and mobility needs","medication wheelchair hearing aid glasses",{view:"category",cat:"specialneeds"});
+  idx("Infants, Elderly & Pets","Pets","food carrier leash microchip vaccination shelter",{view:"category",cat:"specialneeds"});
+  idx("Infants, Elderly & Pets","Other disabilities","mobility aids communication devices service animal",{view:"category",cat:"specialneeds"});
 }
 
 var searchInput = document.getElementById("search-input");
