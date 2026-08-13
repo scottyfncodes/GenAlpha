@@ -354,7 +354,9 @@ var CATEGORIES = [
   {id:"weather", name:"Weather", ic:"&#9928;"},
   {id:"wildlife", name:"Wildlife", ic:"&#128062;"},
   {id:"vehicle", name:"Vehicle Emergencies", ic:"&#128663;"},
-  {id:"longterm", name:"Long-Term Survival", ic:"&#127806;"}
+  {id:"longterm", name:"Long-Term Survival", ic:"&#127806;"},
+  {id:"disasters", name:"Natural Disasters", ic:"&#127755;"},
+  {id:"home", name:"Home Survival", ic:"&#127968;"}
 ];
 
 /* ---------------- FIRST AID TRIAGE FLOWS ---------------- */
@@ -763,7 +765,9 @@ function catBlurb(id){
     weather:"Lightning, heat, cold, floods, storms.",
     wildlife:"Bears, snakes, cougars, insects, ticks.",
     vehicle:"Stranded, breakdown, overheating, submersion.",
-    longterm:"Farming, plant ID, preservation, sanitation, barter, power, and community for extended scenarios."
+    longterm:"Farming, plant ID, preservation, sanitation, barter, power, and community for extended scenarios.",
+    disasters:"Earthquakes, wildfires, tsunamis, volcanic ashfall, and landslides.",
+    home:"Emergency kits, utility shutoffs, fire safety, generators, and shelter-in-place decisions."
   };
   return m[id]||"";
 }
@@ -1133,6 +1137,117 @@ function renderLongTerm(){
   return html;
 }
 
+/* ---- Natural Disasters ---- */
+function renderDisasters(){
+  var html = '<div class="breadcrumb"><button data-go="home">&larr; Home</button></div>';
+  html += '<div class="section"><h2>&#127755; Natural Disasters</h2>';
+  html += '<p>Large-scale geological and environmental events. For storm-specific hazards like lightning, flooding, and high wind, see the Weather category; for being stranded in a vehicle during a storm, see Vehicle Emergencies.</p>';
+  html += '<div class="jump-row">'+
+    '<a class="jump-chip" href="#nd-earthquake">Earthquakes</a>'+
+    '<a class="jump-chip" href="#nd-wildfire">Wildfires</a>'+
+    '<a class="jump-chip" href="#nd-tsunami">Tsunamis</a>'+
+    '<a class="jump-chip" href="#nd-volcano">Volcanic Ashfall</a>'+
+    '<a class="jump-chip" href="#nd-landslide">Landslides</a>'+
+  '</div></div>';
+
+  html += '<div class="section" id="nd-earthquake"><h2>&#128165; Earthquakes</h2>';
+  html += '<h3>During the shaking</h3>';
+  html += renderSteps(["Drop to the ground before it drops you.","Take Cover under a sturdy table or desk if one is nearby.","Hold On to it, and protect your head and neck until the shaking stops.","If in bed, stay there and cover your head with a pillow rather than run for a doorway.","If outdoors, move to an open area away from buildings, trees, and power lines.","If driving, pull over away from overpasses, bridges, and power lines, and stay inside the vehicle until shaking stops."]);
+  html += '<h3>After the shaking stops</h3><p>Expect aftershocks. Check for gas leaks by smell or a hissing sound - if suspected, shut off the gas at the main valve and leave the area without using switches, lighters, or anything that could spark. Check for structural damage before re-entering a building, and be cautious around damaged stairs, chimneys, and overhead fixtures.</p>';
+  html += renderWarning("What NOT to do", ["Do not run outside during the shaking - falling debris near exits and walls is a leading cause of injury.","Standing in a doorway is an outdated myth - modern doorways are not stronger than the rest of the structure. Get under sturdy furniture instead.","Do not use elevators after an earthquake."]);
+  html += '</div>';
+
+  html += '<div class="section" id="nd-wildfire"><h2>&#128293; Wildfires</h2>';
+  html += '<h3>Before fire season</h3><p>Know at least two evacuation routes from home in advance, sign up for local emergency alerts, and keep a vehicle fueled and ready during high-risk periods. Create defensible space by clearing dead brush and vegetation roughly 30 ft (9 m) from structures.</p>';
+  html += '<h3>If evacuation is ordered</h3><p>Leave immediately rather than waiting to see how close the fire gets. Close all windows and doors, remove flammable curtains, and shut off gas at the meter before leaving if time allows.</p>';
+  html += '<h3>If trapped with no escape route</h3>';
+  html += renderSteps(["In a vehicle: stay inside, close windows and vents, turn headlights on, get down below window level, and cover yourself with a blanket or jacket as a last resort.","On foot: move to a cleared area away from vegetation, downhill from the fire if possible.","If caught in the open with fire approaching, lie face down in a low spot and cover exposed skin with wet cloth if available."]);
+  html += '</div>';
+
+  html += '<div class="section" id="nd-tsunami"><h2>&#127754; Tsunamis</h2>';
+  html += '<p>Natural warning signs matter more than waiting for an official alert, since a tsunami can arrive within minutes of a nearby earthquake.</p>';
+  html += renderWarning("Move to high ground immediately if", ["You feel a strong or long-lasting earthquake near the coast.","The ocean suddenly and unusually recedes, exposing the sea floor.","You hear a loud, unusual roaring sound from the ocean."]);
+  html += '<p>Move inland or to high ground - as a rough guide, at least 100 ft (30 m) of elevation or one to two miles (1.5-3 km) inland. If caught in the water, grab onto floating debris and try to reach higher structure. Do not return to the coast until officials confirm it is safe - tsunamis often arrive as a series of waves over several hours, and later waves can be larger than the first.</p>';
+  html += '</div>';
+
+  html += '<div class="section" id="nd-volcano"><h2>&#127755; Volcanic Ashfall</h2>';
+  html += '<p>Even far from an eruption itself, falling ash is the hazard most people actually encounter.</p>';
+  html += '<h3>Ashfall</h3><p>Stay indoors with windows and doors sealed. Wear an N95 respirator or similar mask outdoors, and swap it for a fresh one if breathing becomes difficult. Avoid driving - ash reduces visibility and can damage engines. Clear ash from flat roofs carefully, since accumulated ash is heavy and heavier still once wet. Cover electronics and outdoor equipment.</p>';
+  html += '<h3>Lava and pyroclastic flow</h3><p>Evacuate immediately per official orders. These move far too fast to outrun once close, so the safe window is before the danger zone is declared, not after.</p>';
+  html += '</div>';
+
+  html += '<div class="section" id="nd-landslide"><h2>&#9968; Landslides &amp; Mudslides</h2>';
+  html += '<h3>Warning signs</h3><ul>'+
+    '<li>Cracking sounds from trees, or cracks opening in the ground or pavement.</li>'+
+    '<li>A sudden increase or decrease in stream or creek water levels, especially if it turns muddy.</li>'+
+    '<li>Doors or windows sticking for the first time.</li>'+
+    '<li>Trees, fences, or retaining walls slowly tilting.</li>'+
+  '</ul>';
+  html += '<p>If any of these appear during or after heavy rain on steep terrain, move away and uphill, perpendicular to the likely flow path - never cross it. If actually caught in a slide, curl into a tight ball and protect your head.</p>';
+  html += '</div>';
+  return html;
+}
+
+/* ---- Home Survival ---- */
+function renderHomeSurvival(){
+  var html = '<div class="breadcrumb"><button data-go="home">&larr; Home</button></div>';
+  html += '<div class="section"><h2>&#127968; Home Survival</h2>';
+  html += '<p>Preparing the place you are most likely to actually be when something goes wrong.</p>';
+  html += '<div class="jump-row">'+
+    '<a class="jump-chip" href="#hs-kit">Emergency Kit</a>'+
+    '<a class="jump-chip" href="#hs-utilities">Utility Shutoffs</a>'+
+    '<a class="jump-chip" href="#hs-fire">Fire Safety</a>'+
+    '<a class="jump-chip" href="#hs-generator">Generator &amp; CO</a>'+
+    '<a class="jump-chip" href="#hs-shelter">Shelter or Evacuate</a>'+
+    '<a class="jump-chip" href="#hs-postcheck">Post-Disaster Check</a>'+
+  '</div></div>';
+
+  html += '<div class="section" id="hs-kit"><h2>&#127890; Emergency Kit</h2>';
+  html += '<p>Build a kit that covers at least 3 days for everyone in the household, stored somewhere accessible you can grab quickly.</p>';
+  html += '<ul>'+
+    '<li>Water - 1 gallon (4 L) per person per day, minimum 3 days.</li>'+
+    '<li>Non-perishable food, minimum 3 days, plus a manual can opener.</li>'+
+    '<li>Flashlight and extra batteries, or a hand-crank light.</li>'+
+    '<li>First aid kit and at least a week of any regular medications.</li>'+
+    '<li>Battery or hand-crank radio for emergency broadcasts.</li>'+
+    '<li>Phone charger or power bank.</li>'+
+    '<li>Cash in small bills - card readers and ATMs may be down.</li>'+
+    '<li>Copies of important documents (ID, insurance, medical) in a waterproof bag.</li>'+
+    '<li>Whistle, dust masks, local paper map, basic sanitation supplies.</li>'+
+  '</ul></div>';
+
+  html += '<div class="section" id="hs-utilities"><h2>&#128295; Utility Shutoffs</h2>';
+  html += '<p>Know the locations before an emergency, not during one.</p>';
+  html += '<h3>Gas</h3><p>Only shut off the gas if you smell it, hear hissing, or are told to by officials. Use a wrench kept near the valve to turn it a quarter turn until it is perpendicular to the pipe. Once off, do not turn it back on yourself - leave that to the utility company, since relighting it incorrectly can create an explosion risk.</p>';
+  html += '<h3>Water</h3><p>Locate the main shutoff valve, usually near the water meter, so a broken pipe or plumbing failure can be stopped before it floods the home.</p>';
+  html += '<h3>Electricity</h3><p>Know the location of the main breaker for a full power cutoff - important before flood water reaches outlets or wiring, or before working on anything electrical.</p>';
+  html += '</div>';
+
+  html += '<div class="section" id="hs-fire"><h2>&#128293; Home Fire Safety</h2>';
+  html += '<ul>'+
+    '<li>Test smoke detectors monthly, replace batteries yearly, and replace the units themselves every 10 years.</li>'+
+    '<li>Fire extinguisher use - PASS: Pull the pin, Aim at the base of the fire, Squeeze the handle, Sweep side to side.</li>'+
+    '<li>Plan two escape routes from every room and practice a home fire drill.</li>'+
+    '<li>Close bedroom doors while sleeping - a closed door measurably slows fire and smoke spread.</li>'+
+  '</ul></div>';
+
+  html += '<div class="section" id="hs-generator"><h2>&#9889; Generator &amp; Carbon Monoxide Safety</h2>';
+  html += renderWarning("Never run a generator", ["Indoors, in a garage, or in any enclosed space - even with doors open.","Near windows, doors, or vents where exhaust can be drawn inside.","Closer than about 20 ft (6 m) from the house."]);
+  html += '<p>Install carbon monoxide detectors near sleeping areas. Symptoms of CO poisoning include headache, dizziness, nausea, and confusion - if suspected, get to fresh air immediately and seek medical help.</p>';
+  html += '</div>';
+
+  html += '<div class="section" id="hs-shelter"><h2>&#128737; Shelter in Place or Evacuate</h2>';
+  html += '<p>The right call depends on the hazard. A short-duration airborne hazard, such as a nearby chemical spill, often favors sealing a room and sheltering in place. A flood, wildfire, or structural risk usually favors leaving early rather than waiting. Always follow official guidance when it is available.</p>';
+  html += '<p>Set up a family communication plan in advance: an out-of-area contact everyone can reach if local lines are down, and an agreed meeting point if the household gets separated.</p>';
+  html += '</div>';
+
+  html += '<div class="section" id="hs-postcheck"><h2>&#128269; Post-Disaster Home Check</h2>';
+  html += '<p>Before re-entering a home after an earthquake, flood, storm, or fire:</p>';
+  html += renderSteps(["Look for structural damage - cracks, leaning walls, or a sagging roofline - before going inside.","Smell for gas and listen for hissing; if detected, do not enter and do not use any switches.","Watch for downed power lines nearby - stay well away and report them rather than moving them.","Avoid standing water near anything electrical.","Photograph damage for insurance before starting cleanup.","Wear sturdy shoes and gloves while inspecting or cleaning up."]);
+  html += '</div>';
+  return html;
+}
+
 /* ---- Quiz ---- */
 function shuffle(arr){ var a=arr.slice(); for(var i=a.length-1;i>0;i--){ var j=Math.floor(Math.random()*(i+1)); var t=a[i]; a[i]=a[j]; a[j]=t; } return a; }
 function renderQuiz(){
@@ -1160,7 +1275,7 @@ function renderQuiz(){
 
 /* ---------------- MAIN RENDER ---------------- */
 function renderCategory(id){
-  var fns = {firstaid:renderFirstAidCat, water:renderWater, shelter:renderShelter, fire:renderFire, nav:renderNav, signal:renderSignal, weather:renderWeather, wildlife:renderWildlife, vehicle:renderVehicle, longterm:renderLongTerm};
+  var fns = {firstaid:renderFirstAidCat, water:renderWater, shelter:renderShelter, fire:renderFire, nav:renderNav, signal:renderSignal, weather:renderWeather, wildlife:renderWildlife, vehicle:renderVehicle, longterm:renderLongTerm, disasters:renderDisasters, home:renderHomeSurvival};
   return fns[id] ? fns[id]() : "<p>Not found.</p>";
 }
 
@@ -1370,6 +1485,17 @@ function buildSearchIndex(){
   idx("Long-Term Survival","Barter and scavenging","trade value salvage looting structural safety",{view:"category",cat:"longterm"});
   idx("Long-Term Survival","Off-grid power and tool maintenance","solar battery hand-crank sharpening rust repair",{view:"category",cat:"longterm"});
   idx("Long-Term Survival","Community resilience","opsec mutual aid conflict de-escalation low profile",{view:"category",cat:"longterm"});
+  idx("Natural Disasters","Earthquakes","drop cover hold on aftershock gas leak structural damage",{view:"category",cat:"disasters"});
+  idx("Natural Disasters","Wildfires","evacuation defensible space trapped vehicle fire",{view:"category",cat:"disasters"});
+  idx("Natural Disasters","Tsunamis","high ground coast earthquake ocean recede warning signs",{view:"category",cat:"disasters"});
+  idx("Natural Disasters","Volcanic ashfall","eruption lava pyroclastic flow mask respirator",{view:"category",cat:"disasters"});
+  idx("Natural Disasters","Landslides and mudslides","warning signs steep terrain heavy rain",{view:"category",cat:"disasters"});
+  idx("Home Survival","Emergency kit go bag","water food flashlight first aid radio documents",{view:"category",cat:"home"});
+  idx("Home Survival","Utility shutoffs","gas water electricity main valve breaker",{view:"category",cat:"home"});
+  idx("Home Survival","Home fire safety","smoke detector fire extinguisher PASS escape route",{view:"category",cat:"home"});
+  idx("Home Survival","Generator and carbon monoxide safety","CO poisoning detector indoors",{view:"category",cat:"home"});
+  idx("Home Survival","Shelter in place or evacuate","family communication plan meeting point",{view:"category",cat:"home"});
+  idx("Home Survival","Post-disaster home check","structural damage gas leak downed power lines insurance",{view:"category",cat:"home"});
 }
 
 var searchInput = document.getElementById("search-input");
