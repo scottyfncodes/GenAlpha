@@ -6,19 +6,18 @@
 <title>Offline Survival Guide</title>
 <style>
 :root{
-  /* ground */
-  --ground:#14110d; --ground-raised:#1d180f; --ground-raised2:#251f13;
-  --line:#3c331e; --line-strong:#544823;
-  /* ink */
-  --ink:#f4ecd8; --ink-dim:#bcae8c; --ink-faint:#8c7f61;
-  /* signal (primary: emergency & primary actions only) */
-  --signal:#ff5a1f; --signal-ink:#1a0a03; --signal-dim:#33190b; --signal-line:#6b3010;
-  /* compass (secondary: info, nav, links) */
-  --compass:#5cb8a4; --compass-dim:#122622; --compass-line:#2c4a41;
-  /* severity (distinct from accents) */
-  --mild:#93b95c; --mild-bg:#1f2611; --moderate:#dda23e; --moderate-bg:#2e2309;
-  --severe:#e2503a; --severe-bg:#341309;
-  --focus:#ffd166;
+  /* ground: black / dark olive-drab */
+  --ground:#0c0f09; --ground-raised:#161b10; --ground-raised2:#1f2617;
+  --line:#3a4226; --line-strong:#4d5730;
+  /* ink: tan / khaki */
+  --ink:#e9dfc0; --ink-dim:#b2a67f; --ink-faint:#7c7256;
+  /* gold: sole accent family. bright = loudest (emergency/primary only). soft = everyday interactive. */
+  --gold:#d1a832; --gold-ink:#180f02; --gold-dim:#2c2408; --gold-line:#5c4a17;
+  --gold-soft:#c9a24a;
+  /* severity (distinct from accent gold) */
+  --mild:#84b23f; --mild-bg:#1b2410; --moderate:#c98a2e; --moderate-bg:#2b1d08;
+  --severe:#d1502f; --severe-bg:#2e1309;
+  --focus:#f0c93e;
   --radius:7px; --radius-lg:10px; --fs:18px;
   --font-display:"Bahnschrift","Roboto Condensed","Arial Narrow",-apple-system,"Segoe UI",sans-serif;
   --font-body:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
@@ -28,14 +27,14 @@
 html{font-size:var(--fs); scroll-padding-top:90px;}
 body{
   margin:0; background-color:var(--ground); color:var(--ink);
-  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='320' height='150' viewBox='0 0 320 150'%3E%3Cg fill='none' stroke='%23544823' stroke-opacity='0.4' stroke-width='1'%3E%3Cpath d='M-20 18 Q 60 -4 140 18 T 300 18 T 460 18'/%3E%3Cpath d='M-20 55 Q 60 33 140 55 T 300 55 T 460 55'/%3E%3Cpath d='M-20 96 Q 60 74 140 96 T 300 96 T 460 96'/%3E%3Cpath d='M-20 134 Q 60 112 140 134 T 300 134 T 460 134'/%3E%3C/g%3E%3C/svg%3E");
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='320' height='150' viewBox='0 0 320 150'%3E%3Cg fill='none' stroke='%233a4226' stroke-opacity='0.4' stroke-width='1'%3E%3Cpath d='M-20 18 Q 60 -4 140 18 T 300 18 T 460 18'/%3E%3Cpath d='M-20 55 Q 60 33 140 55 T 300 55 T 460 55'/%3E%3Cpath d='M-20 96 Q 60 74 140 96 T 300 96 T 460 96'/%3E%3Cpath d='M-20 134 Q 60 112 140 134 T 300 134 T 460 134'/%3E%3C/g%3E%3C/svg%3E");
   background-repeat:repeat;
   font-family:var(--font-body);
   line-height:1.5; -webkit-text-size-adjust:100%;
 }
 button, input, select{font-family:inherit; font-size:1rem; color:inherit;}
 button{cursor:pointer;}
-a{color:var(--compass);}
+a{color:var(--gold-soft);}
 h1,h2,h3,h4{line-height:1.2; margin:0 0 .5em; font-family:var(--font-display); text-wrap:balance; letter-spacing:-.01em;}
 p{margin:0 0 .75em;}
 .mono{font-family:var(--font-mono); font-variant-numeric:tabular-nums;}
@@ -48,7 +47,7 @@ p{margin:0 0 .75em;}
 #topbar{
   position:sticky; top:0; z-index:40; display:flex; align-items:center; gap:.5rem;
   background:var(--ground-raised); border-bottom:1px solid var(--line);
-  box-shadow:0 2px 0 0 var(--signal-line);
+  box-shadow:0 2px 0 0 var(--gold-line);
   padding:.6rem .7rem; flex-wrap:wrap;
 }
 #hamburger{
@@ -79,7 +78,7 @@ p{margin:0 0 .75em;}
 }
 .sr-item:last-child{border-bottom:0;}
 .sr-item:hover, .sr-item:focus{background:var(--ground-raised);}
-.sr-cat{color:var(--compass); font-family:var(--font-mono); font-size:.72rem; text-transform:uppercase; letter-spacing:.08em;}
+.sr-cat{color:var(--gold-soft); font-family:var(--font-mono); font-size:.72rem; text-transform:uppercase; letter-spacing:.08em;}
 .sr-title{font-weight:700; color:var(--ink);}
 .sr-empty{padding:.9rem; color:var(--ink-dim);}
 .icon-btn{
@@ -87,12 +86,12 @@ p{margin:0 0 .75em;}
   border:1px solid var(--line); padding:.4rem .7rem; font-weight:700; font-size:.95rem;
   font-family:var(--font-mono); color:var(--ink);
 }
-.icon-btn:hover{border-color:var(--compass); color:var(--compass);}
+.icon-btn:hover{border-color:var(--gold-soft); color:var(--gold-soft);}
 #emergency-btn{
-  min-height:52px; background:var(--signal); border:0; color:var(--signal-ink); font-weight:800;
+  min-height:52px; background:var(--gold); border:0; color:var(--gold-ink); font-weight:800;
   font-family:var(--font-display); text-transform:uppercase; letter-spacing:.03em;
   border-radius:var(--radius); padding:.6rem 1.1rem; font-size:1rem;
-  box-shadow:0 0 0 3px var(--signal-dim);
+  box-shadow:0 0 0 3px var(--gold-dim);
   display:flex; align-items:center; gap:.4rem; white-space:nowrap;
 }
 #emergency-btn:hover{filter:brightness(1.08);}
@@ -114,7 +113,7 @@ p{margin:0 0 .75em;}
 }
 .nav-btn .ic{font-size:1.1rem; width:1.4em; text-align:center; opacity:.85;}
 .nav-btn:hover{background:var(--ground-raised2); color:var(--ink);}
-.nav-btn.active{background:var(--compass-dim); color:var(--compass); border-left-color:var(--compass); font-weight:700;}
+.nav-btn.active{background:var(--gold-dim); color:var(--gold-soft); border-left-color:var(--gold-soft); font-weight:700;}
 #sidebar-scrim{display:none;}
 
 /* MAIN */
@@ -128,13 +127,13 @@ p{margin:0 0 .75em;}
 .hero p{color:var(--ink-dim);}
 .big-emergency{
   position:relative; display:flex; align-items:center; justify-content:center; gap:.6rem; width:100%;
-  min-height:88px; background:var(--signal); color:var(--signal-ink); border:0; border-radius:var(--radius-lg);
+  min-height:88px; background:var(--gold); color:var(--gold-ink); border:0; border-radius:var(--radius-lg);
   font-family:var(--font-display); text-transform:uppercase; font-size:1.3rem; font-weight:800; letter-spacing:.02em;
-  margin:1rem 0; box-shadow:0 0 0 6px var(--signal-dim); overflow:visible;
+  margin:1rem 0; box-shadow:0 0 0 6px var(--gold-dim); overflow:visible;
 }
 .big-emergency::before{
   content:""; position:absolute; inset:-6px; border-radius:calc(var(--radius-lg) + 6px);
-  border:2px solid var(--signal); opacity:.55; animation:beacon-pulse 2.2s ease-out infinite;
+  border:2px solid var(--gold); opacity:.55; animation:beacon-pulse 2.2s ease-out infinite;
 }
 @keyframes beacon-pulse{
   0%{transform:scale(1); opacity:.55;}
@@ -147,8 +146,8 @@ p{margin:0 0 .75em;}
   color:var(--ink); padding:.6rem 1rem; font-weight:700; font-size:1rem; display:inline-flex;
   align-items:center; gap:.5rem; flex:1 1 auto; justify-content:center;
 }
-.btn:hover{border-color:var(--compass); color:var(--compass);}
-.btn.primary{background:var(--compass-dim); border-color:var(--compass); color:var(--compass);}
+.btn:hover{border-color:var(--gold-soft); color:var(--gold-soft);}
+.btn.primary{background:var(--gold-dim); border-color:var(--gold-soft); color:var(--gold-soft);}
 .btn.ghost{background:none;}
 .btn.small{min-height:44px; padding:.45rem .8rem; font-size:.9rem; flex:none;}
 
@@ -181,13 +180,13 @@ p{margin:0 0 .75em;}
 .badge.mild{background:var(--mild-bg); color:var(--mild); box-shadow:inset 0 0 0 1px var(--mild);}
 .badge.moderate{background:var(--moderate-bg); color:var(--moderate); box-shadow:inset 0 0 0 1px var(--moderate);}
 .badge.severe{background:var(--severe-bg); color:var(--severe); box-shadow:inset 0 0 0 1px var(--severe);}
-.badge.info{background:var(--compass-dim); color:var(--compass); box-shadow:inset 0 0 0 1px var(--compass);}
+.badge.info{background:var(--gold-dim); color:var(--gold-soft); box-shadow:inset 0 0 0 1px var(--gold-soft);}
 
 .result-card{border-radius:var(--radius); padding:1rem 1rem 1rem 1.1rem; margin:.7rem 0; background:var(--ground-raised2); border-left:4px solid;}
 .result-card.mild{border-left-color:var(--mild);}
 .result-card.moderate{border-left-color:var(--moderate);}
 .result-card.severe{border-left-color:var(--severe);}
-.result-card.info{border-left-color:var(--compass);}
+.result-card.info{border-left-color:var(--gold-soft);}
 .result-card h3{margin-top:.5rem; text-transform:none; font-family:var(--font-body);}
 .result-card ol, .result-card ul{margin:.4rem 0 0; padding-left:1.3rem;}
 .result-card li{margin-bottom:.4rem;}
@@ -206,7 +205,7 @@ p{margin:0 0 .75em;}
   border-radius:var(--radius); padding:.7rem 1rem; font-weight:700; font-size:1.02rem; color:var(--ink);
   display:flex; justify-content:space-between; align-items:center; gap:.5rem;
 }
-.qbtn:hover{border-color:var(--compass); background:var(--compass-dim);}
+.qbtn:hover{border-color:var(--gold-soft); background:var(--gold-dim);}
 .qbtn .arrow{color:var(--ink-faint); font-family:var(--font-mono);}
 
 .entry-grid{display:grid; grid-template-columns:repeat(auto-fill,minmax(200px,1fr)); gap:.6rem; margin-top:.8rem;}
@@ -215,17 +214,17 @@ p{margin:0 0 .75em;}
   padding:.6rem .9rem; font-weight:700; text-align:left; display:flex; align-items:center; gap:.6rem;
   position:relative;
 }
-.entry-btn:hover{border-color:var(--signal);}
+.entry-btn:hover{border-color:var(--gold);}
 .entry-btn .ic{font-size:1.35rem; opacity:.9;}
 
 .breadcrumb{display:flex; gap:.4rem; align-items:center; color:var(--ink-faint); font-family:var(--font-mono); font-size:.78rem; text-transform:uppercase; letter-spacing:.04em; margin-bottom:.6rem; flex-wrap:wrap;}
-.breadcrumb button{background:none;border:0;color:var(--compass); font-family:var(--font-mono); font-size:.78rem; text-transform:uppercase; letter-spacing:.04em; padding:.2rem;}
+.breadcrumb button{background:none;border:0;color:var(--gold-soft); font-family:var(--font-mono); font-size:.78rem; text-transform:uppercase; letter-spacing:.04em; padding:.2rem;}
 
 .legend-row{display:flex; gap:.6rem; flex-wrap:wrap; margin:.6rem 0;}
 .legend-chip{display:flex; align-items:center; gap:.4rem; background:var(--ground-raised2); border:1px solid var(--line); border-radius:999px; padding:.3rem .7rem; font-family:var(--font-mono); font-size:.78rem;}
 .jump-row{display:flex; gap:.5rem; flex-wrap:wrap; margin:.9rem 0;}
-.jump-chip{background:var(--ground-raised2); border:1px solid var(--line); border-radius:999px; padding:.5rem .9rem; font-family:var(--font-mono); font-size:.78rem; font-weight:700; text-transform:uppercase; letter-spacing:.03em; color:var(--compass); text-decoration:none; min-height:44px; display:inline-flex; align-items:center;}
-.jump-chip:hover{border-color:var(--compass);}
+.jump-chip{background:var(--ground-raised2); border:1px solid var(--line); border-radius:999px; padding:.5rem .9rem; font-family:var(--font-mono); font-size:.78rem; font-weight:700; text-transform:uppercase; letter-spacing:.03em; color:var(--gold-soft); text-decoration:none; min-height:44px; display:inline-flex; align-items:center;}
+.jump-chip:hover{border-color:var(--gold-soft);}
 .dot{width:.7rem; height:.7rem; border-radius:50%; display:inline-block;}
 .dot.mild{background:var(--mild);} .dot.moderate{background:var(--moderate);} .dot.severe{background:var(--severe);}
 
@@ -236,7 +235,7 @@ p{margin:0 0 .75em;}
 .svg-caption{text-align:center; color:var(--ink-dim); font-size:.92rem; min-height:2.6em; margin-top:.4rem;}
 .step-dots{display:flex; gap:.35rem; justify-content:center;}
 .step-dots span{width:.55rem; height:.55rem; border-radius:50%; background:var(--line); display:inline-block;}
-.step-dots span.active{background:var(--compass);}
+.step-dots span.active{background:var(--gold-soft);}
 
 /* Calculators */
 .calc-row{display:flex; gap:.7rem; flex-wrap:wrap; align-items:flex-end; margin:.6rem 0;}
@@ -250,7 +249,7 @@ p{margin:0 0 .75em;}
 .calc-output{
   background:var(--ground-raised2); border:1px solid var(--line); border-radius:var(--radius); padding:.9rem; margin-top:.6rem;
 }
-.calc-output .big-num{font-family:var(--font-mono); font-variant-numeric:tabular-nums; font-size:1.7rem; font-weight:700; color:var(--compass);}
+.calc-output .big-num{font-family:var(--font-mono); font-variant-numeric:tabular-nums; font-size:1.7rem; font-weight:700; color:var(--gold-soft);}
 .calc-output .lbl{color:var(--ink-dim); font-size:.85rem;}
 .out-grid{display:grid; grid-template-columns:repeat(auto-fit,minmax(140px,1fr)); gap:.7rem;}
 
@@ -259,7 +258,7 @@ table.ref-table th, table.ref-table td{border-bottom:1px solid var(--line); padd
 table.ref-table th{color:var(--ink-faint); font-family:var(--font-mono); text-transform:uppercase; font-size:.68rem; letter-spacing:.06em;}
 
 .qr-grid{display:grid; grid-template-columns:repeat(auto-fill,minmax(240px,1fr)); gap:.7rem;}
-.qr-card{background:var(--ground-raised2); border:1px solid var(--line); border-left:4px solid var(--signal); border-radius:var(--radius); padding:.8rem;}
+.qr-card{background:var(--ground-raised2); border:1px solid var(--line); border-left:4px solid var(--gold); border-radius:var(--radius); padding:.8rem;}
 .qr-card h4{margin:0 0 .3rem; font-size:.98rem; font-family:var(--font-body); text-transform:none;}
 .qr-card p{margin:0; color:var(--ink-dim); font-size:.88rem;}
 
@@ -769,7 +768,7 @@ function catBlurb(id){
   return m[id]||"";
 }
 function renderFavList(){
-  if(!state.favorites.size) return '<p style="color:var(--text-dim)">No favorites yet. Tap the star on any card or item to save it here.</p>';
+  if(!state.favorites.size) return '<p style="color:var(--ink-dim)">No favorites yet. Tap the star on any card or item to save it here.</p>';
   var html = '<div class="qbtn-list">';
   state.favorites.forEach(function(key){
     var label = favLabel(key);
@@ -851,7 +850,7 @@ function renderTriage(flowId, nodeId){
   if(!node){ html += '<p>Not found.</p></div>'; return html; }
 
   if(node.type === "menu"){
-    html += '<h2>&#9888; '+esc(node.title)+'</h2><p style="color:var(--text-dim)">Tap the situation that matches. Each leads to a short set of yes/no questions.</p>';
+    html += '<h2>&#9888; '+esc(node.title)+'</h2><p style="color:var(--ink-dim)">Tap the situation that matches. Each leads to a short set of yes/no questions.</p>';
     html += '<div class="entry-grid">';
     node.items.forEach(function(item){
       var fkey = "triage:"+item.go.split(":")[0];
@@ -924,7 +923,7 @@ function computeWater(){
     '<div><div class="big-num">'+dropsClear+'</div><div class="lbl">bleach drops (clear water)</div></div>'+
     '<div><div class="big-num">'+dropsCloudy+'</div><div class="lbl">bleach drops (cloudy water)</div></div>'+
     '<div><div class="big-num">'+tablets+'</div><div class="lbl">purification tablets (~1/liter)</div></div>'+
-    '</div><p style="margin-top:.6rem; color:var(--text-dim)">Use unscented bleach, 5-9% sodium hypochlorite, no additives. Mix, stir, and wait 30 minutes before drinking.</p>';
+    '</div><p style="margin-top:.6rem; color:var(--ink-dim)">Use unscented bleach, 5-9% sodium hypochlorite, no additives. Mix, stir, and wait 30 minutes before drinking.</p>';
 }
 var CAL_RATES = {low:2000, moderate:2800, high:4000};
 function computeCalories(){
@@ -941,7 +940,7 @@ function computeCalories(){
     '<div><div class="big-num">'+daily.toLocaleString()+'</div><div class="lbl">kcal / day, all people</div></div>'+
     '<div><div class="big-num">'+total.toLocaleString()+'</div><div class="lbl">kcal total over '+days+' day(s)</div></div>'+
     '<div><div class="big-num">'+minSurvival.toLocaleString()+'</div><div class="lbl">kcal, bare minimum ration (short-term only)</div></div>'+
-    '</div><p style="margin-top:.6rem; color:var(--text-dim)">If supplies are limited, prioritize water first, then ration food evenly rather than front-loading. A minimum ~1,200 kcal/person/day can sustain short emergencies but is not adequate long-term.</p>';
+    '</div><p style="margin-top:.6rem; color:var(--ink-dim)">If supplies are limited, prioritize water first, then ration food evenly rather than front-loading. A minimum ~1,200 kcal/person/day can sustain short emergencies but is not adequate long-term.</p>';
 }
 
 /* ---- Shelter ---- */
@@ -1148,7 +1147,7 @@ function renderQuiz(){
   } else {
     var qi = state.quiz.order[state.quiz.idx];
     var q = QUIZ_QUESTIONS[qi];
-    html += '<p style="color:var(--text-dim)">Question '+(state.quiz.idx+1)+' of '+QUIZ_QUESTIONS.length+' &middot; Score so far: '+state.quiz.score+'</p>';
+    html += '<p style="color:var(--ink-dim)">Question '+(state.quiz.idx+1)+' of '+QUIZ_QUESTIONS.length+' &middot; Score so far: '+state.quiz.score+'</p>';
     html += '<h3>'+esc(q.q)+'</h3><div class="qbtn-list">';
     q.a.forEach(function(ans, ai){
       html += '<button class="qbtn" data-quiz-answer="'+ai+'"><span>'+esc(ans)+'</span></button>';
