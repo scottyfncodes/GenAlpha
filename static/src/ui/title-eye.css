@@ -38,10 +38,6 @@
   transform-origin: 150px 220px;
 }
 
-.title__eye-small {
-  opacity: 0.55;
-}
-
 /* A slow, shallow dilation on the main eye only — barely a pulse, just
    enough that it doesn't read as a static decal painted on the screen. */
 @keyframes title-eye-dilate {

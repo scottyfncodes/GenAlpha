@@ -274,7 +274,7 @@
  * against that empty margin, so the two don't visibly drift apart.
  */
 .title__word .gen-a {
-  width: 0.92em;
-  height: 0.92em;
-  margin: -0.05em -0.12em 0;
+  width: 1.2em;
+  height: 1.2em;
+  margin: -0.08em -0.2em 0;
 }

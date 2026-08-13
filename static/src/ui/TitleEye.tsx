@@ -4,8 +4,7 @@ import './title-eye.css';
  * What the crack was hiding — an eye behind the veneer the whole time, not
  * a new thing that shows up once it breaks. Invisible while Language A
  * still holds (same rule the crack follows), it snaps in at the rupture
- * and stays, faint but never gone again, once the screen is claimed. Two
- * smaller satellite eyes flank it — Bellhaven isn't watched by one thing.
+ * and stays, faint but never gone again, once the screen is claimed.
  * Same hand-cut, slightly uneven outline every other Language B mark on
  * this screen uses (the crack, the Gen A mark's own rough loop), on
  * purpose: this is drawn by the same hand as everything else that broke
@@ -20,8 +19,6 @@ export function TitleEye({ visible }: { visible: boolean }) {
       aria-hidden="true"
     >
       <Eye cx={150} cy={220} rx={78} ry={38} irisR={24} pupilR={10} className="title__eye-main" />
-      <Eye cx={58} cy={54} rx={26} ry={13} irisR={8} pupilR={3.5} className="title__eye-small" />
-      <Eye cx={244} cy={58} rx={26} ry={13} irisR={8} pupilR={3.5} className="title__eye-small" />
     </svg>
   );
 }
