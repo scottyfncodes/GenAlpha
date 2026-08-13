@@ -169,6 +169,43 @@ export const ITEMS: GoodsItem[] = [
     category: 'gear',
     effect: 'Everything the last four builds were practice for. Whatever still has a chip in it, this reads it.',
   },
+  /*
+   * Physical tools — the first layer, before the deck ever gets to do
+   * anything. `systems/streethacks.ts` (`HACK_KIND_TOOL`) and
+   * `systems/materials.ts` (`canSabotage`) both check ownership alongside
+   * the deck's own tier: a Cracked Deck can read a FLACK housing all it
+   * wants, but the housing's still bolted to the pole until something cuts
+   * it loose. Ordinary hardware-store gear, not built from salvage — a
+   * screwdriver isn't a project.
+   */
+  {
+    itemId: 'screwdriver',
+    name: 'Screwdriver',
+    basePrice: 15,
+    category: 'gear',
+    effect: 'Opens whatever four screws were holding shut. A payphone box, mostly.',
+  },
+  {
+    itemId: 'pry_bar',
+    name: 'Pry Bar',
+    basePrice: 30,
+    category: 'gear',
+    effect: 'For the panel that four screws won’t open. An ATM fascia, mostly.',
+  },
+  {
+    itemId: 'bolt_cutters',
+    name: 'Bolt Cutters',
+    basePrice: 50,
+    category: 'gear',
+    effect: 'Through a mounting bracket, a padlock, a fence — whatever’s between you and a FLACK housing.',
+  },
+  {
+    itemId: 'lockpick_set',
+    name: 'Lockpick Set',
+    basePrice: 70,
+    category: 'gear',
+    effect: 'The actual door, not the box bolted to the outside of it. Building systems start here.',
+  },
 ];
 
 export const ITEMS_BY_ID: Record<string, GoodsItem> = Object.fromEntries(
@@ -188,6 +225,13 @@ export const INTEL_TIP = 'intel_tip';
  * `boardTier`/`deckTier` read these to find the highest tier currently owned. */
 export const BOARD_TIERS = ['board_1', 'board_2', 'board_3', 'board_4', 'board_5'] as const;
 export const DECK_TIERS = ['cyberdeck_1', 'cyberdeck_2', 'cyberdeck_3', 'cyberdeck_4', 'cyberdeck_5'] as const;
+
+/** Physical tools — the first layer a hack needs, before the deck's own
+ * tier gets a say. See `systems/streethacks.ts` `HACK_KIND_TOOL`. */
+export const SCREWDRIVER = 'screwdriver';
+export const PRY_BAR = 'pry_bar';
+export const BOLT_CUTTERS = 'bolt_cutters';
+export const LOCKPICK_SET = 'lockpick_set';
 
 /** Heat a burner takes off a digital job. Small: it's an edge, not a bypass. */
 export const BURNER_HEAT_RELIEF = 2;

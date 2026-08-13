@@ -21,16 +21,17 @@ import type { ThresholdTier } from '../state/schema';
 import { LIE_LOW_DECAY, lieLowBlocked } from '../systems/heat';
 import { safehouseBlocked, safehouseDecay } from '../systems/safehouse';
 import { canCollectHidden, canSabotage, onCooldown } from '../systems/materials';
-import { boardTier } from '../systems/market';
+import { boardTier, owns } from '../systems/market';
 import { consequenceFor, HURT_UNTIL_DAY_FLAG } from '../systems/consequences';
 import { MATERIALS_BY_ID } from '../content/materials';
+import { ITEMS_BY_ID } from '../content/economy';
 import { LIE_LOW_FLAG } from '../content/breather';
 import { SAFEHOUSE_ID } from '../content/safehouse';
 import { ALL_SCENES } from '../content/all';
 import { pendingScenes, scenesAt, type Scene } from '../systems/scenes';
 import { SceneView } from '../ui/SceneView';
 import { STREET_HACK_INTERACT_RADIUS, STREET_HACK_NODES, type StreetHackNode } from './streethacks';
-import { canHackStreetNode } from '../systems/streethacks';
+import { canHackStreetNode, HACK_KIND_TOOL } from '../systems/streethacks';
 import { drawTown } from './draw';
 import { Market } from '../ui/Market';
 import { play } from '../systems/audio';
@@ -59,8 +60,11 @@ const SPRINT_HEAT_MULTIPLIER = 2;
  * itself — a fraction of `LINGER_CATCH_MS` below, tuned so it fires with
  * real time to spare rather than right at the wire. */
 const CLOSE_CALL_MS = 1200;
-const PLAYER_W = 12;
-const PLAYER_H = 18;
+/** Fourteen, not a grown mentor's height — shorter than the old proportions
+ * on purpose, and shorter than the head radius shrinks by (drawPlayer keeps
+ * `headR` fixed), so the head-to-body ratio reads younger on its own. */
+const PLAYER_W = 11;
+const PLAYER_H = 15;
 const SCALE = 2; // pixel-art integer scale
 /** How close counts as "close enough to dismantle" for a camera — a hidden
  * bush pickup has no radius of its own, it fires on actually overlapping the
@@ -728,7 +732,7 @@ export function Overworld() {
             ))
           ) : (
             <button className="overworld__prompt overworld__prompt--camera" disabled>
-              FLACK housing · Needs a Cracked Deck (rig tier 3)
+              FLACK housing · {owns(save, 'bolt_cutters') ? 'Needs a Cracked Deck (rig tier 3)' : 'Needs Bolt Cutters'}
             </button>
           )}
         </div>
@@ -737,8 +741,8 @@ export function Overworld() {
       {/* Same slot again, one step further down the priority order: a
           location wins, a camera wins over this, and only then does an ATM
           or a phone line get to offer itself. Disabled rather than hidden
-          without a cyberdeck — the machine is right there, the reason you
-          can't touch it yet is the whole point of building one. Cracking it
+          without the gear — the machine is right there, the reason you
+          can't touch it yet is the whole point of building it. Cracking it
           itself doesn't happen here anymore: this opens the cyberdeck, same
           as the HUD's own (blinking) button does — one door either way. */}
       {!nearby && !nearbyCamera && nearbyHack && !open && (
@@ -747,7 +751,12 @@ export function Overworld() {
           disabled={!canHackStreetNode(save, nearbyHack)}
           onClick={() => setCyberdeckOpen(true)}
         >
-          {nearbyHack.label} · {canHackStreetNode(save, nearbyHack) ? 'Open cyberdeck' : 'Needs a cyberdeck'}
+          {nearbyHack.label} ·{' '}
+          {canHackStreetNode(save, nearbyHack)
+            ? 'Open cyberdeck'
+            : owns(save, HACK_KIND_TOOL[nearbyHack.kind])
+              ? 'Needs a better rig'
+              : `Needs ${toolArticleFor(HACK_KIND_TOOL[nearbyHack.kind])}`}
         </button>
       )}
 
@@ -872,6 +881,13 @@ function spawnFor(locationId: string): { x: number; y: number } {
 
 function locationLabel(locationId: string): string {
   return LOCATIONS.find((l) => l.id === locationId)?.label ?? 'somewhere in town';
+}
+
+/** "a Screwdriver", "a Pry Bar" — the floating prompt's short version of the
+ * same physical-tool gate the Cyberdeck panel spells out in full. */
+function toolArticleFor(itemId: string): string {
+  const name = ITEMS_BY_ID[itemId]?.name ?? itemId;
+  return /^[aeiou]/i.test(name) ? `an ${name}` : `a ${name}`;
 }
 
 function clamp(n: number, min: number, max: number) {

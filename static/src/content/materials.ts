@@ -4,6 +4,13 @@
  * no cash price, no event multiplier, no Heat-tier markup. It's worth a flat
  * amount of SHDW and nothing else, because salvage is salvage; the *market*
  * is where a price gets to mean something.
+ *
+ * Two families, kept honest about what they actually are rather than
+ * generic "wire and boards": real PC hardware for the deck line (a hard
+ * drive, a logic board, a graphics card, an air-gapped drive nobody's
+ * supposed to still have), and real skateboard parts for the board line
+ * (trucks, wheels, bearings, bushings) before either line's own fictional
+ * top end (Mag-Lift, Cracked Chipset) takes over.
  */
 export interface Material {
   itemId: string;
@@ -15,17 +22,18 @@ export interface Material {
 }
 
 export const MATERIALS: Material[] = [
+  // Tech — the deck line's own parts bin.
   {
-    itemId: 'copper_wire',
-    name: 'Copper Wire',
+    itemId: 'hard_drive',
+    name: 'Hard Drive',
     sellValueShdw: 0.8,
-    description: 'Stripped, coiled, still good.',
+    description: 'Still spins. Whatever was on it isn’t your problem.',
   },
   {
-    itemId: 'salvaged_board',
-    name: 'Salvaged Board',
+    itemId: 'logic_board',
+    name: 'Logic Board',
     sellValueShdw: 1.4,
-    description: 'Half the chips are dead. Half aren’t.',
+    description: 'Half the traces are dead. Half aren’t.',
   },
   {
     itemId: 'cracked_chipset',
@@ -34,34 +42,59 @@ export const MATERIALS: Material[] = [
     description: 'Reads fine. Looks like it survived a fire.',
   },
   {
-    itemId: 'spare_battery',
-    name: 'Spare Battery',
+    itemId: 'battery_pack',
+    name: 'Battery Pack',
     sellValueShdw: 1.0,
     description: 'Eighty percent of a charge, forever.',
   },
   {
-    itemId: 'skate_bearings',
-    name: 'Skate Bearings',
+    itemId: 'graphics_card',
+    name: 'Graphics Card',
+    sellValueShdw: 2.6,
+    description: 'Overkill for anything Bellhaven runs on it. That’s the point.',
+  },
+  {
+    itemId: 'air_gapped_drive',
+    name: 'Air-Gapped Drive',
+    sellValueShdw: 2.8,
+    description: 'Never touched a network in its life. Somebody’s whole world on it anyway — not yours to read, yours to strip for parts.',
+  },
+  // Skate — real parts, not a fictional stand-in for them.
+  {
+    itemId: 'wheels',
+    name: 'Wheels',
+    sellValueShdw: 0.6,
+    description: 'Flat-spotted on one side. Still roll true on the other three quarters.',
+  },
+  {
+    itemId: 'trucks',
+    name: 'Trucks',
+    sellValueShdw: 0.9,
+    description: 'The axle assembly. Bent, but bent evenly.',
+  },
+  {
+    itemId: 'bearings',
+    name: 'Bearings',
     sellValueShdw: 0.6,
     description: 'A little gritty. Still round.',
   },
   {
-    itemId: 'salvaged_motor',
-    name: 'Salvaged Motor',
+    itemId: 'bushings',
+    name: 'Bushings',
+    sellValueShdw: 1.1,
+    description: 'The soft part between the truck and the board. Worn down to one turning radius.',
+  },
+  {
+    itemId: 'motor_kit',
+    name: 'Motor Kit',
     sellValueShdw: 2.0,
     description: 'Out of a dead scooter, or a dead something. Spins true.',
   },
   {
-    itemId: 'mag_coil',
+    itemId: 'mag_lift_coil',
     name: 'Mag-Lift Coil',
     sellValueShdw: 3.5,
     description: 'Nobody in Bellhaven sells these. Somebody in Bellhaven built one anyway.',
-  },
-  {
-    itemId: 'encrypted_drive',
-    name: 'Encrypted Drive',
-    sellValueShdw: 2.8,
-    description: 'Somebody’s whole life on it. Not yours to read — yours to strip for parts.',
   },
 ];
 
@@ -88,7 +121,7 @@ export const RECIPES: Recipe[] = [
     id: 'craft_signal_jammer',
     label: 'Signal Jammer',
     inputs: [
-      { itemId: 'copper_wire', quantity: 2 },
+      { itemId: 'hard_drive', quantity: 2 },
       { itemId: 'cracked_chipset', quantity: 1 },
     ],
     outputItemId: 'signal_jammer',
@@ -98,8 +131,8 @@ export const RECIPES: Recipe[] = [
     id: 'craft_clean_sim',
     label: 'Clean SIM Card',
     inputs: [
-      { itemId: 'spare_battery', quantity: 1 },
-      { itemId: 'salvaged_board', quantity: 1 },
+      { itemId: 'battery_pack', quantity: 1 },
+      { itemId: 'logic_board', quantity: 1 },
     ],
     outputItemId: 'clean_sim',
     description: 'A phone with no history is just a phone somebody forgot to register.',
@@ -110,49 +143,52 @@ export const RECIPES: Recipe[] = [
    * itemId already in the inventory, so this needed no engine change, just
    * a recipe that names the previous board as a part. Trading up, not
    * stacking: a player can never hold two boards at once, and `boardTier`
-   * (systems/market.ts) reads whichever one that leaves.
+   * (systems/market.ts) reads whichever one that leaves. Real assembly order
+   * too: trucks and wheels and bearings before anything electric, a motor
+   * before Mag-Lift, never the other way round.
    */
   {
     id: 'craft_board_1',
     label: 'Scrap Deck',
     inputs: [
-      { itemId: 'salvaged_board', quantity: 2 },
-      { itemId: 'copper_wire', quantity: 1 },
+      { itemId: 'trucks', quantity: 1 },
+      { itemId: 'wheels', quantity: 2 },
+      { itemId: 'bearings', quantity: 2 },
     ],
     outputItemId: 'board_1',
-    description: 'Four wheels and a board that used to be a fence panel. The first real reason to look twice at a bush.',
+    description: 'A board that used to be a fence panel, trucked and wheeled. The first real reason to look twice at a bush.',
   },
   {
     id: 'craft_board_2',
     label: 'Rebuilt Deck',
     inputs: [
       { itemId: 'board_1', quantity: 1 },
-      { itemId: 'skate_bearings', quantity: 2 },
-      { itemId: 'copper_wire', quantity: 1 },
+      { itemId: 'bearings', quantity: 2 },
+      { itemId: 'bushings', quantity: 1 },
     ],
     outputItemId: 'board_2',
-    description: 'Swap the bearings, and it stops sounding like it’s dying.',
+    description: 'New bearings so it stops sounding like it’s dying, new bushings so it actually turns.',
   },
   {
     id: 'craft_board_3',
     label: 'Motorized Deck',
     inputs: [
       { itemId: 'board_2', quantity: 1 },
-      { itemId: 'salvaged_motor', quantity: 1 },
-      { itemId: 'spare_battery', quantity: 2 },
-      { itemId: 'cracked_chipset', quantity: 1 },
+      { itemId: 'motor_kit', quantity: 1 },
+      { itemId: 'battery_pack', quantity: 2 },
+      { itemId: 'logic_board', quantity: 1 },
     ],
     outputItemId: 'board_3',
-    description: 'A motor where your back foot goes. Now it does some of the work.',
+    description: 'A motor where your back foot goes and a logic board to keep it from running away with you. Now it does some of the work.',
   },
   {
     id: 'craft_board_4',
     label: 'Prototype Hoverboard',
     inputs: [
       { itemId: 'board_3', quantity: 1 },
-      { itemId: 'mag_coil', quantity: 2 },
-      { itemId: 'cracked_chipset', quantity: 2 },
-      { itemId: 'salvaged_motor', quantity: 1 },
+      { itemId: 'mag_lift_coil', quantity: 2 },
+      { itemId: 'logic_board', quantity: 2 },
+      { itemId: 'motor_kit', quantity: 1 },
     ],
     outputItemId: 'board_4',
     description: 'Three inches of clearance nobody in Bellhaven has seen before. Unstable. Also: it works.',
@@ -162,9 +198,9 @@ export const RECIPES: Recipe[] = [
     label: 'The Hoverboard',
     inputs: [
       { itemId: 'board_4', quantity: 1 },
-      { itemId: 'mag_coil', quantity: 3 },
-      { itemId: 'salvaged_motor', quantity: 2 },
-      { itemId: 'spare_battery', quantity: 1 },
+      { itemId: 'mag_lift_coil', quantity: 3 },
+      { itemId: 'motor_kit', quantity: 2 },
+      { itemId: 'battery_pack', quantity: 1 },
     ],
     outputItemId: 'board_5',
     description: 'Whatever was wrong with the prototype, it isn’t wrong anymore.',
@@ -173,14 +209,16 @@ export const RECIPES: Recipe[] = [
    * The deck line. Same trade-up shape as the board — `deckTier`
    * (systems/market.ts) is what actually gates which kind of target a hack
    * attempt can even reach (`systems/streethacks.ts` `HACK_KIND_MIN_TIER`),
-   * not just how hard the puzzle plays.
+   * not just how hard the puzzle plays. The Graphics Card and Air-Gapped
+   * Drive don't show up until tier 3+ on purpose — cracking Helio's own
+   * network takes more than a hard drive and a chipset.
    */
   {
     id: 'craft_cyberdeck_1',
     label: 'Burner Deck',
     inputs: [
       { itemId: 'cracked_chipset', quantity: 2 },
-      { itemId: 'copper_wire', quantity: 1 },
+      { itemId: 'hard_drive', quantity: 1 },
     ],
     outputItemId: 'cyberdeck_1',
     description: 'Everything it needs is already lying around Bellhaven, if you know which bushes to check and which cameras to take apart. Reads a payphone line — nothing else, yet.',
@@ -190,8 +228,8 @@ export const RECIPES: Recipe[] = [
     label: 'Patched Deck',
     inputs: [
       { itemId: 'cyberdeck_1', quantity: 1 },
-      { itemId: 'salvaged_board', quantity: 2 },
-      { itemId: 'spare_battery', quantity: 1 },
+      { itemId: 'logic_board', quantity: 2 },
+      { itemId: 'battery_pack', quantity: 1 },
     ],
     outputItemId: 'cyberdeck_2',
     description: 'Enough current behind it to talk to a kiosk ATM without frying either of you.',
@@ -202,18 +240,18 @@ export const RECIPES: Recipe[] = [
     inputs: [
       { itemId: 'cyberdeck_2', quantity: 1 },
       { itemId: 'cracked_chipset', quantity: 2 },
-      { itemId: 'encrypted_drive', quantity: 1 },
+      { itemId: 'graphics_card', quantity: 1 },
     ],
     outputItemId: 'cyberdeck_3',
-    description: 'Reads a FLACK housing now, not just a call box. Helio’s own network, from the outside.',
+    description: 'Reads a FLACK housing now, not just a call box. Helio’s own network, from the outside — the graphics card is what actually breaks the encryption fast enough to matter.',
   },
   {
     id: 'craft_cyberdeck_4',
     label: 'Ghost Deck',
     inputs: [
       { itemId: 'cyberdeck_3', quantity: 1 },
-      { itemId: 'encrypted_drive', quantity: 2 },
-      { itemId: 'spare_battery', quantity: 2 },
+      { itemId: 'air_gapped_drive', quantity: 2 },
+      { itemId: 'graphics_card', quantity: 1 },
     ],
     outputItemId: 'cyberdeck_4',
     description: 'Quiet enough to sit inside a building’s own systems without it noticing you’re there.',
@@ -223,7 +261,8 @@ export const RECIPES: Recipe[] = [
     label: 'The Cyberdeck',
     inputs: [
       { itemId: 'cyberdeck_4', quantity: 1 },
-      { itemId: 'encrypted_drive', quantity: 3 },
+      { itemId: 'air_gapped_drive', quantity: 3 },
+      { itemId: 'graphics_card', quantity: 2 },
       { itemId: 'cracked_chipset', quantity: 2 },
     ],
     outputItemId: 'cyberdeck_5',

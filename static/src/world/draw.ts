@@ -62,6 +62,9 @@ const PALETTE = {
   spriteSkin: '#e8c8a8',
   spriteShirt: '#ece2d0',
   spriteBag: '#8a6b4a',
+  spriteBagStrap: '#5c4630',
+  capCrown: '#48566b',
+  capBrim: '#324056',
   outline: '#20262f',
   patrolBody: '#e6402a',
   patrolCab: '#100e0d',
@@ -1414,10 +1417,14 @@ function drawPlayer(
 
   drawBoard(ctx, cx, feetY, boardTier, now);
 
-  // A small bag behind the spine — the one holdover from a "physical
-  // character" that a bare skeleton would otherwise lose entirely.
+  // A backpack behind the spine — chunkier than a bare "holdover" bag on
+  // purpose, with its own strap line, since a skater's backpack is half the
+  // silhouette. Still drawn under the limbs so it reads as worn, not glued on.
   ctx.fillStyle = PALETTE.spriteBag;
-  ctx.fillRect(cx - 2, neckY, 4, hipY - neckY);
+  ctx.fillRect(cx - 3, neckY, 6, hipY - neckY + 2);
+  ctx.fillStyle = PALETTE.spriteBagStrap;
+  ctx.fillRect(cx - 3, neckY, 6, 1);
+  ctx.fillRect(cx - 1, neckY + 1, 1, hipY - neckY);
 
   limb(ctx, cx, hipY, cx - 3 - stride, feetY);
   limb(ctx, cx, hipY, cx + 3 + stride, feetY);
@@ -1433,18 +1440,26 @@ function drawPlayer(
   ctx.lineWidth = 1;
   ctx.stroke();
 
-  // Hair, offset by facing. Away from the camera means you see the back of it.
-  ctx.fillStyle = PALETTE.sprite;
-  const back = facing.y < 0;
-  if (back) {
-    ctx.beginPath();
-    ctx.arc(cx, headCy, headR, Math.PI, 0);
-    ctx.fill();
-  } else {
-    ctx.fillRect(cx - 2, headCy - headR, 4, 2);
-  }
+  // A cap, worn backwards — the crown covers just the top of the head, the
+  // way a real cap sits, leaving the face visible underneath instead of
+  // reading as a solid helmet. The brim sits on whichever side is actually
+  // the *back* of the head (opposite the direction they're facing), not the
+  // front. Facing away from the camera puts the back of the head — brim
+  // included — toward the viewer, same as the old hair logic's "you see the
+  // back of it" rule.
+  ctx.fillStyle = PALETTE.capCrown;
+  ctx.beginPath();
+  ctx.arc(cx, headCy, headR + 0.5, Math.PI, Math.PI * 2);
+  ctx.closePath();
+  ctx.fill();
+
+  ctx.fillStyle = PALETTE.capBrim;
   if (facing.x !== 0) {
-    ctx.fillRect(facing.x > 0 ? cx + headR - 1 : cx - headR, headCy - 1, 1, 2);
+    ctx.fillRect(facing.x > 0 ? cx - headR - 2 : cx + headR, headCy - 2, 2, 2);
+  } else if (facing.y < 0) {
+    ctx.fillRect(cx - 1, headCy + headR - 2, 2, 2);
+  } else {
+    ctx.fillRect(cx - 1, headCy - headR - 1, 2, 1);
   }
 }
 

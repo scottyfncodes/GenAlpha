@@ -6,6 +6,7 @@ import {
   cashFor,
   effectiveTier,
   HACK_KIND_MIN_TIER,
+  HACK_KIND_TOOL,
   levelsFor,
   type HackLevel,
 } from '../systems/streethacks';
@@ -14,7 +15,7 @@ import { MissionBriefing } from './minigames/MissionBriefing';
 import { TraceMinigame } from './minigames/TraceMinigame';
 import { CipherMinigame } from './minigames/CipherMinigame';
 import { SKINS } from '../content/skins';
-import { deckTier, heatReliefFor } from '../systems/market';
+import { deckTier, heatReliefFor, owns } from '../systems/market';
 import { DECK_TIERS, ITEMS_BY_ID } from '../content/economy';
 import type { RunOutcome } from '../systems/missions';
 import './cyberdeck.css';
@@ -41,6 +42,11 @@ const LEVEL_LABEL: Record<HackLevel, string> = {
 function deckNameForTier(tier: number): string {
   const itemId = DECK_TIERS[tier - 1];
   return itemId ? ITEMS_BY_ID[itemId]?.name ?? itemId : `tier ${tier}`;
+}
+
+/** Same idea for a physical tool's own name. */
+function toolNameFor(itemId: string): string {
+  return ITEMS_BY_ID[itemId]?.name ?? itemId;
 }
 
 /** Kinds a given deck tier can reach, worst to best — what the Rig tab shows
@@ -120,16 +126,21 @@ function HackApp({ onBack, onDone }: { onBack: () => void; onDone: () => void })
   const node = nearbyHackNodeId ? STREET_HACK_NODES.find((n) => n.id === nearbyHackNodeId) ?? null : null;
 
   if (!node || !canHackStreetNode(save, node)) {
-    const rigTooLow = node && deckTier(save) < HACK_KIND_MIN_TIER[node.kind];
+    // The physical layer first — the box is still bolted shut whatever the
+    // deck says — then the rig's own tier, then it's just on cooldown.
+    const toolMissing = node && !owns(save, HACK_KIND_TOOL[node.kind]);
+    const rigTooLow = node && !toolMissing && deckTier(save) < HACK_KIND_MIN_TIER[node.kind];
     return (
       <div className="cyberdeck__hack">
         <Header onBack={onBack} title="Hack" />
         <p className="cyberdeck__empty">
           {!node
             ? 'Nothing in range. Find an ATM, a payphone, or a building panel.'
-            : rigTooLow
-              ? `This needs a ${deckNameForTier(HACK_KIND_MIN_TIER[node.kind])} (rig tier ${HACK_KIND_MIN_TIER[node.kind]}). Yours isn’t there yet.`
-              : 'Already cracked — give it a few days.'}
+            : toolMissing
+              ? `This needs a ${toolNameFor(HACK_KIND_TOOL[node.kind])} before anything digital matters — it’s still bolted shut.`
+              : rigTooLow
+                ? `This needs a ${deckNameForTier(HACK_KIND_MIN_TIER[node.kind])} (rig tier ${HACK_KIND_MIN_TIER[node.kind]}). Yours isn’t there yet.`
+                : 'Already cracked — give it a few days.'}
         </p>
       </div>
     );
@@ -229,6 +240,7 @@ function RigApp({ onBack }: { onBack: () => void }) {
   const save = useSave();
   const rig = deckTier(save);
   const skillTier = save.skills.hacking.tier;
+  const hasBoltCutters = owns(save, 'bolt_cutters');
 
   return (
     <div className="cyberdeck__hack">
@@ -241,16 +253,19 @@ function RigApp({ onBack }: { onBack: () => void }) {
         <dd>{skillTier > 0 ? `Tier ${skillTier}` : 'Self-taught, so far'}</dd>
       </dl>
       <p className="cyberdeck__hack-sub" style={{ marginTop: 'calc(var(--step) * 1.5)' }}>
-        What this build can reach:
+        What this build can reach — the tool opens it, the tier reads it:
       </p>
       <ul className="cyberdeck__unlocks">
-        {(Object.entries(HACK_KIND_LABEL) as [StreetHackNode['kind'], string][]).map(([kind, label]) => (
-          <li key={kind} className={rig >= HACK_KIND_MIN_TIER[kind] ? 'is-unlocked' : ''}>
-            {label} <span>· tier {HACK_KIND_MIN_TIER[kind]}</span>
-          </li>
-        ))}
-        <li className={rig >= 3 ? 'is-unlocked' : ''}>
-          Cameras (FLACK housings) <span>· tier 3</span>
+        {(Object.entries(HACK_KIND_LABEL) as [StreetHackNode['kind'], string][]).map(([kind, label]) => {
+          const unlocked = rig >= HACK_KIND_MIN_TIER[kind] && owns(save, HACK_KIND_TOOL[kind]);
+          return (
+            <li key={kind} className={unlocked ? 'is-unlocked' : ''}>
+              {label} <span>· {toolNameFor(HACK_KIND_TOOL[kind])} · tier {HACK_KIND_MIN_TIER[kind]}</span>
+            </li>
+          );
+        })}
+        <li className={rig >= 3 && hasBoltCutters ? 'is-unlocked' : ''}>
+          Cameras (FLACK housings) <span>· Bolt Cutters · tier 3</span>
         </li>
         <li className={rig >= 5 ? 'is-unlocked' : ''}>
           +1 pulse/guess on every hack <span>· tier 5</span>

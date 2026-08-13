@@ -43,6 +43,7 @@ const B1_OPEN: Scene = {
         },
         { text: 'SHDW/USD 3.18, up 4% overnight. Nobody you know owns any.', readout: true },
         { text: 'ghost_on_5th: “anyone else notice they swapped the ones on Fifth” — 40 replies, most of them “lol no”', readout: true },
+        { text: 'You check the box score first. Then a skate clip — some kid half your age landing something you still can’t. Then you close it, because none of that skates itself.' },
       ],
       next: 'kitchen',
     },
@@ -52,6 +53,7 @@ const B1_OPEN: Scene = {
         { text: 'The kitchen smells like burnt toast and the inside of a lunchbox.' },
         { speaker: 'Mom', text: 'There’s a bagel. There’s also a bagel-shaped thing I ruined. Take the good one.' },
         { text: 'She’s already got her coat on. She’s always already got her coat on.' },
+        { text: 'Her thumb hasn’t stopped moving on her phone since you walked in. She hasn’t looked up once, and she still knows exactly where the good bagel is.' },
         { speaker: 'Mom', text: 'Straight home after, okay? I’ll be late again.' },
       ],
       choices: [
@@ -151,6 +153,7 @@ const B1B_THE_IDEA: Scene = {
         { text: 'And every one of those cameras on every corner is built out of precisely the parts you’d need. If you were willing to take one apart instead of just staring at it.' },
         { text: 'Whatever you end up with too much of, somebody apparently wants — there’s a whole quiet economy running underneath this town for exactly that. SHDW is what it runs on. You didn’t know that this morning either.', glitch: true },
         { text: 'Your phone already has an app for all of it, buried in with the ones that came pre-installed. You just never had a reason to open it before tonight.' },
+        { text: 'You already know what you’re not going to do with any of it: disappear into it the way the feed wants you to. It’s a drawer full of parts. You decide what it becomes.' },
       ],
       effects: [
         { kind: 'flag', key: 'cyberdeck_plan_started', value: true },

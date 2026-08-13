@@ -4,6 +4,7 @@ import {
   cashFor,
   effectiveTier,
   HACK_KIND_MIN_TIER,
+  HACK_KIND_TOOL,
   levelsFor,
   resolveStreetHack,
 } from './streethacks';
@@ -20,9 +21,26 @@ const atmNode = STREET_HACK_NODES.find((n) => n.kind === 'atm')!;
 const buildingNode = STREET_HACK_NODES.find((n) => n.kind === 'building')!;
 const tier2AtmNode = STREET_HACK_NODES.find((n) => n.kind === 'atm' && n.tier === 2)!;
 
-/** Grants exactly one deck tier — `craft_cyberdeck_N`'s recipes consume the
- * one below it, so a real save never holds two at once; this mirrors that. */
+/**
+ * Grants exactly one deck tier — `craft_cyberdeck_N`'s recipes consume the
+ * one below it, so a real save never holds two at once; this mirrors that —
+ * plus every physical tool a kind might need. The deck-tier tests below are
+ * about the *second* layer, so they shouldn't also be silently testing the
+ * first one; `withoutTools` is for the handful that are.
+ */
 const withDeck = (tier: 1 | 2 | 3 | 4 | 5 = 1) => {
+  const save = createNewSave('Wren');
+  save.economy.inventory = [
+    { itemId: DECK_TIERS[tier - 1], quantity: 1, acquiredVia: 'purchase' },
+    { itemId: 'screwdriver', quantity: 1, acquiredVia: 'purchase' },
+    { itemId: 'pry_bar', quantity: 1, acquiredVia: 'purchase' },
+    { itemId: 'bolt_cutters', quantity: 1, acquiredVia: 'purchase' },
+    { itemId: 'lockpick_set', quantity: 1, acquiredVia: 'purchase' },
+  ];
+  return save;
+};
+
+const withoutTools = (tier: 1 | 2 | 3 | 4 | 5 = 1) => {
   const save = createNewSave('Wren');
   save.economy.inventory = [{ itemId: DECK_TIERS[tier - 1], quantity: 1, acquiredVia: 'purchase' }];
   return save;
@@ -134,6 +152,32 @@ describe('HACK_KIND_MIN_TIER', () => {
     expect(HACK_KIND_MIN_TIER.phone).toBe(1);
     expect(HACK_KIND_MIN_TIER.atm).toBe(2);
     expect(HACK_KIND_MIN_TIER.building).toBe(4);
+  });
+});
+
+describe('the physical layer — HACK_KIND_TOOL', () => {
+  it('refuses every kind on a full-tier deck if the matching tool is missing', () => {
+    expect(canHackStreetNode(withoutTools(1), phoneNode)).toBe(false);
+    expect(canHackStreetNode(withoutTools(4), atmNode)).toBe(false);
+    expect(canHackStreetNode(withoutTools(4), buildingNode)).toBe(false);
+  });
+
+  it('a screwdriver alone, without the deck, still isn’t enough', () => {
+    const save = createNewSave('Wren');
+    save.economy.inventory = [{ itemId: 'screwdriver', quantity: 1, acquiredVia: 'purchase' }];
+    expect(canHackStreetNode(save, phoneNode)).toBe(false);
+  });
+
+  it('a phone needs a screwdriver, an ATM a pry bar, building systems a lockpick set', () => {
+    expect(HACK_KIND_TOOL.phone).toBe('screwdriver');
+    expect(HACK_KIND_TOOL.atm).toBe('pry_bar');
+    expect(HACK_KIND_TOOL.building).toBe('lockpick_set');
+  });
+
+  it('resolveStreetHack is a no-op without the tool, even at the right deck tier', () => {
+    const save = withoutTools(2); // deck tier 2 reaches ATMs, but no pry bar
+    const after = resolveStreetHack(save, atmNode.id, 'clean');
+    expect(after).toEqual(save);
   });
 });
 

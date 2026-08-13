@@ -1,5 +1,6 @@
 import type { SaveState } from '../state/schema';
 import { MATERIALS_BY_ID, RECIPES } from '../content/materials';
+import { BOLT_CUTTERS } from '../content/economy';
 import {
   CAMERA_NODES,
   HIDDEN_PICKUPS,
@@ -73,14 +74,14 @@ export function collectHidden(save: SaveState, obstacleId: string): SaveState {
 
 /**
  * Whether a camera is currently standing — never sabotaged, or Helio's had
- * time to put a new one up — *and* whether the player's own rig can reach
- * one at all. Cameras are Helio's own network (FLACK housings), not a corner
- * ATM; a deck has to be built up to tier 3 (`systems/streethacks.ts`
- * `HACK_KIND_MIN_TIER`) before it can read one, same gate a street hack's
- * `canHackStreetNode` applies to its own kinds.
+ * time to put a new one up — *and* whether the player can actually reach
+ * one at all. Bolt cutters first (the housing's still bolted to the pole
+ * whatever the deck says), then the deck itself built up to tier 3
+ * (`systems/streethacks.ts` `HACK_KIND_MIN_TIER`) — same two-layer gate a
+ * street hack's `canHackStreetNode` applies to its own kinds.
  */
 export function canSabotage(save: SaveState, node: CameraNode): boolean {
-  return deckTier(save) >= 3 && !onCooldown(save, node.id, node.respawnDays);
+  return owns(save, BOLT_CUTTERS) && deckTier(save) >= 3 && !onCooldown(save, node.id, node.respawnDays);
 }
 
 /**

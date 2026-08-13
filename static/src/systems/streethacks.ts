@@ -1,6 +1,7 @@
 import type { SaveState } from '../state/schema';
 import { STREET_HACK_NODES, type StreetHackNode } from '../world/streethacks';
-import { addCash, deckTier, heatReliefFor } from './market';
+import { BOLT_CUTTERS, LOCKPICK_SET, PRY_BAR, SCREWDRIVER } from '../content/economy';
+import { addCash, deckTier, heatReliefFor, owns } from './market';
 import { onCooldown, markCollected } from './materials';
 import { applyHeat } from './heat';
 import { heatFor, type RunOutcome } from './missions';
@@ -22,7 +23,23 @@ export const HACK_KIND_MIN_TIER: Record<StreetHackNode['kind'], number> = {
   building: 4,
 };
 
+/**
+ * The first layer, before the deck gets a say at all — a FLACK housing
+ * doesn't care how good the rig reading it is if the housing's still bolted
+ * shut. One physical tool per kind, picked for what actually opens that
+ * kind of thing: a payphone box takes four screws out, an ATM fascia needs
+ * real leverage, a building needs an actual door rather than a box bolted
+ * to the outside of one. Cameras are gated the same way through
+ * `systems/materials.ts`'s `canSabotage` (bolt cutters, same as a fence).
+ */
+export const HACK_KIND_TOOL: Record<StreetHackNode['kind'], string> = {
+  phone: SCREWDRIVER,
+  atm: PRY_BAR,
+  building: LOCKPICK_SET,
+};
+
 export const CAMERA_MIN_DECK_TIER = 3;
+export const CAMERA_TOOL = BOLT_CUTTERS;
 
 /**
  * Street hacks are ambient overworld activity, not authored story missions —
@@ -75,11 +92,19 @@ export function effectiveTier(node: StreetHackNode, level: HackLevel): 1 | 2 | 3
   return Math.max(1, Math.min(4, node.tier + LEVEL_DELTA[level])) as 1 | 2 | 3 | 4;
 }
 
-/** Whether this node can be hit right now: the rig is built up to the tier
- * this *kind* of target needs — not just any deck, per `HACK_KIND_MIN_TIER`
- * — and Helio hasn't reset this particular machine yet. */
+/**
+ * Whether this node can be hit right now: the physical tool this kind needs
+ * is actually in the bag (the first layer — the rig doesn't matter if the
+ * box is still bolted shut), the rig is built up to the tier this kind of
+ * target needs (`HACK_KIND_MIN_TIER`), and Helio hasn't reset this
+ * particular machine yet.
+ */
 export function canHackStreetNode(save: SaveState, node: StreetHackNode): boolean {
-  return deckTier(save) >= HACK_KIND_MIN_TIER[node.kind] && !onCooldown(save, node.id, node.respawnDays);
+  return (
+    owns(save, HACK_KIND_TOOL[node.kind]) &&
+    deckTier(save) >= HACK_KIND_MIN_TIER[node.kind] &&
+    !onCooldown(save, node.id, node.respawnDays)
+  );
 }
 
 export function resolveStreetHack(
