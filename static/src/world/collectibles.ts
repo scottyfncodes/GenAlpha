@@ -66,13 +66,13 @@ export interface CameraNode {
 }
 
 export const CAMERA_NODES: CameraNode[] = [
-  { id: 'camera_dismantle_1', x: 756, y: 100, itemId: 'cracked_chipset', respawnDays: 5, heatCost: 4 },
-  { id: 'camera_dismantle_2', x: 120, y: 300, itemId: 'cracked_chipset', respawnDays: 5, heatCost: 4 },
-  { id: 'camera_dismantle_3', x: 540, y: 300, itemId: 'copper_wire', respawnDays: 4, heatCost: 3 },
-  { id: 'camera_dismantle_4', x: 948, y: 300, itemId: 'cracked_chipset', respawnDays: 5, heatCost: 4 },
-  { id: 'camera_dismantle_5', x: 260, y: 428, itemId: 'salvaged_board', respawnDays: 4, heatCost: 3 },
-  { id: 'camera_dismantle_6', x: 600, y: 600, itemId: 'cracked_chipset', respawnDays: 5, heatCost: 4 },
-  { id: 'camera_dismantle_7', x: 16, y: 300, itemId: 'copper_wire', respawnDays: 4, heatCost: 3 },
+  { id: 'camera_dismantle_1', x: 288, y: 100, itemId: 'cracked_chipset', respawnDays: 5, heatCost: 4 },
+  { id: 'camera_dismantle_2', x: 95, y: 540, itemId: 'cracked_chipset', respawnDays: 5, heatCost: 4 },
+  { id: 'camera_dismantle_3', x: 460, y: 300, itemId: 'copper_wire', respawnDays: 4, heatCost: 3 },
+  { id: 'camera_dismantle_4', x: 940, y: 100, itemId: 'cracked_chipset', respawnDays: 5, heatCost: 4 },
+  { id: 'camera_dismantle_5', x: 260, y: 620, itemId: 'salvaged_board', respawnDays: 4, heatCost: 3 },
+  { id: 'camera_dismantle_6', x: 620, y: 600, itemId: 'cracked_chipset', respawnDays: 5, heatCost: 4 },
+  { id: 'camera_dismantle_7', x: 1240, y: 300, itemId: 'copper_wire', respawnDays: 4, heatCost: 3 },
 ];
 
 export type SabotageActionId = 'tamper' | 'dismantle' | 'overload';

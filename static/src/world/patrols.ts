@@ -21,49 +21,64 @@ export interface PatrolRoute {
   loop: boolean;
 }
 
+/*
+ * Rewritten for the district redesign: routes now run the actual road grid
+ * (drawRoads' vertical/horizontal centrelines) rather than cutting across
+ * open ground, so a van reads as driving a beat rather than sliding through
+ * a field. Each one was walked back through the same flood-fill/overlap
+ * script as the maze filler before being finalised here.
+ */
 export const PATROL_ROUTES: PatrolRoute[] = [
   {
+    // The main street: downtown's civic-core frontage, school to the Annex
+    // approach.
     id: 'midtown_sweep',
     loop: false,
     points: [
-      { x: 240, y: 428 },
-      { x: 700, y: 428 },
+      { x: 332, y: 164 },
+      { x: 812, y: 164 },
     ],
   },
   {
+    // The residential edge, between the little home/Ellen's/Casey's cluster
+    // and the road.
     id: 'west_beat',
     loop: false,
     points: [
-      { x: 140, y: 176 },
-      { x: 140, y: 384 },
+      { x: 172, y: 164 },
+      { x: 172, y: 468 },
     ],
   },
   {
-    id: 'library_beat',
+    // Along the school and library's south flank.
+    id: 'downtown_watch',
     loop: false,
     points: [
-      { x: 756, y: 24 },
-      { x: 756, y: 260 },
+      { x: 492, y: 316 },
+      { x: 800, y: 316 },
     ],
   },
   {
-    id: 'center_east_loop',
+    // A tight loop around the Town Square.
+    id: 'center_loop',
     loop: true,
     points: [
-      { x: 284, y: 428 },
-      { x: 284, y: 524 },
-      { x: 540, y: 524 },
-      { x: 540, y: 428 },
+      { x: 492, y: 336 },
+      { x: 492, y: 488 },
+      { x: 712, y: 488 },
+      { x: 712, y: 336 },
     ],
   },
   {
-    id: 'se_loop',
+    // A loop around the whole Annex — the one district worth circling
+    // deliberately, since it's the one the story keeps warning is watched.
+    id: 'annex_loop',
     loop: true,
     points: [
-      { x: 692, y: 460 },
-      { x: 692, y: 636 },
-      { x: 940, y: 636 },
-      { x: 940, y: 460 },
+      { x: 812, y: 164 },
+      { x: 1200, y: 164 },
+      { x: 1200, y: 495 },
+      { x: 812, y: 495 },
     ],
   },
 ];

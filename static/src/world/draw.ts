@@ -49,6 +49,15 @@ const PALETTE = {
   windowLit: '#f0c07a',
   windowDark: '#2a3242',
   warmGlow: 'rgba(240, 160, 60, 0.10)',
+  curb: '#272e3a',
+  crack: 'rgba(20, 24, 32, 0.35)',
+  lampPost: '#232935',
+  lampGlow: 'rgba(240, 190, 120, 0.9)',
+  lampHalo: 'rgba(240, 190, 120, 0.14)',
+  chainLink: 'rgba(180, 190, 200, 0.22)',
+  chainPost: '#1c2129',
+  tag: 'rgba(230, 64, 42, 0.5)',
+  grit: 'rgba(0, 0, 0, 0.18)',
   sprite: '#14110f',
   spriteSkin: '#e8c8a8',
   spriteShirt: '#ece2d0',
@@ -125,6 +134,10 @@ export function drawTown(
   // thing they're building around.
   for (const loc of locations) if (loc.language === 'B' && loc.render !== 'camera') drawGlow(ctx, loc);
 
+  // A handful of lit islands on an otherwise empty street — before the
+  // obstacles/buildings so a building in front of one just occludes it.
+  for (const p of STREETLIGHT_POINTS) drawStreetlight(ctx, p);
+
   for (const obstacle of obstacles) drawObstacle(ctx, obstacle);
   for (const loc of locations) {
     if (loc.render === 'camera') drawCamera(ctx, loc, here?.id === loc.id);
@@ -171,6 +184,8 @@ function drawObstacle(ctx: CanvasRenderingContext2D, obstacle: Obstacle) {
       return drawRock(ctx, obstacle);
     case 'hedge':
       return drawHedge(ctx, obstacle);
+    case 'fence':
+      return drawFence(ctx, obstacle);
   }
 }
 
@@ -254,6 +269,45 @@ function drawHedge(ctx: CanvasRenderingContext2D, o: Obstacle) {
     const dy = o.y + o.h * 0.5 + rand() * o.h * 0.4;
     ctx.fillRect(px(dx), px(dy), 2, 2);
   }
+}
+
+/** Chain-link, the one obstacle that reads as industrial rather than grown —
+ * posts at each end and a diamond lattice between, standing in for the
+ * fencing Act 1's Annex Fence ambient text already talks about. The one
+ * texture on this canvas that isn't organic on purpose: the Annex is the
+ * district that got fenced. */
+function drawFence(ctx: CanvasRenderingContext2D, o: Obstacle) {
+  ctx.strokeStyle = PALETTE.chainPost;
+  ctx.lineWidth = 3;
+  ctx.beginPath();
+  ctx.moveTo(px(o.x + 2), px(o.y));
+  ctx.lineTo(px(o.x + 2), px(o.y + o.h));
+  ctx.moveTo(px(o.x + o.w - 2), px(o.y));
+  ctx.lineTo(px(o.x + o.w - 2), px(o.y + o.h));
+  ctx.stroke();
+
+  ctx.save();
+  ctx.beginPath();
+  ctx.rect(o.x, o.y, o.w, o.h);
+  ctx.clip();
+  ctx.strokeStyle = PALETTE.chainLink;
+  ctx.lineWidth = 1;
+  const mesh = 8;
+  const diag = o.w + o.h;
+  ctx.beginPath();
+  for (let d = -o.h; d <= diag; d += mesh) {
+    ctx.moveTo(px(o.x + d), px(o.y));
+    ctx.lineTo(px(o.x + d + o.h), px(o.y + o.h));
+  }
+  for (let d = -o.h; d <= diag; d += mesh) {
+    ctx.moveTo(px(o.x + d), px(o.y + o.h));
+    ctx.lineTo(px(o.x + d + o.h), px(o.y));
+  }
+  ctx.stroke();
+  ctx.restore();
+
+  ctx.fillStyle = PALETTE.chainPost;
+  ctx.fillRect(px(o.x), px(o.y + o.h - 3), o.w, 3);
 }
 
 /**
@@ -341,6 +395,77 @@ function drawRoads(ctx: CanvasRenderingContext2D) {
     for (let x = 4; x < MAP_WIDTH; x += 20) ctx.fillRect(x, y + 11, 8, 2);
   }
   ctx.globalAlpha = 1;
+
+  drawCracks(ctx);
+}
+
+/** Hairline cracks in the asphalt — fixed per road segment (seeded on its own
+ * coordinates, not per-frame) so a street reads as old rather than new,
+ * without ever reshuffling under the player's feet. Cheap grit: a handful of
+ * short broken lines, not a texture pass. */
+function drawCracks(ctx: CanvasRenderingContext2D) {
+  ctx.strokeStyle = PALETTE.crack;
+  ctx.lineWidth = 1;
+  for (let x = 0; x < MAP_WIDTH; x += 160) {
+    const rand = noise(`crack:v:${x}`);
+    for (let i = 0; i < 6; i++) {
+      const cy = rand() * MAP_HEIGHT;
+      const len = 6 + rand() * 10;
+      const branch = (rand() - 0.5) * 10;
+      ctx.beginPath();
+      ctx.moveTo(px(x + 4 + rand() * 16), px(cy));
+      ctx.lineTo(px(x + 4 + rand() * 16 + branch), px(cy + len));
+      ctx.stroke();
+    }
+  }
+  for (let y = 0; y < MAP_HEIGHT; y += 152) {
+    const rand = noise(`crack:h:${y}`);
+    for (let i = 0; i < 6; i++) {
+      const cx = rand() * MAP_WIDTH;
+      const len = 6 + rand() * 10;
+      const branch = (rand() - 0.5) * 10;
+      ctx.beginPath();
+      ctx.moveTo(px(cx), px(y + 4 + rand() * 16));
+      ctx.lineTo(px(cx + len), px(y + 4 + rand() * 16 + branch));
+      ctx.stroke();
+    }
+  }
+}
+
+/**
+ * Streetlights at a handful of intersections — fixed points, not one per
+ * corner, because the point is a lit island on an empty street (Style Guide
+ * 07's isolation rule), not municipal coverage. Drawn after roads and glows,
+ * before buildings, so a building in front of one simply occludes it, the
+ * same depth order everything else on this canvas already uses.
+ */
+const STREETLIGHT_POINTS: { x: number; y: number }[] = [
+  { x: 332, y: 164 },
+  { x: 172, y: 316 },
+  { x: 652, y: 164 },
+  { x: 812, y: 468 },
+  { x: 1132, y: 164 },
+  { x: 492, y: 650 },
+  { x: 972, y: 650 },
+];
+
+function drawStreetlight(ctx: CanvasRenderingContext2D, p: { x: number; y: number }) {
+  const x = px(p.x);
+  const topY = px(p.y - 22);
+
+  ctx.fillStyle = PALETTE.lampHalo;
+  ctx.beginPath();
+  ctx.arc(x, topY, 16, 0, Math.PI * 2);
+  ctx.fill();
+
+  ctx.fillStyle = PALETTE.lampPost;
+  ctx.fillRect(x - 1, topY, 2, 22);
+  ctx.fillRect(x - 3, p.y - 2, 6, 2);
+
+  ctx.fillStyle = PALETTE.lampGlow;
+  ctx.beginPath();
+  ctx.arc(x, topY, 3, 0, Math.PI * 2);
+  ctx.fill();
 }
 
 /** A resistance place, warming the street it stands on. */
@@ -371,6 +496,12 @@ function drawBuilding(
   const isB = loc.language === 'B';
   const roofH = 14;
 
+  // A curb: the building sits on ground, not floats on it. A single dark
+  // step at the foot of the wall, cheap enough to afford on every building
+  // without a texture pass.
+  ctx.fillStyle = PALETTE.curb;
+  ctx.fillRect(loc.x - 2, loc.y + loc.h - 1, loc.w + 4, 3);
+
   ctx.fillStyle = isB ? PALETTE.wallB : PALETTE.wallA;
   ctx.fillRect(loc.x, loc.y + roofH, loc.w, loc.h - roofH);
 
@@ -384,6 +515,11 @@ function drawBuilding(
   ctx.fillRect(loc.x, loc.y + loc.h - 5, loc.w, 5);
 
   drawWindows(ctx, loc, isB);
+
+  // A tag, low on the wall, Language B only — the resistance's own places
+  // are the hand-cut ones (Style Guide 07), and a mark somebody left is
+  // cheaper than it looks: two or three angled strokes, fixed per building.
+  if (isB) drawTag(ctx, loc, roofH);
 
   if (!isB && (tier === 'flagged' || tier === 'hunted')) {
     const rand = noise(`glitch:${loc.id}:${tier}`);
@@ -514,6 +650,28 @@ function drawWindows(ctx: CanvasRenderingContext2D, loc: OverworldLocation, isB:
       ctx.fillStyle = lit ? PALETTE.windowLit : PALETTE.windowDark;
       ctx.fillRect(startX + c * (w + gap), top + r * (h + gap), w, h);
     }
+  }
+}
+
+/** A tag on the wall, low enough to be reached by hand — two or three angled
+ * strokes in the same red the resistance's own signage already uses, fixed
+ * per building so it reads as something somebody actually left rather than a
+ * texture. Deliberately crude: this is a spray mark, not a mural. */
+function drawTag(ctx: CanvasRenderingContext2D, loc: OverworldLocation, roofH: number) {
+  const rand = noise(`tag:${loc.id}`);
+  const baseY = loc.y + loc.h - 9;
+  const strokes = 2 + Math.floor(rand() * 2);
+  ctx.strokeStyle = PALETTE.tag;
+  ctx.lineWidth = 2;
+  for (let i = 0; i < strokes; i++) {
+    const sx = loc.x + 6 + rand() * Math.max(1, loc.w - 20);
+    const sy = baseY - rand() * 6;
+    const len = 6 + rand() * 8;
+    const slant = (rand() - 0.5) * 6;
+    ctx.beginPath();
+    ctx.moveTo(px(sx), px(Math.max(loc.y + roofH + 2, sy)));
+    ctx.lineTo(px(sx + slant), px(sy + len));
+    ctx.stroke();
   }
 }
 

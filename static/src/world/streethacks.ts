@@ -31,13 +31,13 @@ export interface StreetHackNode {
 }
 
 export const STREET_HACK_NODES: StreetHackNode[] = [
-  { id: 'atm_5th', x: 220, y: 600, kind: 'atm', variant: 'cipher', tier: 1, skinId: 'atm', label: 'ATM — 5th & Cole', respawnDays: 4 },
-  { id: 'atm_fenwick', x: 760, y: 720, kind: 'atm', variant: 'cipher', tier: 2, skinId: 'atm', label: 'ATM — Fenwick Street', respawnDays: 5 },
-  { id: 'atm_annex', x: 1000, y: 320, kind: 'atm', variant: 'trace', tier: 3, skinId: 'atm', label: 'ATM — Annex Fence Line', respawnDays: 6 },
-  { id: 'atm_north', x: 1180, y: 220, kind: 'atm', variant: 'cipher', tier: 3, skinId: 'atm', label: 'ATM — North Lot', respawnDays: 6 },
-  { id: 'phone_bandstand', x: 580, y: 700, kind: 'phone', variant: 'trace', tier: 1, skinId: 'resistance', label: 'Payphone — the bandstand', respawnDays: 4 },
-  { id: 'phone_utility', x: 1100, y: 400, kind: 'phone', variant: 'trace', tier: 2, skinId: 'resistance', label: 'Junction phone — Utility Yard', respawnDays: 5 },
-  { id: 'phone_corner', x: 380, y: 60, kind: 'phone', variant: 'cipher', tier: 2, skinId: 'resistance', label: 'Payphone — the school corner', respawnDays: 5 },
+  { id: 'atm_5th', x: 140, y: 620, kind: 'atm', variant: 'cipher', tier: 1, skinId: 'atm', label: 'ATM — 5th & Cole', respawnDays: 4 },
+  { id: 'atm_fenwick', x: 1080, y: 120, kind: 'atm', variant: 'cipher', tier: 2, skinId: 'atm', label: 'ATM — Fenwick Street', respawnDays: 5 },
+  { id: 'atm_annex', x: 1200, y: 420, kind: 'atm', variant: 'trace', tier: 3, skinId: 'atm', label: 'ATM — Annex Fence Line', respawnDays: 6 },
+  { id: 'atm_north', x: 1220, y: 140, kind: 'atm', variant: 'cipher', tier: 3, skinId: 'atm', label: 'ATM — North Lot', respawnDays: 6 },
+  { id: 'phone_bandstand', x: 420, y: 490, kind: 'phone', variant: 'trace', tier: 1, skinId: 'resistance', label: 'Payphone — the bandstand', respawnDays: 4 },
+  { id: 'phone_utility', x: 900, y: 120, kind: 'phone', variant: 'trace', tier: 2, skinId: 'resistance', label: 'Junction phone — Utility Yard', respawnDays: 5 },
+  { id: 'phone_corner', x: 742, y: 120, kind: 'phone', variant: 'cipher', tier: 2, skinId: 'resistance', label: 'Payphone — the school corner', respawnDays: 5 },
 ];
 
 /** How close counts as close enough to open one — same radius the cameras use. */
