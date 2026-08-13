@@ -52,13 +52,28 @@ export interface OverworldLocation {
    */
   trustAmbient?: { above: number; text: string }[];
   /**
-   * How this location is drawn. Defaults to a building. `'camera'` is a
-   * small fixed-size box instead of scaling to fill the location's own
-   * rect — a camera isn't a building with a different paint job, it's a
-   * post with a lens on it, and the previous full-size-building render
-   * said otherwise.
+   * How this location is drawn. `'building'` (the default) is the plain
+   * flat-roofed box every location used to render as; every other value is a
+   * shape that actually reads as the thing it is — a treehouse looks like a
+   * platform in a tree, a school reads as a school, per the note that a town
+   * of identical boxes with different colour bands underneath doesn't
+   * actually look like anything. `'camera'` is a small fixed-size box
+   * instead of scaling to fill the location's own rect — a camera isn't a
+   * building with a different paint job, it's a post with a lens on it.
    */
-  render?: 'building' | 'camera';
+  render?:
+    | 'building'
+    | 'camera'
+    | 'house'
+    | 'school'
+    | 'library'
+    | 'plaza'
+    | 'warehouse'
+    | 'garage'
+    | 'ballpark'
+    | 'pizza'
+    | 'arcade'
+    | 'treehouse';
 }
 
 /*
@@ -83,6 +98,7 @@ export const LOCATIONS: OverworldLocation[] = [
     id: HOME_LOCATION_ID,
     label: 'Home',
     language: 'A',
+    render: 'house',
     x: 32, y: 184, w: 128, h: 96,
     color: '#8fa9c9',
     blurb: 'Kitchen light on, TV murmuring. Nobody asks where you were.',
@@ -103,6 +119,7 @@ export const LOCATIONS: OverworldLocation[] = [
     id: 'school',
     label: 'School',
     language: 'A',
+    render: 'school',
     x: 512, y: 32, w: 208, h: 128,
     color: '#a8bcd4',
     blurb: 'Third row, second seat. Empty since Tuesday.',
@@ -116,6 +133,7 @@ export const LOCATIONS: OverworldLocation[] = [
     id: 'town_library',
     label: 'Library',
     language: 'A',
+    render: 'library',
     x: 672, y: 184, w: 144, h: 112,
     color: '#9db4d0',
     blurb: 'Two terminals. One works. Public records, if you know the filing codes.',
@@ -128,6 +146,7 @@ export const LOCATIONS: OverworldLocation[] = [
     id: 'nova_house',
     label: 'Ellen',
     language: 'A',
+    render: 'house',
     x: 192, y: 184, w: 128, h: 104,
     color: '#b7c7dd',
     blurb: 'Ring light in the front window. It’s always on, even when nobody’s home.',
@@ -140,6 +159,7 @@ export const LOCATIONS: OverworldLocation[] = [
     id: 'casey_house',
     label: 'Casey',
     language: 'A',
+    render: 'house',
     x: 32, y: 344, w: 120, h: 96,
     color: '#c3ccd8',
     blurb: 'For Sale sign. The swing set is still up. The mail is still coming.',
@@ -152,6 +172,7 @@ export const LOCATIONS: OverworldLocation[] = [
     id: 'town_square',
     label: 'Town Square',
     language: 'A',
+    render: 'plaza',
     x: 520, y: 344, w: 176, h: 120,
     color: '#9fb6cf',
     blurb: 'A council banner about the safety grant. Everyone in the photo is smiling.',
@@ -177,6 +198,7 @@ export const LOCATIONS: OverworldLocation[] = [
     id: 'deja_jobsite',
     label: 'Utility Yard',
     language: 'B',
+    render: 'warehouse',
     x: 840, y: 184, w: 136, h: 100,
     color: '#f0a03c',
     blurb: 'Spools of cable, a locked gate that isn’t locked, and a light left on over the shed.',
@@ -190,6 +212,7 @@ export const LOCATIONS: OverworldLocation[] = [
     id: 'fenwick_lot',
     label: 'Fenwick Lot',
     language: 'B',
+    render: 'warehouse',
     x: 1020, y: 184, w: 120, h: 92,
     color: '#e6402a',
     blurb: 'Loading bays, three bins, and the one place in town with a signal and no camera.',
@@ -207,6 +230,7 @@ export const LOCATIONS: OverworldLocation[] = [
     id: 'repair_shop',
     label: 'Repair Shop',
     language: 'B',
+    render: 'garage',
     x: 840, y: 344, w: 128, h: 92,
     color: '#d8843a',
     blurb: 'Phones in a shoebox, a soldering iron, a handwritten sign: WE FIX IT OR IT’S FREE.',
@@ -219,6 +243,7 @@ export const LOCATIONS: OverworldLocation[] = [
     id: 'annex_fence',
     label: 'Annex Fence',
     language: 'B',
+    render: 'warehouse',
     x: 1020, y: 344, w: 156, h: 108,
     color: '#c8532e',
     blurb: 'A building with no name on it and a fence with a gap somebody keeps re-opening.',
@@ -238,6 +263,7 @@ export const LOCATIONS: OverworldLocation[] = [
     id: 'ballpark',
     label: 'Ballpark',
     language: 'A',
+    render: 'ballpark',
     x: 344, y: 504, w: 190, h: 120,
     color: '#7fa8c9',
     blurb: 'Chain-link, a scoreboard with one dead segment, and a big screen nobody looks at.',
@@ -275,6 +301,7 @@ export const LOCATIONS: OverworldLocation[] = [
     id: 'pizza_place',
     label: 'Sal’s',
     language: 'A',
+    render: 'pizza',
     x: 744, y: 32, w: 88, h: 68,
     color: '#d99a6c',
     blurb: 'Fluorescent lights, a jukebox nobody’s fed in years, and a guy behind the counter who stopped asking questions a long time ago.',
@@ -289,6 +316,7 @@ export const LOCATIONS: OverworldLocation[] = [
     id: 'arcade',
     label: 'The Arcade',
     language: 'A',
+    render: 'arcade',
     x: 200, y: 504, w: 88, h: 68,
     color: '#8fa9c9',
     blurb: 'Cabinets older than you are, a change machine that eats quarters, and a hum loud enough to think under.',
@@ -309,6 +337,7 @@ export const LOCATIONS: OverworldLocation[] = [
     id: 'treehouse',
     label: 'The Treehouse',
     language: 'A',
+    render: 'treehouse',
     x: 1160, y: 40, w: 80, h: 64,
     color: '#8a9b6e',
     blurb: 'A plank floor, a rope ladder nobody’s cut down, and a beach towel doing the job of a roof in one corner.',

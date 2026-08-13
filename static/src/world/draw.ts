@@ -92,6 +92,61 @@ const PALETTE = {
   bgRoof: '#2a2f3a',
   bgWindow: 'rgba(240, 192, 122, 0.32)',
   bgWindowDark: 'rgba(42, 50, 66, 0.6)',
+  // A house's own pitched roof, a shade warmer than a civic building's flat
+  // inset one — this is somebody's home, not an institution.
+  pitchRoofA: '#3a4a3d',
+  pitchRoofDarkA: '#2c3830',
+  pitchRoofB: '#5a3a2c',
+  pitchRoofDarkB: '#452c20',
+  doorColor: '#2a3242',
+  chimney: '#4a4038',
+  porchPost: '#2a3242',
+  // The library's columns and pediment — the one building in town dressed
+  // up to look civic on purpose.
+  pillar: '#c7c2ac',
+  pillarShade: '#a8a48f',
+  pediment: '#8f8a72',
+  // The school's flag and its own sign band.
+  flagpole: '#4a5468',
+  flag: '#c94a3a',
+  schoolSign: '#e8dcc0',
+  // The plaza — no roof, just paving, a bandstand and a banner strung
+  // between posts.
+  pavingLight: '#5a6478',
+  pavingDark: '#4c5568',
+  bandstandRoof: '#c8532e',
+  bandstandPost: '#232935',
+  bench: '#5a4530',
+  banner: '#e8dcc0',
+  bannerText: '#c8532e',
+  // The Annex's warehouses and Repair Shop's garage — corrugated roofing,
+  // a roll-up door, roof vents.
+  corrugated: '#3a2620',
+  corrugatedLine: 'rgba(20, 12, 8, 0.4)',
+  rollDoor: '#8a7460',
+  rollDoorLine: 'rgba(30, 20, 12, 0.5)',
+  vent: '#2a3242',
+  // Sal's — an awning, a round sign.
+  awningRed: '#c8402a',
+  awningWhite: '#e8dcc0',
+  signRed: '#c8402a',
+  // The Arcade — a marquee sign over the door instead of ordinary windows.
+  marqueeBody: '#2a1f38',
+  marqueeGlow: '#e84ac9',
+  marqueeBulb: '#f0c07a',
+  // The ballpark — a field, not a building at all.
+  fieldGrass: '#3f5a45',
+  fieldGrassAlt: '#38513e',
+  dirt: '#6d5438',
+  dirtLine: '#e8dcc0',
+  bleacher: '#4a5468',
+  bleacherDark: '#3a4152',
+  floodlight: '#e8dcc0',
+  // The treehouse — reuses the tree palette above for trunk/canopy, adds
+  // its own plank platform, rope and ladder.
+  plank: '#6d5030',
+  plankDark: '#4a3620',
+  rope: '#a89468',
 } as const;
 
 const px = Math.round;
@@ -148,10 +203,7 @@ export function drawTown(
   for (const p of STREETLIGHT_POINTS) drawStreetlight(ctx, p);
 
   for (const obstacle of obstacles) drawObstacle(ctx, obstacle);
-  for (const loc of locations) {
-    if (loc.render === 'camera') drawCamera(ctx, loc, here?.id === loc.id);
-    else drawBuilding(ctx, loc, here?.id === loc.id, tier);
-  }
+  for (const loc of locations) drawLocation(ctx, loc, here?.id === loc.id, tier);
 
   // Ordinary cameras, worth taking apart — the same small box the story pole
   // renders as, so it reads as the same kind of object. `dismantlable` is
@@ -566,21 +618,92 @@ function drawGlow(ctx: CanvasRenderingContext2D, loc: OverworldLocation) {
 }
 
 /**
+ * Every named location, dispatched to a shape that actually reads as the
+ * thing it is — a treehouse looks like a platform in a tree, a school reads
+ * as a school, per the fill-out note that a town of identical boxes with a
+ * different colour band underneath doesn't actually look like anything.
+ * `'building'` (missing/unrecognised too, defensively) falls back to the
+ * original plain box every location used to render as. The "you are here"
+ * outline is centralised here rather than in each shape, since it's the same
+ * bounding-box rectangle regardless of what's drawn inside it — except a
+ * camera, which keeps its own tighter ring around the small box it actually
+ * draws.
+ */
+function drawLocation(ctx: CanvasRenderingContext2D, loc: OverworldLocation, isHere: boolean, tier: ThresholdTier) {
+  switch (loc.render) {
+    case 'camera':
+      drawCamera(ctx, loc, isHere);
+      return;
+    case 'house':
+      drawHouse(ctx, loc, tier);
+      break;
+    case 'school':
+      drawSchool(ctx, loc, tier);
+      break;
+    case 'library':
+      drawLibrary(ctx, loc, tier);
+      break;
+    case 'plaza':
+      drawPlaza(ctx, loc);
+      break;
+    case 'warehouse':
+      drawWarehouse(ctx, loc);
+      break;
+    case 'garage':
+      drawGarage(ctx, loc);
+      break;
+    case 'ballpark':
+      drawBallpark(ctx, loc);
+      break;
+    case 'pizza':
+      drawPizza(ctx, loc, tier);
+      break;
+    case 'arcade':
+      drawArcade(ctx, loc, tier);
+      break;
+    case 'treehouse':
+      drawTreehouse(ctx, loc, tier);
+      break;
+    default:
+      drawBuilding(ctx, loc, tier);
+  }
+  drawHereOutline(ctx, loc, isHere);
+}
+
+function drawHereOutline(ctx: CanvasRenderingContext2D, loc: OverworldLocation, isHere: boolean) {
+  if (!isHere) return;
+  ctx.strokeStyle = PALETTE.spriteShirt;
+  ctx.lineWidth = 2;
+  ctx.strokeRect(loc.x - 2, loc.y - 2, loc.w + 4, loc.h + 4);
+}
+
+/**
+ * At `flagged` and above, Language A elements get a one-line scanline tear
+ * (Style Guide 07: "Language A elements can start subtly glitching at the
+ * edges … a shader/filter toggle on existing UI"). Language B never glitches
+ * — it was never claiming to be smooth — so this is only ever called for A.
+ * Shared by every walled Language A shape; a plaza, a ballpark and a
+ * treehouse aren't claiming a corporate-clean surface in the first place, so
+ * they don't call it, the same reasoning a camera doesn't get a warm glow.
+ */
+function drawGlitchTear(ctx: CanvasRenderingContext2D, loc: OverworldLocation, tier: ThresholdTier, roofH: number) {
+  if (tier !== 'flagged' && tier !== 'hunted') return;
+  const rand = noise(`glitch:${loc.id}:${tier}`);
+  const y = px(loc.y + roofH + rand() * (loc.h - roofH - 6));
+  ctx.fillStyle = PALETTE.windowLit;
+  ctx.globalAlpha = tier === 'hunted' ? 0.35 : 0.18;
+  ctx.fillRect(loc.x + px(rand() * 6), y, loc.w - px(rand() * 10), 2);
+  ctx.globalAlpha = 1;
+}
+
+/**
  * A building: body, roof, a row of windows. The roof reads as pitched by being
  * inset — at eight pixels of detail that is enough, and cheaper than an angle
- * that would need anti-aliasing to survive.
- *
- * At `flagged` and above, Language A buildings get a one-line scanline tear
- * (Style Guide 07: "Language A elements can start subtly glitching at the
- * edges … a shader/filter toggle on existing UI"). Language B never glitches;
- * it was never claiming to be smooth.
+ * that would need anti-aliasing to survive. The fallback shape now — every
+ * named location has picked something more specific — kept for whatever a
+ * future location doesn't bother picking a render for.
  */
-function drawBuilding(
-  ctx: CanvasRenderingContext2D,
-  loc: OverworldLocation,
-  isHere: boolean,
-  tier: ThresholdTier,
-) {
+function drawBuilding(ctx: CanvasRenderingContext2D, loc: OverworldLocation, tier: ThresholdTier) {
   const isB = loc.language === 'B';
   const roofH = 14;
 
@@ -608,21 +731,438 @@ function drawBuilding(
   // are the hand-cut ones (Style Guide 07), and a mark somebody left is
   // cheaper than it looks: two or three angled strokes, fixed per building.
   if (isB) drawTag(ctx, loc, roofH);
+  else drawGlitchTear(ctx, loc, tier, roofH);
+}
 
-  if (!isB && (tier === 'flagged' || tier === 'hunted')) {
-    const rand = noise(`glitch:${loc.id}:${tier}`);
-    const y = px(loc.y + roofH + rand() * (loc.h - roofH - 6));
-    ctx.fillStyle = PALETTE.windowLit;
-    ctx.globalAlpha = tier === 'hunted' ? 0.35 : 0.18;
-    ctx.fillRect(loc.x + px(rand() * 6), y, loc.w - px(rand() * 10), 2);
-    ctx.globalAlpha = 1;
+/** A cottage: walls, a proper pitched roof (two triangular faces, not the
+ * flat inset band every civic building gets), a chimney, a centred door
+ * flanked by two hand-placed windows rather than a generated grid — small
+ * enough that the grid math reads as cramped instead of homely. */
+function drawHouse(ctx: CanvasRenderingContext2D, loc: OverworldLocation, tier: ThresholdTier) {
+  const roofH = Math.round(loc.h * 0.34);
+  const bodyY = loc.y + roofH;
+  const bodyH = loc.h - roofH;
+  const overhang = 6;
+  const apexX = loc.x + loc.w / 2;
+
+  ctx.fillStyle = PALETTE.curb;
+  ctx.fillRect(loc.x - 2, loc.y + loc.h - 1, loc.w + 4, 3);
+
+  ctx.fillStyle = PALETTE.wallA;
+  ctx.fillRect(loc.x, bodyY, loc.w, bodyH);
+
+  ctx.fillStyle = PALETTE.pitchRoofDarkA;
+  ctx.beginPath();
+  ctx.moveTo(px(loc.x - overhang), px(bodyY + 2));
+  ctx.lineTo(px(apexX), px(loc.y));
+  ctx.lineTo(px(loc.x + loc.w + overhang), px(bodyY + 2));
+  ctx.closePath();
+  ctx.fill();
+  // A lighter near-face, offset off the same apex, so the roof reads as two
+  // pitched planes instead of one flat card.
+  ctx.fillStyle = PALETTE.pitchRoofA;
+  ctx.beginPath();
+  ctx.moveTo(px(apexX), px(loc.y));
+  ctx.lineTo(px(loc.x + loc.w + overhang), px(bodyY + 2));
+  ctx.lineTo(px(loc.x + loc.w * 0.58), px(bodyY + 2));
+  ctx.closePath();
+  ctx.fill();
+
+  ctx.fillStyle = PALETTE.chimney;
+  ctx.fillRect(px(loc.x + loc.w * 0.74), loc.y - 2, 6, roofH * 0.6 + 2);
+
+  ctx.fillStyle = loc.color;
+  ctx.fillRect(loc.x, loc.y + loc.h - 5, loc.w, 5);
+
+  const doorW = 10;
+  const doorH = 16;
+  ctx.fillStyle = PALETTE.porchPost;
+  ctx.fillRect(px(apexX - doorW / 2 - 3), loc.y + loc.h - doorH - 5, 2, doorH);
+  ctx.fillRect(px(apexX + doorW / 2 + 1), loc.y + loc.h - doorH - 5, 2, doorH);
+  ctx.fillStyle = PALETTE.doorColor;
+  ctx.fillRect(px(apexX - doorW / 2), loc.y + loc.h - doorH - 5, doorW, doorH);
+
+  const rand = noise(`house:${loc.id}`);
+  const winY = bodyY + bodyH * 0.32;
+  const winSize = 10;
+  ctx.fillStyle = rand() < 0.7 ? PALETTE.windowLit : PALETTE.windowDark;
+  ctx.fillRect(px(loc.x + loc.w * 0.16), px(winY), winSize, winSize);
+  ctx.fillStyle = rand() < 0.7 ? PALETTE.windowLit : PALETTE.windowDark;
+  ctx.fillRect(px(loc.x + loc.w * 0.68), px(winY), winSize, winSize);
+
+  drawGlitchTear(ctx, loc, tier, roofH);
+}
+
+/** The school: the plain flat-roofed civic box, plus the two things that
+ * actually say "school" — a pediment band over the entrance, steps, and a
+ * flagpole taller than the roofline at one corner. */
+function drawSchool(ctx: CanvasRenderingContext2D, loc: OverworldLocation, tier: ThresholdTier) {
+  const roofH = 14;
+  ctx.fillStyle = PALETTE.curb;
+  ctx.fillRect(loc.x - 2, loc.y + loc.h - 1, loc.w + 4, 3);
+
+  ctx.fillStyle = PALETTE.wallA;
+  ctx.fillRect(loc.x, loc.y + roofH, loc.w, loc.h - roofH);
+  ctx.fillStyle = PALETTE.roofA;
+  ctx.fillRect(loc.x + 4, loc.y, loc.w - 8, roofH);
+  ctx.fillRect(loc.x, loc.y + roofH - 4, loc.w, 4);
+
+  const doorW = loc.w * 0.16;
+  ctx.fillStyle = PALETTE.schoolSign;
+  ctx.fillRect(px(loc.x + loc.w / 2 - doorW / 2 - 4), loc.y + roofH, doorW + 8, 5);
+
+  ctx.fillStyle = loc.color;
+  ctx.fillRect(loc.x, loc.y + loc.h - 5, loc.w, 5);
+
+  drawWindows(ctx, loc, false);
+
+  ctx.fillStyle = PALETTE.curb;
+  ctx.fillRect(px(loc.x + loc.w / 2 - doorW / 2), loc.y + loc.h - 3, doorW, 3);
+
+  const poleX = loc.x + loc.w - 10;
+  ctx.fillStyle = PALETTE.flagpole;
+  ctx.fillRect(px(poleX), loc.y - 16, 2, 16 + roofH);
+  ctx.fillStyle = PALETTE.flag;
+  ctx.fillRect(px(poleX + 2), loc.y - 14, 8, 6);
+
+  drawGlitchTear(ctx, loc, tier, roofH);
+}
+
+/** The library: columns and a triangular pediment instead of a flat inset
+ * roof — the one building in town dressed up to look civic on purpose,
+ * which is exactly what the blurb's "public records" gravity calls for. */
+function drawLibrary(ctx: CanvasRenderingContext2D, loc: OverworldLocation, tier: ThresholdTier) {
+  const roofH = 16;
+  ctx.fillStyle = PALETTE.curb;
+  ctx.fillRect(loc.x - 2, loc.y + loc.h - 1, loc.w + 4, 3);
+
+  ctx.fillStyle = PALETTE.wallA;
+  ctx.fillRect(loc.x, loc.y + roofH, loc.w, loc.h - roofH);
+
+  ctx.fillStyle = PALETTE.pediment;
+  ctx.beginPath();
+  ctx.moveTo(px(loc.x), px(loc.y + roofH));
+  ctx.lineTo(px(loc.x + loc.w / 2), px(loc.y));
+  ctx.lineTo(px(loc.x + loc.w), px(loc.y + roofH));
+  ctx.closePath();
+  ctx.fill();
+
+  const cols = Math.max(3, Math.floor(loc.w / 28));
+  const colW = 5;
+  ctx.fillStyle = PALETTE.pillar;
+  for (let i = 0; i < cols; i++) {
+    const cx = loc.x + ((i + 0.5) * loc.w) / cols;
+    ctx.fillRect(px(cx - colW / 2), loc.y + roofH, colW, loc.h - roofH - 4);
+  }
+  ctx.fillStyle = PALETTE.pillarShade;
+  for (let i = 0; i < cols; i++) {
+    const cx = loc.x + ((i + 0.5) * loc.w) / cols;
+    ctx.fillRect(px(cx - colW / 2), loc.y + loc.h - 6, colW, 2);
   }
 
-  if (isHere) {
-    ctx.strokeStyle = PALETTE.spriteShirt;
-    ctx.lineWidth = 2;
-    ctx.strokeRect(loc.x - 2, loc.y - 2, loc.w + 4, loc.h + 4);
+  ctx.fillStyle = loc.color;
+  ctx.fillRect(loc.x, loc.y + loc.h - 4, loc.w, 4);
+
+  drawGlitchTear(ctx, loc, tier, roofH);
+}
+
+/** Town Square: paving, not a wall — this is ground the town built around,
+ * not a building. A bandstand at the centre (the ambient text's own
+ * "cameras on the bandstand" line), a banner strung between posts, benches. */
+function drawPlaza(ctx: CanvasRenderingContext2D, loc: OverworldLocation) {
+  ctx.fillStyle = PALETTE.pavingDark;
+  ctx.fillRect(loc.x, loc.y, loc.w, loc.h);
+  ctx.fillStyle = PALETTE.pavingLight;
+  for (let y = loc.y; y < loc.y + loc.h; y += 10) {
+    for (let x = loc.x + (((y - loc.y) / 10) % 2) * 10; x < loc.x + loc.w; x += 20) {
+      ctx.fillRect(x, y, 10, 10);
+    }
   }
+
+  const bx = loc.x + loc.w / 2;
+  const by = loc.y + loc.h * 0.4;
+  const bw = 36;
+  const bh = 8;
+  ctx.fillStyle = PALETTE.bandstandPost;
+  ctx.fillRect(px(bx - bw / 2 + 2), px(by - 2), 3, 20);
+  ctx.fillRect(px(bx + bw / 2 - 5), px(by - 2), 3, 20);
+  ctx.fillStyle = PALETTE.bandstandRoof;
+  ctx.fillRect(px(bx - bw / 2), px(by - bh), bw, bh);
+
+  ctx.strokeStyle = PALETTE.bandstandPost;
+  ctx.lineWidth = 2;
+  const py = loc.y + loc.h - 20;
+  ctx.beginPath();
+  ctx.moveTo(loc.x + 8, py);
+  ctx.lineTo(loc.x + loc.w - 8, py);
+  ctx.stroke();
+  ctx.fillStyle = PALETTE.banner;
+  ctx.fillRect(px(loc.x + loc.w * 0.28), py, loc.w * 0.44, 10);
+  ctx.fillStyle = PALETTE.bannerText;
+  ctx.fillRect(px(loc.x + loc.w * 0.3), py + 3, loc.w * 0.4, 3);
+
+  ctx.fillStyle = PALETTE.bench;
+  ctx.fillRect(loc.x + 10, loc.y + loc.h - 12, 16, 4);
+  ctx.fillRect(loc.x + loc.w - 26, loc.y + loc.h - 12, 16, 4);
+}
+
+/** The Annex's warehouses: corrugated roofing (ridge lines, roof vents) and
+ * a roll-up door taking up most of the front wall — the industrial building
+ * every generic box in the Annex used to stand in for, whichever of the
+ * three (deja_jobsite, fenwick_lot, annex_fence) is asking for it. */
+function drawWarehouse(ctx: CanvasRenderingContext2D, loc: OverworldLocation) {
+  const roofH = 10;
+  ctx.fillStyle = PALETTE.curb;
+  ctx.fillRect(loc.x - 2, loc.y + loc.h - 1, loc.w + 4, 3);
+
+  ctx.fillStyle = PALETTE.wallB;
+  ctx.fillRect(loc.x, loc.y + roofH, loc.w, loc.h - roofH);
+
+  ctx.fillStyle = PALETTE.corrugated;
+  ctx.fillRect(loc.x, loc.y, loc.w, roofH);
+  ctx.strokeStyle = PALETTE.corrugatedLine;
+  ctx.lineWidth = 1;
+  for (let x = loc.x + 4; x < loc.x + loc.w; x += 6) {
+    ctx.beginPath();
+    ctx.moveTo(px(x), loc.y);
+    ctx.lineTo(px(x), loc.y + roofH);
+    ctx.stroke();
+  }
+  ctx.fillStyle = PALETTE.vent;
+  ctx.fillRect(px(loc.x + loc.w * 0.25), loc.y - 3, 5, 4);
+  ctx.fillRect(px(loc.x + loc.w * 0.65), loc.y - 3, 5, 4);
+
+  const doorW = loc.w * 0.5;
+  const doorH = loc.h - roofH - 10;
+  const doorX = loc.x + loc.w / 2 - doorW / 2;
+  ctx.fillStyle = PALETTE.rollDoor;
+  ctx.fillRect(px(doorX), loc.y + roofH + 4, doorW, doorH);
+  ctx.strokeStyle = PALETTE.rollDoorLine;
+  for (let y = loc.y + roofH + 8; y < loc.y + roofH + 4 + doorH; y += 5) {
+    ctx.beginPath();
+    ctx.moveTo(px(doorX), y);
+    ctx.lineTo(px(doorX + doorW), y);
+    ctx.stroke();
+  }
+
+  ctx.fillStyle = loc.color;
+  ctx.fillRect(loc.x, loc.y + loc.h - 5, loc.w, 5);
+
+  drawTag(ctx, loc, roofH);
+}
+
+/** The Repair Shop: a smaller warehouse — one roll-up door instead of a
+ * building-wide one, and a hand-lettered sign panel where the rest of the
+ * front wall would be. */
+function drawGarage(ctx: CanvasRenderingContext2D, loc: OverworldLocation) {
+  const roofH = 10;
+  ctx.fillStyle = PALETTE.curb;
+  ctx.fillRect(loc.x - 2, loc.y + loc.h - 1, loc.w + 4, 3);
+
+  ctx.fillStyle = PALETTE.wallB;
+  ctx.fillRect(loc.x, loc.y + roofH, loc.w, loc.h - roofH);
+  ctx.fillStyle = PALETTE.corrugated;
+  ctx.fillRect(loc.x + 3, loc.y, loc.w - 6, roofH);
+
+  const doorW = loc.w * 0.42;
+  const doorH = loc.h - roofH - 8;
+  ctx.fillStyle = PALETTE.rollDoor;
+  ctx.fillRect(loc.x + 8, loc.y + roofH + 4, doorW, doorH);
+  ctx.strokeStyle = PALETTE.rollDoorLine;
+  ctx.lineWidth = 1;
+  for (let y = loc.y + roofH + 8; y < loc.y + roofH + 4 + doorH; y += 5) {
+    ctx.beginPath();
+    ctx.moveTo(loc.x + 8, y);
+    ctx.lineTo(loc.x + 8 + doorW, y);
+    ctx.stroke();
+  }
+
+  ctx.fillStyle = PALETTE.schoolSign;
+  ctx.fillRect(px(loc.x + loc.w - 34), loc.y + roofH + 6, 26, 10);
+
+  ctx.fillStyle = loc.color;
+  ctx.fillRect(loc.x, loc.y + loc.h - 5, loc.w, 5);
+
+  drawTag(ctx, loc, roofH);
+}
+
+/** The Ballpark: a field, not a building — grass, a dirt diamond, a
+ * bleacher row and two floodlight poles. No wall to glitch or tag; this
+ * isn't claiming a corporate-clean surface any more than a camera is. */
+function drawBallpark(ctx: CanvasRenderingContext2D, loc: OverworldLocation) {
+  ctx.fillStyle = PALETTE.fieldGrass;
+  ctx.fillRect(loc.x, loc.y, loc.w, loc.h);
+  ctx.fillStyle = PALETTE.fieldGrassAlt;
+  for (let y = loc.y; y < loc.y + loc.h; y += 12) {
+    for (let x = loc.x + (((y - loc.y) / 12) % 2) * 12; x < loc.x + loc.w; x += 24) {
+      ctx.fillRect(x, y, 12, 12);
+    }
+  }
+
+  const cx = loc.x + loc.w * 0.42;
+  const cy = loc.y + loc.h * 0.6;
+  const r = Math.min(loc.w, loc.h) * 0.3;
+  ctx.fillStyle = PALETTE.dirt;
+  ctx.beginPath();
+  ctx.moveTo(cx, cy - r);
+  ctx.lineTo(cx + r, cy);
+  ctx.lineTo(cx, cy + r);
+  ctx.lineTo(cx - r, cy);
+  ctx.closePath();
+  ctx.fill();
+  ctx.strokeStyle = PALETTE.dirtLine;
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(cx, cy - r);
+  ctx.lineTo(cx + r, cy);
+  ctx.moveTo(cx, cy - r);
+  ctx.lineTo(cx - r, cy);
+  ctx.stroke();
+
+  ctx.fillStyle = PALETTE.bleacherDark;
+  ctx.fillRect(loc.x, loc.y, loc.w, 10);
+  ctx.fillStyle = PALETTE.bleacher;
+  ctx.fillRect(loc.x, loc.y, loc.w, 4);
+
+  ctx.fillStyle = PALETTE.bleacherDark;
+  ctx.fillRect(px(loc.x + 6), loc.y - 20, 2, 30);
+  ctx.fillRect(px(loc.x + loc.w - 8), loc.y - 20, 2, 30);
+  ctx.fillStyle = PALETTE.floodlight;
+  ctx.fillRect(px(loc.x + 2), loc.y - 22, 10, 4);
+  ctx.fillRect(px(loc.x + loc.w - 12), loc.y - 22, 10, 4);
+}
+
+/** Sal's: a striped awning over the entrance and a round sign above the
+ * roofline — the two tells of a corner pizza place, on an otherwise
+ * ordinary Language A box. */
+function drawPizza(ctx: CanvasRenderingContext2D, loc: OverworldLocation, tier: ThresholdTier) {
+  const roofH = 10;
+  ctx.fillStyle = PALETTE.curb;
+  ctx.fillRect(loc.x - 2, loc.y + loc.h - 1, loc.w + 4, 3);
+
+  ctx.fillStyle = PALETTE.wallA;
+  ctx.fillRect(loc.x, loc.y + roofH, loc.w, loc.h - roofH);
+  ctx.fillStyle = PALETTE.roofA;
+  ctx.fillRect(loc.x + 3, loc.y, loc.w - 6, roofH);
+
+  const awnW = loc.w * 0.6;
+  const awnX = loc.x + loc.w / 2 - awnW / 2;
+  const stripes = 5;
+  for (let i = 0; i < stripes; i++) {
+    ctx.fillStyle = i % 2 === 0 ? PALETTE.awningRed : PALETTE.awningWhite;
+    ctx.fillRect(px(awnX + (i * awnW) / stripes), loc.y + roofH, awnW / stripes, 6);
+  }
+
+  drawWindows(ctx, loc, false);
+
+  ctx.fillStyle = PALETTE.signRed;
+  ctx.beginPath();
+  ctx.arc(px(loc.x + loc.w * 0.78), loc.y - 4, 6, 0, Math.PI * 2);
+  ctx.fill();
+
+  ctx.fillStyle = loc.color;
+  ctx.fillRect(loc.x, loc.y + loc.h - 5, loc.w, 5);
+
+  drawGlitchTear(ctx, loc, tier, roofH);
+}
+
+/** The Arcade: a glowing marquee sign over the door doing the work a row of
+ * windows does everywhere else, and the windows that remain stay dark —
+ * screens inside, not daylight, which is most of the appeal. */
+function drawArcade(ctx: CanvasRenderingContext2D, loc: OverworldLocation, tier: ThresholdTier) {
+  const roofH = 10;
+  ctx.fillStyle = PALETTE.curb;
+  ctx.fillRect(loc.x - 2, loc.y + loc.h - 1, loc.w + 4, 3);
+
+  ctx.fillStyle = PALETTE.wallA;
+  ctx.fillRect(loc.x, loc.y + roofH, loc.w, loc.h - roofH);
+  ctx.fillStyle = PALETTE.roofA;
+  ctx.fillRect(loc.x + 3, loc.y, loc.w - 6, roofH);
+
+  const mW = loc.w * 0.8;
+  const mX = loc.x + loc.w / 2 - mW / 2;
+  ctx.fillStyle = PALETTE.marqueeBody;
+  ctx.fillRect(px(mX), loc.y + roofH + 2, mW, 10);
+  ctx.fillStyle = PALETTE.marqueeGlow;
+  ctx.fillRect(px(mX + 3), loc.y + roofH + 4, mW - 6, 4);
+  const rand = noise(`arcade:${loc.id}`);
+  const bulbs = Math.floor(mW / 6);
+  for (let i = 0; i < bulbs; i++) {
+    ctx.fillStyle = rand() < 0.8 ? PALETTE.marqueeBulb : PALETTE.bgWindowDark;
+    ctx.fillRect(px(mX + i * 6 + 1), loc.y + roofH + 1, 2, 2);
+  }
+
+  ctx.fillStyle = PALETTE.windowDark;
+  ctx.fillRect(px(loc.x + 6), loc.y + roofH + 16, loc.w - 12, loc.h - roofH - 22);
+
+  ctx.fillStyle = loc.color;
+  ctx.fillRect(loc.x, loc.y + loc.h - 5, loc.w, 5);
+
+  drawGlitchTear(ctx, loc, tier, roofH);
+}
+
+/**
+ * The Treehouse — the flagship of the fill-out pass: a trunk and a canopy
+ * (the same two-disc trick `drawTree` uses for the obstacle version), a
+ * platform nested inside it with plank seams, a lit window standing in for
+ * the blurb's beach-towel roof corner, and a rope ladder down to the
+ * ground. Nothing here is a building with a different paint job.
+ */
+function drawTreehouse(ctx: CanvasRenderingContext2D, loc: OverworldLocation, tier: ThresholdTier) {
+  const cx = loc.x + loc.w / 2;
+  const groundY = loc.y + loc.h;
+
+  const trunkW = Math.max(6, loc.w * 0.12);
+  ctx.fillStyle = PALETTE.treeTrunk;
+  ctx.fillRect(px(cx - trunkW / 2), loc.y, trunkW, loc.h);
+
+  const r = loc.w * 0.55;
+  const canopyCy = loc.y + loc.h * 0.28;
+  ctx.fillStyle = PALETTE.treeCanopyDark;
+  ctx.beginPath();
+  ctx.arc(cx, canopyCy, r, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.fillStyle = PALETTE.treeCanopy;
+  ctx.beginPath();
+  ctx.arc(cx - r * 0.25, canopyCy - r * 0.2, r * 0.7, 0, Math.PI * 2);
+  ctx.fill();
+
+  const platW = loc.w * 0.7;
+  const platH = loc.h * 0.3;
+  const platY = loc.y + loc.h * 0.42;
+  ctx.fillStyle = PALETTE.plankDark;
+  ctx.fillRect(px(cx - platW / 2), platY, platW, platH);
+  ctx.fillStyle = PALETTE.plank;
+  ctx.fillRect(px(cx - platW / 2), platY, platW, 4);
+  ctx.strokeStyle = PALETTE.plankDark;
+  ctx.lineWidth = 1;
+  for (let x = cx - platW / 2 + 6; x < cx + platW / 2; x += 8) {
+    ctx.beginPath();
+    ctx.moveTo(px(x), platY + 4);
+    ctx.lineTo(px(x), platY + platH);
+    ctx.stroke();
+  }
+
+  // The beach towel doing the job of a roof, read as a lit corner square —
+  // the blurb's own line, drawn rather than described.
+  ctx.fillStyle = PALETTE.windowLit;
+  ctx.fillRect(px(cx + platW / 2 - 12), platY + 6, 8, 8);
+
+  ctx.strokeStyle = PALETTE.rope;
+  ctx.lineWidth = 1;
+  const ladderX = cx - platW / 2 + 6;
+  ctx.beginPath();
+  ctx.moveTo(px(ladderX - 3), platY + platH);
+  ctx.lineTo(px(ladderX - 3), groundY);
+  ctx.moveTo(px(ladderX + 3), platY + platH);
+  ctx.lineTo(px(ladderX + 3), groundY);
+  for (let y = platY + platH + 4; y < groundY; y += 6) {
+    ctx.moveTo(px(ladderX - 3), y);
+    ctx.lineTo(px(ladderX + 3), y);
+  }
+  ctx.stroke();
+
+  drawGlitchTear(ctx, loc, tier, 0);
 }
 
 /**
