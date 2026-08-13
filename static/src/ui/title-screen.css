@@ -1,15 +1,27 @@
 .title {
+  position: relative;
+  overflow: hidden;
   height: 100%;
   min-height: 100vh;
   min-height: 100dvh;
   display: flex;
-  flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: calc(var(--step) * 2);
-  padding: calc(var(--step) * 3);
   text-align: center;
   transition: background-color 260ms steps(3, end), color 260ms steps(3, end);
+}
+
+/* Everything a player actually reads, above the veneer/crack/surveillance
+   layers (all `position: absolute`, painted first in source order so this
+   z-index is the only thing keeping them underneath). */
+.title__content {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: calc(var(--step) * 2);
+  padding: calc(var(--step) * 3);
 }
 
 /* LANGUAGE A: soft, cool, frictionless — an onboarding screen that means well. */
@@ -46,6 +58,117 @@
   color: var(--b-paper);
   text-shadow: 3px 3px 0 var(--b-red), -2px -1px 0 var(--b-spot); /* misregistration */
   transform: rotate(-1.2deg);
+}
+
+/*
+ * The shiny veneer — a diagonal highlight that sweeps across the screen
+ * once while Language A still holds, the way a product-launch slide or an
+ * onboarding screen gets a gloss pass to read as new and safe. It runs once
+ * on mount and stops; a looping shine would turn "polished" into "screen
+ * saver". Under reduced motion it just sits at its mid-sweep position,
+ * still legible as gloss rather than as motion.
+ */
+.title__gloss {
+  position: absolute;
+  inset: -20% -40%;
+  z-index: 0;
+  background: linear-gradient(
+    115deg,
+    transparent 40%,
+    rgba(220, 230, 242, 0.16) 48%,
+    rgba(220, 230, 242, 0.28) 50%,
+    rgba(220, 230, 242, 0.16) 52%,
+    transparent 60%
+  );
+  transform: translateX(-35%);
+  animation: title-gloss-sweep 2.6s ease-out 1;
+  pointer-events: none;
+}
+
+@keyframes title-gloss-sweep {
+  0% { transform: translateX(-35%); }
+  60%, 100% { transform: translateX(35%); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .title__gloss {
+    animation: none;
+    transform: translateX(0);
+  }
+}
+
+/* The surveillance underneath — a CCTV-grain scanline field, only once
+   Language B has taken the screen. The dot-grid `.title--claimed` already
+   paints is the misregistration texture every Language B surface gets;
+   this is the new, title-only tell that what broke through is a camera
+   feed, not just a rougher print. */
+.title__scanlines {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  background: repeating-linear-gradient(
+    to bottom,
+    rgba(236, 226, 208, 0.05) 0,
+    rgba(236, 226, 208, 0.05) 1px,
+    transparent 1px,
+    transparent 3px
+  );
+  pointer-events: none;
+}
+
+/* A camera's own HUD frame — four corner brackets, like the reticle a
+   viewfinder draws over whatever it's pointed at. Bellhaven's watching the
+   title screen too, is the joke. */
+.title__viewfinder {
+  position: absolute;
+  inset: calc(var(--step) * 2);
+  z-index: 0;
+  pointer-events: none;
+}
+
+.title__viewfinder span {
+  position: absolute;
+  width: 16px;
+  height: 16px;
+  border: 2px solid rgba(236, 226, 208, 0.4);
+}
+
+.title__viewfinder span:nth-child(1) { top: 0; left: 0; border-right: none; border-bottom: none; }
+.title__viewfinder span:nth-child(2) { top: 0; right: 0; border-left: none; border-bottom: none; }
+.title__viewfinder span:nth-child(3) { bottom: 0; left: 0; border-right: none; border-top: none; }
+.title__viewfinder span:nth-child(4) { bottom: 0; right: 0; border-left: none; border-top: none; }
+
+/* The recording light — the same red the rest of Language B is cut in,
+   blinking on a slow, deliberate beat rather than a frantic one; this
+   isn't an alarm, it's a status light that's simply always been on. */
+.title__rec {
+  position: absolute;
+  top: calc(var(--step) * 2);
+  right: calc(var(--step) * 2);
+  z-index: 0;
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--font-a);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  color: rgba(236, 226, 208, 0.6);
+  pointer-events: none;
+}
+
+.title__rec-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--b-red);
+  animation: title-rec-blink 2.4s steps(1, end) infinite;
+}
+
+@keyframes title-rec-blink {
+  0%, 45% { opacity: 1; }
+  50%, 100% { opacity: 0.15; }
 }
 
 .title__tag {
