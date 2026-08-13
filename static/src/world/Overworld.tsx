@@ -38,15 +38,22 @@ import { Market } from '../ui/Market';
 import { play } from '../systems/audio';
 import './overworld.css';
 
-const SPEED = 110; // world units per second
+/**
+ * On foot, deliberately slow — a walk should feel like the thing you're
+ * trying to get off of, not a perfectly fine way to cover the map. A first
+ * board tier roughly gets a player back to what walking used to feel like;
+ * everything past that is the actual payoff.
+ */
+const SPEED = 80; // world units per second
 /**
  * Walking (index 0, implicit — nothing to look up) up through the Hoverboard
  * at tier 5. `boardTier` (systems/market.ts) reads which one's owned; this is
- * purely the speed curve, indexed board-tier 1 to array index 0. Tops out
- * well past the old car's flat 2×, since a hoverboard is the whole payoff of
- * the build-up, not the same number the corner shop always sold.
+ * purely the speed curve, indexed board-tier 1 to array index 0. Steeper than
+ * the old curve on purpose, off a lower walking base: each tier has to read
+ * as a real jump, not a rounding error, for the slower walk above to actually
+ * feel like it's building toward something.
  */
-const BOARD_SPEED: readonly number[] = [1.25, 1.45, 1.7, 2.0, 2.4];
+const BOARD_SPEED: readonly number[] = [1.4, 1.7, 2.1, 2.6, 3.2];
 /** Sprint, on foot only — a board already covers "faster" once you own one.
  * Real movement expression instead of pure point-to-point transit: Shift,
  * or the touch Run button, for as long as it's held. */
