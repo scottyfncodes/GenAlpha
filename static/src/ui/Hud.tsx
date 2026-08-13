@@ -5,6 +5,10 @@ import { useGame, useSave } from '../state/GameContext';
 import { tierLabel, TIER_ORDER } from '../systems/heat';
 import { progressOf } from '../systems/mentors';
 import { MENTORS } from '../content/mentors';
+import { owns } from '../systems/market';
+import { CYBERDECK } from '../content/economy';
+import { canHackStreetNode } from '../systems/streethacks';
+import { STREET_HACK_NODES } from '../world/streethacks';
 import './hud.css';
 
 /**
@@ -24,7 +28,10 @@ export function Hud({
   onOpenPhone: () => void;
 }) {
   const save = useSave();
-  const { dispatch, deleteSave, heatAlertUntil } = useGame();
+  const { dispatch, deleteSave, heatAlertUntil, nearbyHackNodeId, setCyberdeckOpen } = useGame();
+  const hasCyberdeck = owns(save, CYBERDECK);
+  const nearbyHackNode = nearbyHackNodeId ? STREET_HACK_NODES.find((n) => n.id === nearbyHackNodeId) : undefined;
+  const cyberdeckBlinking = hasCyberdeck && Boolean(nearbyHackNode) && canHackStreetNode(save, nearbyHackNode!);
   const [open, setOpen] = useState(false);
   const [heatInfo, setHeatInfo] = useState(false);
   const { current, threshold_tier } = save.heat;
@@ -108,6 +115,22 @@ export function Hud({
         <button className="hud__toggle" onClick={onOpenPhone}>
           Phone
         </button>
+        {/* The cyberdeck's own button, separate from the phone the moment
+            there's a reason for it to exist — Once built (`content/materials.ts`
+            `craft_cyberdeck`), it's the one door into cracking an ATM or a
+            phone line (Cyberdeck.tsx). It blinks exactly when Overworld's own
+            proximity check says something in reach is actually hackable right
+            now, mirrored up through GameContext's `nearbyHackNodeId` — the
+            same "shown, not silent" rule Heat System guardrail 2 already
+            applies to cost: the game says so before the player has to guess. */}
+        {hasCyberdeck && (
+          <button
+            className={`hud__toggle hud__toggle--cyberdeck ${cyberdeckBlinking ? 'hud__toggle--blink' : ''}`}
+            onClick={() => setCyberdeckOpen(true)}
+          >
+            Cyberdeck
+          </button>
+        )}
         {/* Only offered once there is somebody on it. Before the first mentor
             it would be an empty screen explaining that you're on your own,
             which the game is already saying perfectly well without a button. */}

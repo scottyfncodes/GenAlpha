@@ -22,7 +22,7 @@ import { tickSafehouses } from '../systems/safehouse';
 import { drain } from '../systems/heist';
 import { collectHidden, craft, sabotageCamera, sellMaterial } from '../systems/materials';
 import { applyCatch } from '../systems/consequences';
-import { resolveStreetHack } from '../systems/streethacks';
+import { resolveStreetHack, type HackLevel } from '../systems/streethacks';
 import type { SabotageActionId } from '../world/collectibles';
 import { HOME_LOCATION_ID } from '../world/locations';
 
@@ -61,7 +61,7 @@ type Action =
   | { type: 'SELL_MATERIAL'; itemId: string }
   | { type: 'CRAFT_ITEM'; recipeId: string }
   | { type: 'CAUGHT'; tier: ThresholdTier }
-  | { type: 'HACK_STREET_NODE'; nodeId: string; outcome: RunOutcome };
+  | { type: 'HACK_STREET_NODE'; nodeId: string; outcome: RunOutcome; level?: HackLevel };
 
 function reducer(state: SaveState | null, action: Action): SaveState | null {
   if (action.type === 'NEW_GAME') return createNewSave(action.name);
@@ -184,7 +184,7 @@ function reducer(state: SaveState | null, action: Action): SaveState | null {
      * run, the same Heat table as any other hack, no mission record. See
      * systems/streethacks.ts. */
     case 'HACK_STREET_NODE':
-      return resolveStreetHack(state, action.nodeId, action.outcome);
+      return resolveStreetHack(state, action.nodeId, action.outcome, action.level);
 
     /**
      * The drain writes cash, Heat history, town trust and the drained-wallet
@@ -236,6 +236,24 @@ interface GameApi {
    * same crossing the other computes — one source, read twice.
    */
   heatAlertUntil: number;
+  /**
+   * The street-hack node the player is standing next to right now, if any —
+   * `Overworld.tsx`'s own proximity check, mirrored up here so `Hud.tsx` can
+   * blink the cyberdeck button without a prop drilled down through `App.tsx`.
+   * An id rather than the node itself: `STREET_HACK_NODES` is static data,
+   * cheap to re-look-up, and an id is trivial to compare for the "did this
+   * actually change" check both Overworld and this need to make every frame.
+   */
+  nearbyHackNodeId: string | null;
+  setNearbyHackNodeId: (id: string | null) => void;
+  /**
+   * Whether the cyberdeck panel is open — lives here rather than as
+   * `Shell`'s own local state (the way `Phone`'s is) because both the HUD
+   * button and Overworld's own floating prompt need to open it, and neither
+   * is an ancestor of the other.
+   */
+  cyberdeckOpen: boolean;
+  setCyberdeckOpen: (open: boolean) => void;
 }
 
 const GameCtx = createContext<GameApi | null>(null);
@@ -296,9 +314,24 @@ export function GameProvider({ children }: { children: ReactNode }) {
     prevTierRef.current = tier;
   }, [save?.heat.threshold_tier]);
 
+  const [nearbyHackNodeId, setNearbyHackNodeId] = useState<string | null>(null);
+  const [cyberdeckOpen, setCyberdeckOpen] = useState(false);
+
   const value = useMemo<GameApi>(
-    () => ({ save, dispatch, newGame, continueGame, deleteSave, flag, heatAlertUntil }),
-    [save, newGame, continueGame, deleteSave, flag, heatAlertUntil],
+    () => ({
+      save,
+      dispatch,
+      newGame,
+      continueGame,
+      deleteSave,
+      flag,
+      heatAlertUntil,
+      nearbyHackNodeId,
+      setNearbyHackNodeId,
+      cyberdeckOpen,
+      setCyberdeckOpen,
+    }),
+    [save, newGame, continueGame, deleteSave, flag, heatAlertUntil, nearbyHackNodeId, cyberdeckOpen],
   );
 
   return <GameCtx.Provider value={value}>{children}</GameCtx.Provider>;

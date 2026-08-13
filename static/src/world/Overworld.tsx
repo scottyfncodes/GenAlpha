@@ -30,7 +30,6 @@ import { SAFEHOUSE_ID } from '../content/safehouse';
 import { ALL_SCENES } from '../content/all';
 import { pendingScenes, scenesAt, type Scene } from '../systems/scenes';
 import { SceneView } from '../ui/SceneView';
-import { StreetHackModal } from '../ui/StreetHackModal';
 import { STREET_HACK_INTERACT_RADIUS, STREET_HACK_NODES, type StreetHackNode } from './streethacks';
 import { canHackStreetNode } from '../systems/streethacks';
 import { drawTown } from './draw';
@@ -138,7 +137,7 @@ function patrolPosition(route: PatrolRoute, state: PatrolState): { x: number; y:
 export function Overworld() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const save = useSave();
-  const { dispatch, heatAlertUntil } = useGame();
+  const { dispatch, heatAlertUntil, setNearbyHackNodeId, setCyberdeckOpen, cyberdeckOpen } = useGame();
   const [nearby, setNearby] = useState<OverworldLocation | null>(null);
   const [open, setOpen] = useState<OverworldLocation | null>(null);
   /** A brief line when a hidden bush gives something up — same "shown, not
@@ -152,9 +151,6 @@ export function Overworld() {
    * there either way, same as a camera is; only whether the prompt is
    * clickable depends on the rig. */
   const [nearbyHack, setNearbyHack] = useState<StreetHackNode | null>(null);
-  /** The street hack actually running right now — its own overlay, same
-   * "held in state, not derived" reasoning as `active`. */
-  const [activeHack, setActiveHack] = useState<StreetHackNode | null>(null);
   /**
    * Held in state, not derived: a scene's own effects change the chapter part
    * way through, which would otherwise unmount the scene mid-read.
@@ -292,7 +288,7 @@ export function Overworld() {
   const patrolLingerRef = useRef<Map<string, number>>(new Map());
 
   enterRef.current = enter;
-  blockedRef.current = Boolean(open) || Boolean(activeHack);
+  blockedRef.current = Boolean(open) || cyberdeckOpen;
 
   // Movement + render loop.
   useEffect(() => {
@@ -451,6 +447,9 @@ export function Overworld() {
       if (closestHack?.id !== nearbyHackRef.current?.id) {
         nearbyHackRef.current = closestHack;
         setNearbyHack(closestHack);
+        // Mirrored into GameContext so the HUD's cyberdeck button can blink
+        // without Overworld having to reach up through App.tsx to do it.
+        setNearbyHackNodeId(closestHack?.id ?? null);
       }
 
       /*
@@ -715,18 +714,18 @@ export function Overworld() {
           location wins, a camera wins over this, and only then does an ATM
           or a phone line get to offer itself. Disabled rather than hidden
           without a cyberdeck — the machine is right there, the reason you
-          can't touch it yet is the whole point of building one. */}
+          can't touch it yet is the whole point of building one. Cracking it
+          itself doesn't happen here anymore: this opens the cyberdeck, same
+          as the HUD's own (blinking) button does — one door either way. */}
       {!nearby && !nearbyCamera && nearbyHack && !open && (
         <button
           className="overworld__prompt overworld__prompt--hack"
           disabled={!canHackStreetNode(save, nearbyHack)}
-          onClick={() => setActiveHack(nearbyHack)}
+          onClick={() => setCyberdeckOpen(true)}
         >
-          {nearbyHack.label} · {canHackStreetNode(save, nearbyHack) ? 'Crack it' : 'Needs a cyberdeck'}
+          {nearbyHack.label} · {canHackStreetNode(save, nearbyHack) ? 'Open cyberdeck' : 'Needs a cyberdeck'}
         </button>
       )}
-
-      {activeHack && <StreetHackModal node={activeHack} onClose={() => setActiveHack(null)} />}
 
       {active && <SceneView scene={active} onClose={leave} />}
 

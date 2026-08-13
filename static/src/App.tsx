@@ -6,6 +6,7 @@ import { Overworld } from './world/Overworld';
 import { SettingsPanel } from './ui/SettingsPanel';
 import { Crew } from './ui/Crew';
 import { Phone } from './ui/Phone';
+import { Cyberdeck } from './ui/Cyberdeck';
 import { Ending } from './ui/Ending';
 import { setMuted, startAmbient, stopAmbient } from './systems/audio';
 
@@ -24,7 +25,7 @@ const Workbench = import.meta.env.DEV
   : null;
 
 function Shell() {
-  const { save, newGame, continueGame } = useGame();
+  const { save, newGame, continueGame, cyberdeckOpen, setCyberdeckOpen } = useGame();
   const [workbench, setWorkbench] = useState(false);
   const [settings, setSettings] = useState(false);
   const [crew, setCrew] = useState(false);
@@ -84,6 +85,7 @@ function Shell() {
       {crew && <Crew onClose={() => setCrew(false)} />}
       {settings && <SettingsPanel onClose={() => setSettings(false)} />}
       {phone && <Phone onClose={() => setPhone(false)} />}
+      {cyberdeckOpen && <Cyberdeck onClose={() => setCyberdeckOpen(false)} />}
       {save.player.currentChapter === 'ending' && !endingSeen && (
         <Ending onDismiss={() => setEndingSeen(true)} />
       )}

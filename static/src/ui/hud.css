@@ -104,6 +104,20 @@
   font-family: var(--font-mono);
 }
 
+/* The cyberdeck button, blinking exactly while something in reach is
+   actually hackable — a real signal, not ambient decoration, so it stops
+   the instant `nearbyHackNodeId` clears rather than running on a timer. */
+.hud__toggle--cyberdeck.hud__toggle--blink {
+  animation: hud-cyberdeck-blink 1s steps(1, end) infinite;
+  border-color: var(--b-orange);
+  color: var(--b-orange);
+}
+
+@keyframes hud-cyberdeck-blink {
+  0%, 49% { background: rgba(230, 160, 40, 0.35); }
+  50%, 100% { background: rgba(16, 14, 13, 0.72); }
+}
+
 .hud__debug {
   background: rgba(16, 14, 13, 0.9);
   border: 1px solid var(--b-orange);
