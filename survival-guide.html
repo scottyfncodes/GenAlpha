@@ -264,6 +264,27 @@ table.ref-table th{color:var(--ink-faint); font-family:var(--font-mono); text-tr
 
 footer.appfoot{text-align:center; color:var(--ink-faint); font-family:var(--font-mono); font-size:.72rem; letter-spacing:.02em; padding:1.2rem 0 .4rem;}
 
+/* Live (online) features */
+.badge.live{background:var(--gold-dim); color:var(--gold-soft); box-shadow:inset 0 0 0 1px var(--gold-soft); margin-right:.5rem; vertical-align:middle;}
+.live-result{margin-top:.7rem;}
+.live-hint{color:var(--ink-faint); font-size:.85rem;}
+.live-loading{color:var(--gold-soft); font-family:var(--font-mono); font-size:.9rem; padding:.6rem 0;}
+.live-error{border:1px solid var(--severe); background:var(--severe-bg); color:var(--severe); border-radius:var(--radius); padding:.7rem 1rem; font-size:.92rem;}
+.qbtn-list a.qbtn{text-decoration:none;}
+
+/* Screen strobe (Signaling) */
+#strobe-overlay{
+  display:none; position:fixed; inset:0; z-index:999; background:#fff;
+  align-items:flex-end; justify-content:center; padding-bottom:8vh;
+}
+#strobe-overlay.active{display:flex;}
+#strobe-stop{
+  min-height:64px; min-width:180px; background:#000; color:#fff; border:4px solid #fff;
+  border-radius:var(--radius-lg); font-size:1.2rem; font-weight:900; letter-spacing:.06em;
+  font-family:var(--font-display); box-shadow:0 0 24px rgba(0,0,0,.5);
+}
+.strobe-controls{display:flex; gap:.7rem; flex-wrap:wrap; margin:.8rem 0;}
+
 @media (max-width:840px){
   #sidebar{
     position:fixed; left:0; top:0; height:100%; z-index:80; transform:translateX(-105%);
@@ -303,6 +324,9 @@ footer.appfoot{text-align:center; color:var(--ink-faint); font-family:var(--font
 <div id="app-shell">
   <nav id="sidebar" aria-label="Category navigation"></nav>
   <div id="sidebar-scrim"></div>
+  <div id="strobe-overlay" role="alert" aria-live="assertive">
+    <button id="strobe-stop" aria-label="Stop strobe">&#9632; STOP</button>
+  </div>
   <div style="flex:1; min-width:0; display:flex; flex-direction:column;">
     <header id="topbar">
       <button id="hamburger" aria-label="Open menu" aria-expanded="false">&#9776;</button>
@@ -317,7 +341,7 @@ footer.appfoot{text-align:center; color:var(--ink-faint); font-family:var(--font
       <button id="emergency-btn" data-go="triage:entry:start">&#9888; Emergency</button>
     </header>
     <main id="main" tabindex="-1"></main>
-    <footer class="appfoot no-print">100% offline &middot; no data leaves this device &middot; not a substitute for professional medical care or emergency services when available</footer>
+    <footer class="appfoot no-print">Fully usable offline &middot; the optional Connect &amp; Alerts tools use your location and a live connection only when you tap them &middot; not a substitute for professional medical care or emergency services when available</footer>
   </div>
 </div>
 <script>
@@ -331,7 +355,9 @@ var state = {
   units: "imperial",
   favorites: new Set(),
   checklists: {},
-  quiz: {order: null, idx:0, score:0, answered:0, done:false}
+  quiz: {order: null, idx:0, score:0, answered:0, done:false},
+  live: {weather:null, alerts:null, facilities:null, earthquakes:null, airquality:null},
+  strobeTimer: null, strobeMode: null
 };
 var FONT_SIZES = [16,18,21,25];
 var FONT_LABELS = ["S","M","L","XL"];
@@ -341,7 +367,17 @@ function lToGal(l){ return l/3.78541; }
 function fToC(f){ return (f-32)*5/9; }
 function cToF(c){ return c*9/5+32; }
 function miToKm(m){ return m*1.60934; }
+function kmToMi(k){ return k/1.60934; }
 function round1(n){ return Math.round(n*10)/10; }
+function haversineKm(lat1,lon1,lat2,lon2){
+  var R=6371, dLat=(lat2-lat1)*Math.PI/180, dLon=(lon2-lon1)*Math.PI/180;
+  var a=Math.sin(dLat/2)*Math.sin(dLat/2)+Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*Math.sin(dLon/2)*Math.sin(dLon/2);
+  return R*2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a));
+}
+function distLabel(km){
+  var v = state.units==="imperial" ? kmToMi(km) : km;
+  return round1(v)+" "+unitLabelDist();
+}
 
 /* ---------------- CATEGORY DEFINITIONS ---------------- */
 var CATEGORIES = [
@@ -360,7 +396,8 @@ var CATEGORIES = [
   {id:"pandemic", name:"Pandemic & Illness", ic:"&#128567;"},
   {id:"unrest", name:"Civil Unrest & Public Safety", ic:"&#128274;"},
   {id:"outages", name:"Power Outages", ic:"&#128268;"},
-  {id:"specialneeds", name:"Infants, Elderly & Pets", ic:"&#128118;"}
+  {id:"specialneeds", name:"Infants, Elderly & Pets", ic:"&#128118;"},
+  {id:"connect", name:"Connect & Alerts", ic:"&#128246;"}
 ];
 
 /* ---------------- FIRST AID TRIAGE FLOWS ---------------- */
@@ -691,6 +728,181 @@ var QUIZ_QUESTIONS = [
   {q:"When stranded in snow in a vehicle, the best move is usually to:", a:["Walk to find help immediately","Stay with the vehicle and run the engine briefly each hour for heat","Turn the engine off completely and stay silent"], correct:1}
 ];
 
+/* ---------------- LIVE DATA (online, opt-in only) ---------------- */
+var WMO_CODES = {
+  0:"Clear sky", 1:"Mainly clear", 2:"Partly cloudy", 3:"Overcast",
+  45:"Fog", 48:"Depositing rime fog",
+  51:"Light drizzle", 53:"Moderate drizzle", 55:"Dense drizzle",
+  56:"Light freezing drizzle", 57:"Dense freezing drizzle",
+  61:"Slight rain", 63:"Moderate rain", 65:"Heavy rain",
+  66:"Light freezing rain", 67:"Heavy freezing rain",
+  71:"Slight snow", 73:"Moderate snow", 75:"Heavy snow", 77:"Snow grains",
+  80:"Slight rain showers", 81:"Moderate rain showers", 82:"Violent rain showers",
+  85:"Slight snow showers", 86:"Heavy snow showers",
+  95:"Thunderstorm", 96:"Thunderstorm with hail", 99:"Thunderstorm with heavy hail"
+};
+function wmoDesc(code){ return WMO_CODES[code] || "Unknown conditions"; }
+function aqiCategory(aqi){
+  if(aqi<=50) return {label:"Good", sev:"mild"};
+  if(aqi<=100) return {label:"Moderate", sev:"mild"};
+  if(aqi<=150) return {label:"Unhealthy for sensitive groups", sev:"moderate"};
+  if(aqi<=200) return {label:"Unhealthy", sev:"severe"};
+  if(aqi<=300) return {label:"Very unhealthy", sev:"severe"};
+  return {label:"Hazardous", sev:"severe"};
+}
+function quakeSev(mag){ if(mag>=6) return "severe"; if(mag>=4.5) return "moderate"; return "mild"; }
+function timeAgo(ms){
+  var diff = Date.now()-ms, mins=Math.floor(diff/60000);
+  if(mins<1) return "just now";
+  if(mins<60) return mins+" min ago";
+  var hrs=Math.floor(mins/60);
+  if(hrs<24) return hrs+" hr ago";
+  return Math.floor(hrs/24)+" day(s) ago";
+}
+function getLocation(){
+  return new Promise(function(resolve,reject){
+    if(!navigator.geolocation){ reject(new Error("Location is not available in this browser.")); return; }
+    navigator.geolocation.getCurrentPosition(
+      function(pos){ resolve({lat:pos.coords.latitude, lon:pos.coords.longitude}); },
+      function(err){ reject(new Error("Location permission was denied or unavailable.")); },
+      {timeout:15000, maximumAge:300000}
+    );
+  });
+}
+function liveBox(id, loadingMsg){
+  return '<div class="live-result" id="'+id+'"><p class="live-hint">Tap the button above - this needs an internet connection and your device location.</p></div>';
+}
+function setLive(id, html){ var el=document.getElementById(id); if(el) el.innerHTML = html; }
+function liveError(id, msg){
+  setLive(id, '<div class="live-error">&#9888; '+esc(msg)+'</div>');
+}
+function friendlyErrMsg(err, fallback){
+  var m = err && err.message;
+  if(!m) return fallback;
+  if(m.indexOf("permission")!==-1 || m.indexOf("Location")!==-1) return m;
+  if(m.indexOf("service error")!==-1) return m;
+  return fallback;
+}
+function liveLoading(id){
+  setLive(id, '<div class="live-loading">Contacting server&hellip;</div>');
+}
+
+function runWeatherCheck(){
+  var id = "live-weather";
+  liveLoading(id);
+  getLocation().then(function(loc){
+    var tempUnit = state.units==="imperial" ? "fahrenheit" : "celsius";
+    var windUnit = state.units==="imperial" ? "mph" : "kmh";
+    var url = "https://api.open-meteo.com/v1/forecast?latitude="+loc.lat+"&longitude="+loc.lon+
+      "&current=temperature_2m,relative_humidity_2m,apparent_temperature,precipitation,weather_code,wind_speed_10m,wind_gusts_10m"+
+      "&temperature_unit="+tempUnit+"&wind_speed_unit="+windUnit+"&timezone=auto";
+    return fetch(url).then(function(r){ if(!r.ok) throw new Error("Weather service error"); return r.json(); }).then(function(data){
+      var c = data.current;
+      var html = '<div class="calc-output"><div class="out-grid">'+
+        '<div><div class="big-num">'+Math.round(c.temperature_2m)+'&deg;'+(state.units==="imperial"?"F":"C")+'</div><div class="lbl">temperature</div></div>'+
+        '<div><div class="big-num">'+Math.round(c.apparent_temperature)+'&deg;'+(state.units==="imperial"?"F":"C")+'</div><div class="lbl">feels like</div></div>'+
+        '<div><div class="big-num">'+Math.round(c.wind_speed_10m)+' '+(state.units==="imperial"?"mph":"km/h")+'</div><div class="lbl">wind</div></div>'+
+        '<div><div class="big-num">'+Math.round(c.relative_humidity_2m)+'%</div><div class="lbl">humidity</div></div>'+
+        '</div><p style="margin-top:.6rem">'+esc(wmoDesc(c.weather_code))+'</p></div>';
+      return fetch("https://api.weather.gov/alerts/active?point="+loc.lat+","+loc.lon)
+        .then(function(r2){ return r2.ok ? r2.json() : {features:[]}; })
+        .catch(function(){ return {features:[]}; })
+        .then(function(alertData){
+          var feats = alertData.features || [];
+          if(feats.length){
+            html += '<h3>Active alerts</h3>';
+            feats.slice(0,8).forEach(function(f){
+              var p = f.properties;
+              var sev = p.severity==="Extreme"||p.severity==="Severe" ? "severe" : p.severity==="Moderate" ? "moderate" : "mild";
+              html += '<div class="result-card '+sev+'"><span class="badge '+sev+'">'+esc(p.severity||"Alert")+'</span><h3>'+esc(p.event)+'</h3><p>'+esc(p.areaDesc||"")+'</p></div>';
+            });
+          } else {
+            html += '<p class="live-hint">No active NWS alerts for this location (US only - other regions will always show none here).</p>';
+          }
+          setLive(id, html);
+        });
+    });
+  }).catch(function(err){ liveError(id, friendlyErrMsg(err, "Could not fetch live weather. Check your connection.")); });
+}
+
+function runFacilitiesCheck(){
+  var id = "live-facilities";
+  liveLoading(id);
+  getLocation().then(function(loc){
+    var q = "[out:json][timeout:20];(node[\"amenity\"=\"hospital\"](around:8000,"+loc.lat+","+loc.lon+");way[\"amenity\"=\"hospital\"](around:8000,"+loc.lat+","+loc.lon+");node[\"amenity\"=\"police\"](around:8000,"+loc.lat+","+loc.lon+");way[\"amenity\"=\"police\"](around:8000,"+loc.lat+","+loc.lon+");node[\"amenity\"=\"fire_station\"](around:8000,"+loc.lat+","+loc.lon+");way[\"amenity\"=\"fire_station\"](around:8000,"+loc.lat+","+loc.lon+");node[\"amenity\"=\"pharmacy\"](around:8000,"+loc.lat+","+loc.lon+");way[\"amenity\"=\"pharmacy\"](around:8000,"+loc.lat+","+loc.lon+"););out center tags;";
+    return fetch("https://overpass-api.de/api/interpreter", {method:"POST", body:"data="+encodeURIComponent(q)})
+      .then(function(r){ if(!r.ok) throw new Error("Facility lookup service error"); return r.json(); })
+      .then(function(data){
+        var icons = {hospital:"&#127973;", police:"&#128110;", fire_station:"&#128658;", pharmacy:"&#128138;"};
+        var items = (data.elements||[]).map(function(el){
+          var lat = el.lat || (el.center && el.center.lat);
+          var lon = el.lon || (el.center && el.center.lon);
+          if(lat==null || lon==null) return null;
+          var tags = el.tags || {};
+          var addrParts = [tags["addr:housenumber"], tags["addr:street"], tags["addr:city"]].filter(Boolean);
+          return {
+            name: tags.name || ("Unnamed "+(tags.amenity||"facility")),
+            type: tags.amenity, icon: icons[tags.amenity] || "&#128205;",
+            phone: tags.phone || tags["contact:phone"] || null,
+            addr: addrParts.join(" "),
+            km: haversineKm(loc.lat, loc.lon, lat, lon), lat:lat, lon:lon
+          };
+        }).filter(Boolean).sort(function(a,b){ return a.km-b.km; }).slice(0,18);
+        if(!items.length){ setLive(id, '<p class="live-hint">No facilities found in this radius via OpenStreetMap data - try again nearer a populated area.</p>'); return; }
+        var html = '<div class="qbtn-list">'+items.map(function(it){
+          return '<a class="qbtn" href="https://www.google.com/maps/dir/?api=1&destination='+it.lat+','+it.lon+'" target="_blank" rel="noopener">'+
+            '<span>'+it.icon+' <b>'+esc(it.name)+'</b><br><span class="live-hint">'+esc(it.addr||"")+(it.phone?" &middot; "+esc(it.phone):"")+'</span></span>'+
+            '<span class="arrow">'+distLabel(it.km)+'</span></a>';
+        }).join("")+'</div>';
+        setLive(id, html);
+      });
+  }).catch(function(err){ liveError(id, friendlyErrMsg(err, "Could not look up nearby facilities. Check your connection.")); });
+}
+
+function runEarthquakeCheck(){
+  var id = "live-quakes";
+  liveLoading(id);
+  getLocation().then(function(loc){ runEarthquakeFetch(id, loc); })
+    .catch(function(){ runEarthquakeFetch(id, null); });
+}
+function runEarthquakeFetch(id, loc){
+  fetch("https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/significant_week.geojson")
+    .then(function(r){ if(!r.ok) throw new Error("USGS service error"); return r.json(); })
+    .then(function(data){
+      var feats = (data.features||[]).map(function(f){
+        var coords = f.geometry.coordinates;
+        var km = loc ? haversineKm(loc.lat, loc.lon, coords[1], coords[0]) : null;
+        return {mag:f.properties.mag, place:f.properties.place, time:f.properties.time, url:f.properties.url, km:km};
+      });
+      if(loc) feats.sort(function(a,b){ return a.km-b.km; }); else feats.sort(function(a,b){ return b.time-a.time; });
+      feats = feats.slice(0,10);
+      if(!feats.length){ setLive(id, '<p class="live-hint">No significant earthquakes reported in the past week.</p>'); return; }
+      var html = feats.map(function(f){
+        var sev = quakeSev(f.mag||0);
+        return '<div class="result-card '+sev+'"><span class="badge '+sev+'">M '+(f.mag!=null?f.mag.toFixed(1):"?")+'</span>'+
+          '<h3>'+esc(f.place||"Unknown location")+'</h3>'+
+          '<p>'+timeAgo(f.time)+(f.km!=null?' &middot; '+distLabel(f.km)+' away':'')+' &middot; <a href="'+esc(f.url)+'" target="_blank" rel="noopener">USGS details</a></p></div>';
+      }).join("");
+      setLive(id, html);
+    }).catch(function(err){ liveError(id, friendlyErrMsg(err, "Could not fetch earthquake data. Check your connection.")); });
+}
+
+function runAirQualityCheck(){
+  var id = "live-aqi";
+  liveLoading(id);
+  getLocation().then(function(loc){
+    var url = "https://air-quality-api.open-meteo.com/v1/air-quality?latitude="+loc.lat+"&longitude="+loc.lon+"&current=us_aqi,pm2_5,pm10";
+    return fetch(url).then(function(r){ if(!r.ok) throw new Error("Air quality service error"); return r.json(); }).then(function(data){
+      var c = data.current || {};
+      var aqi = Math.round(c.us_aqi);
+      var cat = aqiCategory(aqi);
+      var html = '<div class="result-card '+cat.sev+'"><span class="badge '+cat.sev+'">'+esc(cat.label)+'</span><h3>US AQI '+aqi+'</h3>'+
+        '<p>PM2.5: '+round1(c.pm2_5)+' &micro;g/m&sup3; &middot; PM10: '+round1(c.pm10)+' &micro;g/m&sup3;</p></div>';
+      setLive(id, html);
+    });
+  }).catch(function(err){ liveError(id, friendlyErrMsg(err, "Could not fetch air quality. Check your connection.")); });
+}
+
 /* ---------------- RENDER HELPERS ---------------- */
 function esc(s){ return String(s).replace(/[&<>]/g, function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;"}[c];}); }
 function favKey(k){ return state.favorites.has(k); }
@@ -722,6 +934,7 @@ function unitLabelDist(){ return state.units==="imperial" ? "mi" : "km"; }
 /* ---------------- VIEWS ---------------- */
 function go(route, opts){
   opts = opts || {};
+  stopStrobe();
   if(opts.push !== false){ state.history.push(state.route); }
   state.route = route;
   render();
@@ -775,7 +988,8 @@ function catBlurb(id){
     pandemic:"Stockpiling, infection control, isolation basics, and when to seek care.",
     unrest:"Situational awareness, home security, communication blackouts, and active threats.",
     outages:"Food safety, safe heat and light, and backup power for medical needs.",
-    specialneeds:"Prep for infants, elderly and mobility needs, and pets."
+    specialneeds:"Prep for infants, elderly and mobility needs, and pets.",
+    connect:"Live weather, nearby facilities, and quakes when you have signal - plus offline emergency contacts."
   };
   return m[id]||"";
 }
@@ -1015,6 +1229,15 @@ function renderSignal(){
     GROUND_SIGNALS.map(function(g){return '<tr><td style="font-weight:800; font-size:1.1rem">'+g.sym+'</td><td>'+esc(g.meaning)+'</td></tr>';}).join("")+
     '</table><p>Make symbols large (at least 10 ft / 3 m) using rocks, logs, trampled vegetation, or dug trenches so they are visible from the air.</p>';
   html += '<h3>General tips</h3><ul><li>Straight lines, right angles, and bright colors rarely occur in nature - they draw the eye.</li><li>Movement and contrast attract attention faster than a static object.</li><li>Sound and light travel farther at night and in calm, still air.</li></ul>';
+  html += '</div>';
+
+  html += '<div class="section"><h2>&#128241; Screen Strobe / SOS Flashlight</h2>';
+  html += '<p>Uses your screen as a signal light. Works fully offline - no permissions, no network. Set your screen brightness to maximum first for the best range.</p>';
+  html += '<div class="strobe-controls">'+
+    '<button class="btn primary" data-strobe="strobe">&#128163; Steady Strobe</button>'+
+    '<button class="btn primary" data-strobe="sos">&#128225; SOS Pattern</button>'+
+  '</div>';
+  html += renderWarning("Before you use this", ["Flashes rapidly - avoid this feature if you are photosensitive or have epilepsy.","A large STOP button stays on screen the whole time to end it instantly."]);
   html += '</div>';
   return html;
 }
@@ -1398,6 +1621,73 @@ function renderSpecialNeeds(){
   return html;
 }
 
+/* ---- Connect & Alerts ---- */
+var EMERGENCY_NUMBERS = [
+  {region:"United States &amp; Canada", num:"911"},
+  {region:"European Union (all member states)", num:"112"},
+  {region:"United Kingdom", num:"999 or 112"},
+  {region:"Australia", num:"000"},
+  {region:"New Zealand", num:"111"},
+  {region:"India", num:"112"},
+  {region:"Mexico", num:"911"},
+  {region:"Japan", num:"110 (police), 119 (fire/ambulance)"},
+  {region:"China", num:"110 (police), 119 (fire), 120 (ambulance)"},
+  {region:"Brazil", num:"190 (police), 192 (ambulance), 193 (fire)"}
+];
+var EMERGENCY_ORGS = [
+  {name:"American Red Cross", contact:"1-800-733-2767 (1-800-RED-CROSS)", note:"Disaster relief and shelter information. Their Emergency app can be downloaded in advance and used offline."},
+  {name:"FEMA Disaster Assistance (US)", contact:"1-800-621-3362, or text 43362 (4FEMA)", note:"Federal disaster assistance registration and information."},
+  {name:"Poison Control (US)", contact:"1-800-222-1222", note:"Routes to your regional poison control center automatically."},
+  {name:"211 (US &amp; Canada)", contact:"Dial 2-1-1", note:"Free helpline for local non-emergency health and human services."},
+  {name:"Disaster Distress Helpline (US)", contact:"1-800-985-5990, or text TalkWithUs to 66746", note:"Crisis counseling for anyone experiencing distress related to a disaster."}
+];
+function renderConnect(){
+  var html = '<div class="breadcrumb"><button data-go="home">&larr; Home</button></div>';
+  html += '<div class="section"><h2>&#128246; Connect &amp; Alerts</h2>';
+  html += '<p>Most of this guide works with zero signal by design. The tools below are the exception - they only run when you tap them, and they need an internet connection and (for most of them) permission to use your device location. Nothing is sent anywhere unless you tap one of these buttons.</p>';
+  html += '<div class="jump-row">'+
+    '<a class="jump-chip" href="#cn-weather">Live Weather</a>'+
+    '<a class="jump-chip" href="#cn-facilities">Nearby Facilities</a>'+
+    '<a class="jump-chip" href="#cn-quakes">Earthquakes &amp; Air Quality</a>'+
+    '<a class="jump-chip" href="#cn-numbers">Emergency Numbers</a>'+
+    '<a class="jump-chip" href="#cn-orgs">Relief Organizations</a>'+
+  '</div></div>';
+
+  html += '<div class="section" id="cn-weather"><h2><span class="badge live">Live</span> Weather &amp; Alerts</h2>';
+  html += '<p>Current conditions plus any active US National Weather Service alerts for your location.</p>';
+  html += '<button class="btn primary" id="btn-weather">&#127780; Check Current Weather</button>';
+  html += liveBox("live-weather");
+  html += '</div>';
+
+  html += '<div class="section" id="cn-facilities"><h2><span class="badge live">Live</span> Nearby Emergency Facilities</h2>';
+  html += '<p>Finds nearby hospitals, police, fire stations, and pharmacies using OpenStreetMap data, sorted by distance, with directions.</p>';
+  html += '<button class="btn primary" id="btn-facilities">&#128205; Find Nearby Facilities</button>';
+  html += liveBox("live-facilities");
+  html += '</div>';
+
+  html += '<div class="section" id="cn-quakes"><h2><span class="badge live">Live</span> Earthquakes &amp; Air Quality</h2>';
+  html += '<p>Recent significant earthquakes worldwide (USGS) and current air quality at your location - useful during wildfire smoke.</p>';
+  html += '<div class="secondary-row"><button class="btn primary" id="btn-quakes">&#127757; Check Recent Earthquakes</button><button class="btn primary" id="btn-aqi">&#127786; Check Air Quality</button></div>';
+  html += '<h3>Earthquakes</h3>'+liveBox("live-quakes");
+  html += '<h3>Air quality</h3>'+liveBox("live-aqi");
+  html += '</div>';
+
+  html += '<div class="section" id="cn-numbers"><h2>&#9742; Emergency Numbers by Region</h2>';
+  html += '<p>Works fully offline - this is a static reference, not a live lookup.</p>';
+  html += '<table class="ref-table"><tr><th>Region</th><th>Number</th></tr>'+
+    EMERGENCY_NUMBERS.map(function(e){ return '<tr><td>'+e.region+'</td><td class="mono">'+e.num+'</td></tr>'; }).join("")+
+    '</table>';
+  html += '<p style="margin-top:.6rem">On many mobile phones, dialing <b>112</b> reaches local emergency services as a built-in carrier failsafe, even in regions where it is not the primary number. This list is not exhaustive and numbers can change - verify locally when you have signal.</p>';
+  html += '</div>';
+
+  html += '<div class="section" id="cn-orgs"><h2>&#128735; Relief Organizations</h2>';
+  html += '<p>Works fully offline. Widely known, stable contact points worth having before you need them.</p>';
+  html += '<div class="qr-grid">'+
+    EMERGENCY_ORGS.map(function(o){ return '<div class="qr-card"><h4>'+o.name+'</h4><p class="mono">'+o.contact+'</p><p>'+o.note+'</p></div>'; }).join("")+
+    '</div></div>';
+  return html;
+}
+
 /* ---- Quiz ---- */
 function shuffle(arr){ var a=arr.slice(); for(var i=a.length-1;i>0;i--){ var j=Math.floor(Math.random()*(i+1)); var t=a[i]; a[i]=a[j]; a[j]=t; } return a; }
 function renderQuiz(){
@@ -1425,7 +1715,7 @@ function renderQuiz(){
 
 /* ---------------- MAIN RENDER ---------------- */
 function renderCategory(id){
-  var fns = {firstaid:renderFirstAidCat, water:renderWater, shelter:renderShelter, fire:renderFire, nav:renderNav, signal:renderSignal, weather:renderWeather, wildlife:renderWildlife, vehicle:renderVehicle, longterm:renderLongTerm, disasters:renderDisasters, home:renderHomeSurvival, pandemic:renderPandemic, unrest:renderUnrest, outages:renderOutages, specialneeds:renderSpecialNeeds};
+  var fns = {firstaid:renderFirstAidCat, water:renderWater, shelter:renderShelter, fire:renderFire, nav:renderNav, signal:renderSignal, weather:renderWeather, wildlife:renderWildlife, vehicle:renderVehicle, longterm:renderLongTerm, disasters:renderDisasters, home:renderHomeSurvival, pandemic:renderPandemic, unrest:renderUnrest, outages:renderOutages, specialneeds:renderSpecialNeeds, connect:renderConnect};
   return fns[id] ? fns[id]() : "<p>Not found.</p>";
 }
 
@@ -1495,6 +1785,13 @@ document.addEventListener("click", function(e){
   if(qretry){ state.quiz.order=null; render(); return; }
   var pbtn = e.target.closest("#print-btn");
   if(pbtn){ window.print(); return; }
+  if(e.target.closest("#btn-weather")){ runWeatherCheck(); return; }
+  if(e.target.closest("#btn-facilities")){ runFacilitiesCheck(); return; }
+  if(e.target.closest("#btn-quakes")){ runEarthquakeCheck(); return; }
+  if(e.target.closest("#btn-aqi")){ runAirQualityCheck(); return; }
+  var strobeBtn = e.target.closest("[data-strobe]");
+  if(strobeBtn){ startStrobe(strobeBtn.getAttribute("data-strobe")); return; }
+  if(e.target.closest("#strobe-stop")){ stopStrobe(); return; }
 });
 
 /* favorites list items use data-go="fav:key" mapping - patch renderFavList to use goFav */
@@ -1662,6 +1959,12 @@ function buildSearchIndex(){
   idx("Infants, Elderly & Pets","Elderly and mobility needs","medication wheelchair hearing aid glasses",{view:"category",cat:"specialneeds"});
   idx("Infants, Elderly & Pets","Pets","food carrier leash microchip vaccination shelter",{view:"category",cat:"specialneeds"});
   idx("Infants, Elderly & Pets","Other disabilities","mobility aids communication devices service animal",{view:"category",cat:"specialneeds"});
+  idx("Connect & Alerts","Live weather and alerts","forecast temperature wind NWS current conditions",{view:"category",cat:"connect"});
+  idx("Connect & Alerts","Nearby emergency facilities","hospital police fire station pharmacy directions map",{view:"category",cat:"connect"});
+  idx("Connect & Alerts","Earthquakes and air quality","USGS AQI PM2.5 smoke",{view:"category",cat:"connect"});
+  idx("Connect & Alerts","Emergency numbers by region","911 112 999 000 phone",{view:"category",cat:"connect"});
+  idx("Connect & Alerts","Relief organizations","Red Cross FEMA poison control 211",{view:"category",cat:"connect"});
+  idx("Signaling","Screen strobe SOS flashlight","flash light visibility signal offline",{view:"category",cat:"signal"});
 }
 
 var searchInput = document.getElementById("search-input");
@@ -1692,8 +1995,44 @@ document.addEventListener("click", function(e){
   if(!e.target.closest("#search-wrap")){ searchResults.classList.remove("show"); }
 });
 document.addEventListener("keydown", function(e){
-  if(e.key === "Escape"){ searchResults.classList.remove("show"); closeSidebar(); }
+  if(e.key === "Escape"){ searchResults.classList.remove("show"); closeSidebar(); stopStrobe(); }
 });
+
+/* ---------------- SCREEN STROBE ---------------- */
+function buildSosSequence(unit){
+  var seq = [];
+  function dot(){ seq.push([unit,true]); seq.push([unit,false]); }
+  function dash(){ seq.push([unit*3,true]); seq.push([unit,false]); }
+  dot();dot();dot(); seq[seq.length-1][0]=unit*3;
+  dash();dash();dash(); seq[seq.length-1][0]=unit*3;
+  dot();dot();dot(); seq[seq.length-1][0]=unit*7;
+  return seq;
+}
+function playSosStep(seq, idx, overlay){
+  if(state.strobeMode !== "sos") return;
+  var step = seq[idx % seq.length];
+  overlay.style.background = step[1] ? "#fff" : "#000";
+  state.strobeTimer = setTimeout(function(){ playSosStep(seq, idx+1, overlay); }, step[0]);
+}
+function playStrobeStep(overlay, on){
+  if(state.strobeMode !== "strobe") return;
+  overlay.style.background = on ? "#fff" : "#000";
+  state.strobeTimer = setTimeout(function(){ playStrobeStep(overlay, !on); }, 300);
+}
+function startStrobe(mode){
+  stopStrobe();
+  state.strobeMode = mode;
+  var overlay = document.getElementById("strobe-overlay");
+  overlay.classList.add("active");
+  if(mode === "sos"){ playSosStep(buildSosSequence(200), 0, overlay); }
+  else { playStrobeStep(overlay, true); }
+}
+function stopStrobe(){
+  state.strobeMode = null;
+  if(state.strobeTimer){ clearTimeout(state.strobeTimer); state.strobeTimer = null; }
+  var overlay = document.getElementById("strobe-overlay");
+  if(overlay){ overlay.classList.remove("active"); overlay.style.background = ""; }
+}
 
 /* ---------------- INIT ---------------- */
 buildSearchIndex();
