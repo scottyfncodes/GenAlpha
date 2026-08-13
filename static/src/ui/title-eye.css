@@ -1,0 +1,59 @@
+.title__eye {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 0;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 900ms ease-out;
+}
+
+/* A slow fade rather than the crack's hard cut — the crack is glass
+   breaking, this is something noticing it's been seen looking. Unsettling
+   reads slower, not faster. */
+.title__eye.is-open {
+  opacity: 1;
+}
+
+.title__eye-lid {
+  fill: none;
+  stroke: var(--b-paper);
+  stroke-width: 1.4;
+  opacity: 0.5;
+}
+
+.title__eye-iris {
+  fill: var(--b-red);
+  opacity: 0.28;
+}
+
+.title__eye-pupil {
+  fill: var(--b-ink);
+  opacity: 0.9;
+}
+
+.title__eye-main {
+  animation: title-eye-dilate 6s ease-in-out infinite;
+  transform-origin: 150px 220px;
+}
+
+.title__eye-small {
+  opacity: 0.55;
+}
+
+/* A slow, shallow dilation on the main eye only — barely a pulse, just
+   enough that it doesn't read as a static decal painted on the screen. */
+@keyframes title-eye-dilate {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.08); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .title__eye {
+    transition: none;
+  }
+  .title__eye-main {
+    animation: none;
+  }
+}

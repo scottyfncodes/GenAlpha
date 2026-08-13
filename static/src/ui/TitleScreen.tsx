@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Glitch } from './Glitch';
 import { GenAMark } from './GenAMark';
 import { TitleCrack } from './TitleCrack';
+import { TitleEye } from './TitleEye';
 import { hasSave } from '../state/persistence';
 import { backupNameFor, collidingCharacter } from '../systems/names';
 import './title-screen.css';
@@ -42,6 +43,7 @@ export function TitleScreen({ onStart, onContinue }: { onStart: (name: string) =
           decorative only. */}
       {stage !== 'claimed' && <div className="title__gloss" aria-hidden="true" />}
       <TitleCrack visible={stage !== 'official'} />
+      <TitleEye visible={stage !== 'official'} />
       {stage === 'claimed' && (
         <>
           <div className="title__scanlines" aria-hidden="true" />
@@ -85,9 +87,12 @@ export function TitleScreen({ onStart, onContinue }: { onStart: (name: string) =
           </h1>
         </Glitch>
 
-        <p className="title__tag">
-          {stage === 'claimed' ? 'Bellhaven is being watched. So is whoever’s doing the watching.' : 'Bellhaven Community Safety Initiative'}
-        </p>
+        {/* Language A got a line explaining what it thinks it is; Language B
+            doesn't get one — the crack, the eye and the scanlines already
+            said it, and a caption under them would be the one thing this
+            screen isn't allowed to do (Style Guide 07: noticed, not
+            explained). */}
+        {stage !== 'claimed' && <p className="title__tag">Bellhaven Community Safety Initiative</p>}
 
         {stage === 'claimed' && (
           <div className="title__menu">
