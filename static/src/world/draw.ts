@@ -49,6 +49,7 @@ const PALETTE = {
   windowLit: '#f0c07a',
   windowDark: '#2a3242',
   warmGlow: 'rgba(240, 160, 60, 0.10)',
+  hereGlow: 'rgba(236, 226, 208, 0.12)',
   curb: '#272e3a',
   crack: 'rgba(20, 24, 32, 0.35)',
   lampPost: '#232935',
@@ -647,28 +648,28 @@ function drawGlow(ctx: CanvasRenderingContext2D, loc: OverworldLocation) {
  * as a school, per the fill-out note that a town of identical boxes with a
  * different colour band underneath doesn't actually look like anything.
  * `'building'` (missing/unrecognised too, defensively) falls back to the
- * original plain box every location used to render as. The "you are here"
- * outline is centralised here rather than in each shape, since it's the same
- * bounding-box rectangle regardless of what's drawn inside it — except a
- * camera, which keeps its own tighter ring around the small box it actually
- * draws.
+ * original plain box every location used to render as. The "you're close
+ * enough to act on this" tell is a soft glow underneath the shape rather
+ * than an outline traced on top of it — one glow shape works for every
+ * silhouette instead of needing bespoke tracing per building type, and it
+ * reads as "this place is lit up" rather than "this place is selected".
  */
 function drawLocation(ctx: CanvasRenderingContext2D, loc: OverworldLocation, isHere: boolean, tier: ThresholdTier) {
+  if (isHere && loc.render !== 'camera') drawHereGlow(ctx, loc);
+
   switch (loc.render) {
     case 'camera':
       drawCamera(ctx, loc, isHere);
       return;
     case 'house':
       drawHouse(ctx, loc, tier);
-      drawHouseOutline(ctx, loc, isHere);
-      return;
+      break;
     case 'school':
       drawSchool(ctx, loc, tier);
       break;
     case 'library':
       drawLibrary(ctx, loc, tier);
-      drawLibraryOutline(ctx, loc, isHere);
-      return;
+      break;
     case 'plaza':
       drawPlaza(ctx, loc);
       break;
@@ -689,81 +690,28 @@ function drawLocation(ctx: CanvasRenderingContext2D, loc: OverworldLocation, isH
       break;
     case 'treehouse':
       drawTreehouse(ctx, loc, tier);
-      drawTreehouseOutline(ctx, loc, isHere);
-      return;
+      break;
     default:
       drawBuilding(ctx, loc, tier);
   }
-  drawHereOutline(ctx, loc, isHere);
 }
 
-function drawHereOutline(ctx: CanvasRenderingContext2D, loc: OverworldLocation, isHere: boolean) {
-  if (!isHere) return;
-  ctx.strokeStyle = PALETTE.spriteShirt;
-  ctx.lineWidth = 2;
-  ctx.strokeRect(loc.x - 2, loc.y - 2, loc.w + 4, loc.h + 4);
-}
+/** A soft halo centred on the location, same layered-rings trick `drawGlow`
+ * uses for a resistance place's ambient warmth: several same-alpha circles,
+ * largest first, so they stack additively into a glow that's brightest at
+ * the centre and falls off softly at the edge — no hard edge to clip a
+ * roofline, unlike the outline this replaced. */
+function drawHereGlow(ctx: CanvasRenderingContext2D, loc: OverworldLocation) {
+  const cx = px(loc.x + loc.w / 2);
+  const cy = px(loc.y + loc.h / 2);
+  const baseR = Math.max(loc.w, loc.h) / 2;
 
-/** The "you are here" outline for a house: it has to follow the pitched roof
- * — apex above the box, eaves overhanging past the walls on both sides —
- * instead of a rectangle that clips the peak and floats past the eaves. */
-function drawHouseOutline(ctx: CanvasRenderingContext2D, loc: OverworldLocation, isHere: boolean) {
-  if (!isHere) return;
-  const roofH = Math.round(loc.h * 0.34);
-  const bodyY = loc.y + roofH;
-  const overhang = 6;
-  const apexX = loc.x + loc.w / 2;
-
-  ctx.strokeStyle = PALETTE.spriteShirt;
-  ctx.lineWidth = 2;
-  ctx.beginPath();
-  ctx.moveTo(px(loc.x - overhang - 1), px(bodyY + 2));
-  ctx.lineTo(px(loc.x - 2), px(bodyY + 2));
-  ctx.lineTo(px(loc.x - 2), px(loc.y + loc.h + 2));
-  ctx.lineTo(px(loc.x + loc.w + 2), px(loc.y + loc.h + 2));
-  ctx.lineTo(px(loc.x + loc.w + 2), px(bodyY + 2));
-  ctx.lineTo(px(loc.x + loc.w + overhang + 1), px(bodyY + 2));
-  ctx.lineTo(px(apexX), px(loc.y - 2));
-  ctx.closePath();
-  ctx.stroke();
-}
-
-/** Same idea for the library's pediment — the outline climbs to the same
- * apex the triangle actually draws to instead of squaring it off. */
-function drawLibraryOutline(ctx: CanvasRenderingContext2D, loc: OverworldLocation, isHere: boolean) {
-  if (!isHere) return;
-  const roofH = 16;
-
-  ctx.strokeStyle = PALETTE.spriteShirt;
-  ctx.lineWidth = 2;
-  ctx.beginPath();
-  ctx.moveTo(px(loc.x - 2), px(loc.y + roofH));
-  ctx.lineTo(px(loc.x + loc.w / 2), px(loc.y - 2));
-  ctx.lineTo(px(loc.x + loc.w + 2), px(loc.y + roofH));
-  ctx.lineTo(px(loc.x + loc.w + 2), px(loc.y + loc.h + 2));
-  ctx.lineTo(px(loc.x - 2), px(loc.y + loc.h + 2));
-  ctx.closePath();
-  ctx.stroke();
-}
-
-/** And the treehouse: a round canopy sitting over a narrower trunk/platform
- * column, not a box — a ring around the canopy plus a stroke around the
- * platform reads as "this round thing plus this narrow thing" instead of
- * one rectangle neither part actually fills. */
-function drawTreehouseOutline(ctx: CanvasRenderingContext2D, loc: OverworldLocation, isHere: boolean) {
-  if (!isHere) return;
-  const cx = loc.x + loc.w / 2;
-  const r = loc.w * 0.55;
-  const canopyCy = loc.y + loc.h * 0.28;
-  const platW = loc.w * 0.7;
-  const platY = loc.y + loc.h * 0.42;
-
-  ctx.strokeStyle = PALETTE.spriteShirt;
-  ctx.lineWidth = 2;
-  ctx.beginPath();
-  ctx.arc(px(cx), px(canopyCy), r + 2, 0, Math.PI * 2);
-  ctx.stroke();
-  ctx.strokeRect(px(cx - platW / 2) - 2, px(platY) - 2, platW + 4, loc.y + loc.h - platY + 4);
+  ctx.fillStyle = PALETTE.hereGlow;
+  for (let ring = 4; ring > 0; ring--) {
+    ctx.beginPath();
+    ctx.arc(cx, cy, baseR + ring * 7, 0, Math.PI * 2);
+    ctx.fill();
+  }
 }
 
 /**
