@@ -16,10 +16,17 @@
  * obstacle itself is drawn exactly like any other bush — nothing marks it —
  * and it is quietly excluded from collision (Overworld.tsx) so walking into
  * it is possible at all, which is the only tell there ever is.
+ *
+ * A find is a material, cash, or (rarely) both — `itemId`/`cash` are both
+ * optional and independent so a pickup can be either without the other
+ * needing a placeholder value. `quantity` defaults to 1; only the rare
+ * finds (a Mag-Lift coil, more than one battery) bother setting it.
  */
 export interface HiddenPickup {
   obstacleId: string;
-  itemId: string;
+  itemId?: string;
+  quantity?: number;
+  cash?: number;
   respawnDays: number;
 }
 
@@ -29,6 +36,20 @@ export const HIDDEN_PICKUPS: HiddenPickup[] = [
   { obstacleId: 'filler_10', itemId: 'copper_wire', respawnDays: 2 },
   { obstacleId: 'filler_12', itemId: 'salvaged_board', respawnDays: 3 },
   { obstacleId: 'filler_16', itemId: 'spare_battery', respawnDays: 3 },
+  // The fill-out pass: more variety, spread wide, including the board and
+  // deck lines' own rarer parts and a few pure cash finds — not everything
+  // in a bush has to be a part.
+  { obstacleId: 'filler_45', itemId: 'skate_bearings', quantity: 2, respawnDays: 3 },
+  { obstacleId: 'filler_46', itemId: 'skate_bearings', respawnDays: 3 },
+  { obstacleId: 'filler_47', itemId: 'salvaged_motor', respawnDays: 5 },
+  { obstacleId: 'filler_48', itemId: 'mag_coil', respawnDays: 8 },
+  { obstacleId: 'filler_49', itemId: 'encrypted_drive', respawnDays: 5 },
+  { obstacleId: 'filler_50', itemId: 'encrypted_drive', respawnDays: 5 },
+  { obstacleId: 'filler_51', cash: 25, respawnDays: 4 },
+  { obstacleId: 'filler_52', cash: 40, respawnDays: 5 },
+  { obstacleId: 'filler_53', cash: 15, respawnDays: 3 },
+  { obstacleId: 'filler_54', itemId: 'cracked_chipset', respawnDays: 4 },
+  { obstacleId: 'filler_55', itemId: 'salvaged_board', respawnDays: 3 },
 ];
 
 /** The obstacle ids `HIDDEN_PICKUPS` names, precomputed so Overworld.tsx can

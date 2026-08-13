@@ -32,6 +32,11 @@ export interface BuildTraceArgs {
   /** missions[id].hardened — a burned target is tighter next time. */
   hardened?: number;
   bankedIntel?: number[];
+  /** `systems/market.ts` `deckTier` — the fifth build doesn't unlock a new
+   * kind of target the way tiers 1–4 do, so it pays for itself here instead:
+   * +1 pulse, the same shape the hacking skill's own tier-2 bonus already
+   * uses, stacking with it rather than replacing it. */
+  deckTier?: number;
 }
 
 export function buildTraceConfig(args: BuildTraceArgs): TraceConfig {
@@ -48,7 +53,7 @@ export function buildTraceConfig(args: BuildTraceArgs): TraceConfig {
       6,
       tier.traceCounterBudget + budgetNudge(args.heatTier) * 2 - hardened * 2,
     ),
-    pulses: tier.pulses + (args.skillTier >= 2 ? 1 : 0),
+    pulses: tier.pulses + (args.skillTier >= 2 ? 1 : 0) + ((args.deckTier ?? 0) >= 5 ? 1 : 0),
     /**
      * Seeded on the mission alone, never on `hardened`. A target that hardens
      * is the same building with tighter security, not a different building —
@@ -91,6 +96,8 @@ export interface BuildCipherArgs {
   heatTier: ThresholdTier;
   /** missions[id].hardened — a burned target tightens the guess budget next time. */
   hardened?: number;
+  /** See `BuildTraceArgs.deckTier` — same +1 bonus, guesses instead of pulses. */
+  deckTier?: number;
 }
 
 export function buildCipherConfig(args: BuildCipherArgs): CipherConfig {
@@ -104,7 +111,11 @@ export function buildCipherConfig(args: BuildCipherArgs): CipherConfig {
     baseGuessBudget: tier.guessBudget,
     guessBudget: Math.max(
       4,
-      tier.guessBudget + budgetNudge(args.heatTier) - hardened + (args.skillTier >= 2 ? 1 : 0),
+      tier.guessBudget +
+        budgetNudge(args.heatTier) -
+        hardened +
+        (args.skillTier >= 2 ? 1 : 0) +
+        ((args.deckTier ?? 0) >= 5 ? 1 : 0),
     ),
     // Seeded on the mission alone — same reasoning as Trace: a hardened
     // target is the same code, just a shorter leash to find it within.

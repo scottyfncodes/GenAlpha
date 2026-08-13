@@ -83,19 +83,91 @@ export const ITEMS: GoodsItem[] = [
     lastsUntilNextDay: true,
     effect: 'Until tomorrow, the easy tools don’t leave your name on anything.',
   },
+  /*
+   * The board line — walking, then five tiers up to a hoverboard. Each tier
+   * is a real item, not a stat that quietly increases: `craft_board_2`
+   * (content/materials.ts) consumes the tier-1 board as one of its own
+   * inputs, so upgrading is trading the old one in, not stacking. Buyable at
+   * the market too, same "the same money bought on the corner as it did
+   * built from parts" rule the Beater used to state — the market never sold
+   * tier skips, just this tier's parts already assembled.
+   */
   {
-    itemId: 'beater_car',
-    name: 'The Beater',
-    basePrice: 650,
+    itemId: 'board_1',
+    name: 'Scrap Deck',
+    basePrice: 120,
     category: 'gear',
-    effect: 'Runs. Doubles your speed on the street — the same money bought on the corner as it did built from parts.',
+    effect: 'Four wheels and a board that used to be a fence panel. Faster than your own feet, barely.',
   },
   {
-    itemId: 'cyberdeck',
-    name: 'The Cyberdeck',
-    basePrice: 300,
+    itemId: 'board_2',
+    name: 'Rebuilt Deck',
+    basePrice: 220,
     category: 'gear',
-    effect: 'Yours, not borrowed from a library terminal. Opens up whatever on the street still has a chip in it worth reading.',
+    effect: 'Real bearings instead of whatever was in the scrap bin. Rolls like it means it now.',
+  },
+  {
+    itemId: 'board_3',
+    name: 'Motorized Deck',
+    basePrice: 380,
+    category: 'gear',
+    effect: 'A salvaged motor bolted where your back foot goes. You steer; it does the work.',
+  },
+  {
+    itemId: 'board_4',
+    name: 'Prototype Hoverboard',
+    basePrice: 600,
+    category: 'gear',
+    effect: 'Three inches of clearance and a whine that never quite stops. Unstable. Also: it works.',
+  },
+  {
+    itemId: 'board_5',
+    name: 'The Hoverboard',
+    basePrice: 900,
+    category: 'gear',
+    effect: 'Whatever was wrong with the prototype, it isn’t wrong anymore. Bellhaven has never seen you move like this.',
+  },
+  /*
+   * The deck line — the same "own the next tier, not the last one" shape as
+   * the board. Each tier isn't just faster puzzles: it's what the rig can
+   * physically reach (`systems/market.ts` `deckTier`, `systems/streethacks.ts`
+   * `HACK_KIND_MIN_TIER`) — a burner deck can tap a payphone line and
+   * nothing else, whatever the player's own hacking skill says.
+   */
+  {
+    itemId: 'cyberdeck_1',
+    name: 'Burner Deck',
+    basePrice: 150,
+    category: 'gear',
+    effect: 'Reads a payphone line. That’s the whole feature list, and it’s enough to start.',
+  },
+  {
+    itemId: 'cyberdeck_2',
+    name: 'Patched Deck',
+    basePrice: 260,
+    category: 'gear',
+    effect: 'Enough current behind it to talk to a kiosk ATM without frying either of you.',
+  },
+  {
+    itemId: 'cyberdeck_3',
+    name: 'Cracked Deck',
+    basePrice: 420,
+    category: 'gear',
+    effect: 'Reads a FLACK housing now, not just a call box. Helio’s own network, from the outside.',
+  },
+  {
+    itemId: 'cyberdeck_4',
+    name: 'Ghost Deck',
+    basePrice: 650,
+    category: 'gear',
+    effect: 'Quiet enough to sit inside a building’s own systems without it noticing you’re there.',
+  },
+  {
+    itemId: 'cyberdeck_5',
+    name: 'The Cyberdeck',
+    basePrice: 950,
+    category: 'gear',
+    effect: 'Everything the last four builds were practice for. Whatever still has a chip in it, this reads it.',
   },
 ];
 
@@ -112,8 +184,10 @@ export const BURNER_PHONE = 'burner_phone';
 export const CLEAN_SIM = 'clean_sim';
 export const FORGED_ID = 'forged_id';
 export const INTEL_TIP = 'intel_tip';
-export const BEATER_CAR = 'beater_car';
-export const CYBERDECK = 'cyberdeck';
+/** Ordered low to high — index 0 is tier 1. `systems/market.ts`'s
+ * `boardTier`/`deckTier` read these to find the highest tier currently owned. */
+export const BOARD_TIERS = ['board_1', 'board_2', 'board_3', 'board_4', 'board_5'] as const;
+export const DECK_TIERS = ['cyberdeck_1', 'cyberdeck_2', 'cyberdeck_3', 'cyberdeck_4', 'cyberdeck_5'] as const;
 
 /** Heat a burner takes off a digital job. Small: it's an edge, not a bypass. */
 export const BURNER_HEAT_RELIEF = 2;

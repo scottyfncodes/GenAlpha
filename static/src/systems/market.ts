@@ -7,8 +7,10 @@ import type {
   ThresholdTier,
 } from '../state/schema';
 import {
+  BOARD_TIERS,
   BURNER_HEAT_RELIEF,
   BURNER_PHONE,
+  DECK_TIERS,
   ITEMS,
   ITEMS_BY_ID,
   MARKET_EVENTS,
@@ -163,6 +165,38 @@ export function quantityOf(save: SaveState, itemId: string): number {
 
 export function owns(save: SaveState, itemId: string): boolean {
   return quantityOf(save, itemId) > 0;
+}
+
+/**
+ * Highest tier owned in an ordered trade-up line (`BOARD_TIERS`/`DECK_TIERS`,
+ * content/economy.ts) — 0 if none. Each upgrade recipe consumes the tier
+ * below it, so a player can never hold two at once in practice, but this
+ * takes the max rather than assuming that to stay correct even if a save
+ * somehow ends up holding more than one (a hand-edited save, a future
+ * gifting path — cheap insurance against a assumption nothing enforces at
+ * the type level).
+ */
+function highestTierOwned(save: SaveState, tiers: readonly string[]): number {
+  let highest = 0;
+  for (let i = 0; i < tiers.length; i++) {
+    if (owns(save, tiers[i])) highest = i + 1;
+  }
+  return highest;
+}
+
+/** Walking (0) up to the Hoverboard (5). Drives both the movement speed
+ * multiplier (Overworld.tsx) and the board sprite drawn under the player's
+ * feet (world/draw.ts). */
+export function boardTier(save: SaveState): number {
+  return highestTierOwned(save, BOARD_TIERS);
+}
+
+/** No deck (0) up to the Cyberdeck (5). Gates which *kind* of target a hack
+ * can even reach (`systems/streethacks.ts` `HACK_KIND_MIN_TIER`) — a
+ * separate axis from the Quick/Standard/Deep level picked once a target is
+ * actually in reach. */
+export function deckTier(save: SaveState): number {
+  return highestTierOwned(save, DECK_TIERS);
 }
 
 /** Adds to inventory, merging with an existing stack. Also the reward path. */

@@ -5,8 +5,7 @@ import { useGame, useSave } from '../state/GameContext';
 import { tierLabel, TIER_ORDER } from '../systems/heat';
 import { progressOf } from '../systems/mentors';
 import { MENTORS } from '../content/mentors';
-import { owns } from '../systems/market';
-import { CYBERDECK } from '../content/economy';
+import { deckTier } from '../systems/market';
 import { canHackStreetNode } from '../systems/streethacks';
 import { STREET_HACK_NODES } from '../world/streethacks';
 import './hud.css';
@@ -29,7 +28,7 @@ export function Hud({
 }) {
   const save = useSave();
   const { dispatch, deleteSave, heatAlertUntil, nearbyHackNodeId, setCyberdeckOpen } = useGame();
-  const hasCyberdeck = owns(save, CYBERDECK);
+  const hasCyberdeck = deckTier(save) > 0;
   const nearbyHackNode = nearbyHackNodeId ? STREET_HACK_NODES.find((n) => n.id === nearbyHackNodeId) : undefined;
   const cyberdeckBlinking = hasCyberdeck && Boolean(nearbyHackNode) && canHackStreetNode(save, nearbyHackNode!);
   const [open, setOpen] = useState(false);

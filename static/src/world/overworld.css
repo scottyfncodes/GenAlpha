@@ -12,28 +12,6 @@
   image-rendering: pixelated;
 }
 
-/*
- * Stacked above the joystick rather than anywhere near the top of the
- * screen — the HUD's direct children (`.glitch` wrapping the heat box,
- * `.hud__bar`) are flex items in a column layout and stretch to the HUD's
- * full width with `pointer-events: auto` regardless of how narrow they look,
- * silently eating clicks on anything placed under that strip. Below the
- * joystick's own footprint has no such ambient hit-box, on desktop or touch.
- */
-.overworld__drive {
-  position: absolute;
-  right: calc(var(--step) * 3);
-  bottom: calc(var(--step) * 19);
-  background: rgba(20, 17, 15, 0.55);
-  color: var(--b-paper);
-  border: 2px solid rgba(236, 226, 208, 0.45);
-  border-radius: 8px;
-  padding: 8px 14px;
-  font-family: var(--font-a);
-  font-weight: 700;
-  font-size: 13px;
-}
-
 /* Ambient warning, not a game-over screen: a patrol clocked you, Heat moved,
    and the line says so instead of the number just changing off-screen. Sits
    above the "look around" bubble so the two never compete for the same line. */

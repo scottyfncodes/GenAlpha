@@ -112,13 +112,27 @@ export const OBSTACLES: Obstacle[] = [
   { id: 'filler_32', x: 170, y: 100, w: 20, h: 40, kind: 'tree' },
   { id: 'filler_33', x: 330, y: 60, w: 20, h: 40, kind: 'tree' },
   { id: 'filler_34', x: 790, y: 110, w: 20, h: 40, kind: 'tree' },
-  { id: 'filler_35', x: 420, y: 280, w: 20, h: 40, kind: 'tree' },
-  { id: 'filler_36', x: 310, y: 420, w: 20, h: 40, kind: 'tree' },
-  { id: 'filler_38', x: 190, y: 640, w: 20, h: 40, kind: 'tree' },
   { id: 'filler_39', x: 780, y: 620, w: 20, h: 40, kind: 'tree' },
   { id: 'filler_40', x: 1030, y: 620, w: 20, h: 40, kind: 'tree' },
-  { id: 'filler_41', x: 1230, y: 560, w: 20, h: 40, kind: 'tree' },
   { id: 'filler_42', x: 180, y: 700, w: 75, h: 20, kind: 'hedge' },
   { id: 'filler_43', x: 470, y: 700, w: 90, h: 22, kind: 'hedge' },
   { id: 'filler_44', x: 900, y: 456, w: 30, h: 20, kind: 'rock' },
+
+  /*
+   * "Fun to discover" bushes — more hidden salvage, spread wide across every
+   * district rather than clustered, so cutting across town on a new board
+   * tier actually turns something up. See world/collectibles.ts
+   * HIDDEN_PICKUPS for what each one is hiding.
+   */
+  { id: 'filler_45', x: 300, y: 150, w: 16, h: 24, kind: 'bush' },
+  { id: 'filler_46', x: 460, y: 460, w: 16, h: 24, kind: 'bush' },
+  { id: 'filler_47', x: 1080, y: 322, w: 16, h: 20, kind: 'bush' },
+  { id: 'filler_48', x: 1220, y: 700, w: 16, h: 24, kind: 'bush' },
+  { id: 'filler_49', x: 980, y: 620, w: 16, h: 24, kind: 'bush' },
+  { id: 'filler_50', x: 460, y: 640, w: 16, h: 24, kind: 'bush' },
+  { id: 'filler_51', x: 60, y: 505, w: 16, h: 24, kind: 'bush' },
+  { id: 'filler_52', x: 700, y: 480, w: 16, h: 24, kind: 'bush' },
+  { id: 'filler_53', x: 1150, y: 200, w: 16, h: 24, kind: 'bush' },
+  { id: 'filler_54', x: 160, y: 600, w: 16, h: 24, kind: 'bush' },
+  { id: 'filler_55', x: 880, y: 700, w: 16, h: 24, kind: 'bush' },
 ];

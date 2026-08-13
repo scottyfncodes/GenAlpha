@@ -7,7 +7,7 @@ import {
   type CameraNode,
   type SabotageActionId,
 } from '../world/collectibles';
-import { addShdw, grantItem, owns, quantityOf, removeItem } from './market';
+import { addCash, addShdw, deckTier, grantItem, owns, quantityOf, removeItem } from './market';
 import { applyHeat } from './heat';
 
 /**
@@ -59,18 +59,28 @@ export function canCollectHidden(save: SaveState, obstacleId: string): boolean {
 }
 
 /** Walking into it is the whole interaction — no cost, no choice, just luck
- * of which bush it was. */
+ * of which bush it was. A find is a material, cash, or (rarely) both — the
+ * "more fun to discover" pass added the cash finds; a material-only pickup
+ * just leaves `cash` unset. */
 export function collectHidden(save: SaveState, obstacleId: string): SaveState {
   const pickup = HIDDEN_PICKUPS.find((p) => p.obstacleId === obstacleId);
   if (!pickup || !canCollectHidden(save, obstacleId)) return save;
-  return markCollected(grantItem(save, pickup.itemId, 1, 'found'), obstacleId);
+  let s = save;
+  if (pickup.itemId) s = grantItem(s, pickup.itemId, pickup.quantity ?? 1, 'found');
+  if (pickup.cash) s = addCash(s, pickup.cash);
+  return markCollected(s, obstacleId);
 }
 
-/** Whether a camera is currently standing — never sabotaged, or Helio's had
- * time to put a new one up. Whichever action took it down, all three are
- * unavailable together; the camera is either there or it isn't. */
+/**
+ * Whether a camera is currently standing — never sabotaged, or Helio's had
+ * time to put a new one up — *and* whether the player's own rig can reach
+ * one at all. Cameras are Helio's own network (FLACK housings), not a corner
+ * ATM; a deck has to be built up to tier 3 (`systems/streethacks.ts`
+ * `HACK_KIND_MIN_TIER`) before it can read one, same gate a street hack's
+ * `canHackStreetNode` applies to its own kinds.
+ */
 export function canSabotage(save: SaveState, node: CameraNode): boolean {
-  return !onCooldown(save, node.id, node.respawnDays);
+  return deckTier(save) >= 3 && !onCooldown(save, node.id, node.respawnDays);
 }
 
 /**

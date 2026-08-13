@@ -1,10 +1,28 @@
 import type { SaveState } from '../state/schema';
 import { STREET_HACK_NODES, type StreetHackNode } from '../world/streethacks';
-import { CYBERDECK } from '../content/economy';
-import { owns, addCash, heatReliefFor } from './market';
+import { addCash, deckTier, heatReliefFor } from './market';
 import { onCooldown, markCollected } from './materials';
 import { applyHeat } from './heat';
 import { heatFor, type RunOutcome } from './missions';
+
+/**
+ * What a rig has to be built up to before it can even reach a given kind of
+ * target — a separate axis from `HackLevel`'s Quick/Standard/Deep, which
+ * only matters once a target is already in reach. Payphones first (tier 1),
+ * then ATMs (tier 2); cameras (tier 3) are gated the same way but through
+ * `systems/materials.ts`'s `canSabotage` instead, since a camera dismantle
+ * isn't a `StreetHackNode` — and "building systems" (tier 4) last, before
+ * the fifth tier stops unlocking new kinds and just makes every hack easier
+ * (`content/hacking.ts` configs take a `deckTier` bonus the same shape the
+ * hacking skill tier's own +1 already uses).
+ */
+export const HACK_KIND_MIN_TIER: Record<StreetHackNode['kind'], number> = {
+  phone: 1,
+  atm: 2,
+  building: 4,
+};
+
+export const CAMERA_MIN_DECK_TIER = 3;
 
 /**
  * Street hacks are ambient overworld activity, not authored story missions —
@@ -57,10 +75,11 @@ export function effectiveTier(node: StreetHackNode, level: HackLevel): 1 | 2 | 3
   return Math.max(1, Math.min(4, node.tier + LEVEL_DELTA[level])) as 1 | 2 | 3 | 4;
 }
 
-/** Whether this node can be hit right now: the player owns a cyberdeck at
- * all, and Helio hasn't reset this particular machine yet. */
+/** Whether this node can be hit right now: the rig is built up to the tier
+ * this *kind* of target needs — not just any deck, per `HACK_KIND_MIN_TIER`
+ * — and Helio hasn't reset this particular machine yet. */
 export function canHackStreetNode(save: SaveState, node: StreetHackNode): boolean {
-  return owns(save, CYBERDECK) && !onCooldown(save, node.id, node.respawnDays);
+  return deckTier(save) >= HACK_KIND_MIN_TIER[node.kind] && !onCooldown(save, node.id, node.respawnDays);
 }
 
 export function resolveStreetHack(

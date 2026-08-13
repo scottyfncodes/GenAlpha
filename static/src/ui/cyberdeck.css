@@ -194,6 +194,31 @@
   margin: 0;
 }
 
+.cyberdeck__unlocks {
+  list-style: none;
+  margin: 8px 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 13px;
+}
+
+.cyberdeck__unlocks li {
+  opacity: 0.4;
+}
+
+.cyberdeck__unlocks li.is-unlocked {
+  opacity: 1;
+  color: var(--term-text);
+}
+
+.cyberdeck__unlocks li span {
+  font-size: 11px;
+  opacity: 0.7;
+  margin-left: 4px;
+}
+
 /*
  * Trace/Cipher/the briefing were all built for the scene view's full-width
  * stage (`width: min(460px, 94vw)`) — inside the cyberdeck's own ~380px-wide

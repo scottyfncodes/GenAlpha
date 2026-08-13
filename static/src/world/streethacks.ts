@@ -4,20 +4,23 @@ import type { SkinId } from '../content/skins';
  * Street hacks: the cyberdeck's whole reason to exist. A camera pays parts
  * because it's a piece of Helio's own network sitting right there on a pole;
  * these are the rest of the town's machines — a corner ATM, a payphone
- * nobody's cut the line to — cracked for quick cash instead. Same Trace/
- * Cipher mechanic every hacking mission in the game already uses, just
- * running loose in the world instead of behind a scene's dialogue, the same
- * way a camera's sabotage options run loose instead of behind one.
+ * nobody's cut the line to, a building's own systems once the rig can reach
+ * that deep — cracked for quick cash instead. Same Trace/Cipher mechanic
+ * every hacking mission in the game already uses, just running loose in the
+ * world instead of behind a scene's dialogue, the same way a camera's
+ * sabotage options run loose instead of behind one.
  *
- * Gated on owning a cyberdeck (`content/economy.ts` `CYBERDECK`) rather than
- * on a story flag — this is the player's own rig doing the player's own
- * jobs, not something a mentor unlocked for them.
+ * Gated per-kind on the deck's own tier (`systems/streethacks.ts`
+ * `HACK_KIND_MIN_TIER`) rather than on a story flag — this is the player's
+ * own rig doing the player's own jobs, not something a mentor unlocked for
+ * them, and which kinds it can reach is exactly how far up the build line it
+ * is.
  */
 export interface StreetHackNode {
   id: string;
   x: number;
   y: number;
-  kind: 'atm' | 'phone';
+  kind: 'atm' | 'phone' | 'building';
   /** Which of the two hacking feels this node plays as — a locked ATM PIN
    * is a Cipher in every way that matters; a phone line worth tapping is
    * closer to Trace's "read the network" framing. Mixed in either
@@ -38,6 +41,12 @@ export const STREET_HACK_NODES: StreetHackNode[] = [
   { id: 'phone_bandstand', x: 420, y: 490, kind: 'phone', variant: 'trace', tier: 1, skinId: 'resistance', label: 'Payphone — the bandstand', respawnDays: 4 },
   { id: 'phone_utility', x: 900, y: 120, kind: 'phone', variant: 'trace', tier: 2, skinId: 'resistance', label: 'Junction phone — Utility Yard', respawnDays: 5 },
   { id: 'phone_corner', x: 742, y: 120, kind: 'phone', variant: 'cipher', tier: 2, skinId: 'resistance', label: 'Payphone — the school corner', respawnDays: 5 },
+  // Building systems — the deck's fourth unlock, higher tiers and better
+  // pay than a corner machine: this is the inside of a building, not the
+  // street-level box bolted to the front of it.
+  { id: 'building_school', x: 600, y: 280, kind: 'building', variant: 'trace', tier: 3, skinId: 'infrastructure', label: 'Panel — School boiler room', respawnDays: 6 },
+  { id: 'building_deja', x: 950, y: 300, kind: 'building', variant: 'cipher', tier: 3, skinId: 'infrastructure', label: 'Panel — Utility Yard junction', respawnDays: 6 },
+  { id: 'building_annex_fence', x: 1100, y: 470, kind: 'building', variant: 'trace', tier: 4, skinId: 'datacenter', label: 'Panel — Annex Fence server rack', respawnDays: 7 },
 ];
 
 /** How close counts as close enough to open one — same radius the cameras use. */

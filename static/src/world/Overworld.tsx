@@ -21,10 +21,9 @@ import type { ThresholdTier } from '../state/schema';
 import { LIE_LOW_DECAY, lieLowBlocked } from '../systems/heat';
 import { safehouseBlocked, safehouseDecay } from '../systems/safehouse';
 import { canCollectHidden, canSabotage, onCooldown } from '../systems/materials';
-import { owns } from '../systems/market';
+import { boardTier } from '../systems/market';
 import { consequenceFor, HURT_UNTIL_DAY_FLAG } from '../systems/consequences';
 import { MATERIALS_BY_ID } from '../content/materials';
-import { BEATER_CAR } from '../content/economy';
 import { LIE_LOW_FLAG } from '../content/breather';
 import { SAFEHOUSE_ID } from '../content/safehouse';
 import { ALL_SCENES } from '../content/all';
@@ -38,11 +37,17 @@ import { play } from '../systems/audio';
 import './overworld.css';
 
 const SPEED = 110; // world units per second
-/** The whole pitch for owning a car — twice the street, same feet. */
-const DRIVING_MULTIPLIER = 2;
-/** Sprint, on foot only — a car already covers "faster". Real movement
- * expression instead of pure point-to-point transit: Shift, or the touch
- * Run button, for as long as it's held. */
+/**
+ * Walking (index 0, implicit — nothing to look up) up through the Hoverboard
+ * at tier 5. `boardTier` (systems/market.ts) reads which one's owned; this is
+ * purely the speed curve, indexed board-tier 1 to array index 0. Tops out
+ * well past the old car's flat 2×, since a hoverboard is the whole payoff of
+ * the build-up, not the same number the corner shop always sold.
+ */
+const BOARD_SPEED: readonly number[] = [1.25, 1.45, 1.7, 2.0, 2.4];
+/** Sprint, on foot only — a board already covers "faster" once you own one.
+ * Real movement expression instead of pure point-to-point transit: Shift,
+ * or the touch Run button, for as long as it's held. */
 const SPRINT_MULTIPLIER = 1.6;
 /** A van that clocks you while you're running hears you twice as well —
  * getting somewhere fast costs more if you get seen doing it. Applied only
@@ -168,13 +173,11 @@ export function Overworld() {
    * another cost — so it gets its own line rather than reusing `spotted`'s
    * ambient tone or `caught`'s consequence one. */
   const [closeCall, setCloseCall] = useState<string | null>(null);
-  /** Whether the player has a car at all — checked every render off
-   * inventory rather than a schema field, same as any other owned gear. */
-  const hasCar = owns(save, BEATER_CAR);
-  /** Driving is a mode, not an item — session-local, resets to on-foot on
-   * reload rather than persisting, the same way a scene or a market sheet
-   * being open doesn't survive a refresh. */
-  const [driving, setDriving] = useState(false);
+  /** Walking (0) up through the Hoverboard (5) — checked every render off
+   * inventory rather than a schema field, same as any other owned gear. No
+   * mount/dismount toggle the way the car had one: a board isn't something
+   * you park, you're just faster once you've built it. */
+  const currentBoardTier = boardTier(save);
 
   /*
    * The draw loop runs off refs rather than closing over state, so the
@@ -198,11 +201,10 @@ export function Overworld() {
   const saveRef = useRef(save);
   saveRef.current = save;
 
-  /* Same reason again — `&& hasCar` guards the freak case of losing the car
-     mid-session while still "driving" it, so movement can't get stuck fast
-     without the ownership backing it. */
-  const drivingRef = useRef(false);
-  drivingRef.current = driving && hasCar;
+  /* Same reason again — the frame loop needs the current board tier for
+     both the speed curve and the sprite drawn under the player's feet. */
+  const boardTierRef = useRef(0);
+  boardTierRef.current = currentBoardTier;
 
   /* Same reason again: the frame loop needs to know whether the ten-second
      alert window is open right now without waiting for a re-render. */
@@ -326,12 +328,12 @@ export function Overworld() {
 
       const len = Math.hypot(dx, dy) || 1;
 
-      // A car already means "faster" — sprint is on-foot expression, not a
+      // A board already means "faster" — sprint is on-foot expression, not a
       // stack. Keyboard only: Shift, held, read fresh off the same keys set
       // movement already reads. No touch equivalent — the joystick is
       // already the whole surface touch gets, and a second held button
       // crowded the corner for a mechanic keyboard players get for free.
-      const sprinting = moving && !drivingRef.current && keys.current.has('shift');
+      const sprinting = moving && boardTierRef.current === 0 && keys.current.has('shift');
 
       /*
        * Buildings are solid: the player can no longer walk through or over
@@ -355,7 +357,8 @@ export function Overworld() {
       // A skull-cracked consequence leaves this behind for a day — a cost
       // that's felt rather than a screen that says so.
       const hurt = Number(flagsRef.current[HURT_UNTIL_DAY_FLAG] ?? 0) > saveRef.current.world.day;
-      const base = drivingRef.current ? SPEED * DRIVING_MULTIPLIER : SPEED * (sprinting ? SPRINT_MULTIPLIER : 1);
+      const boardMultiplier = boardTierRef.current > 0 ? BOARD_SPEED[boardTierRef.current - 1] : 1;
+      const base = boardTierRef.current > 0 ? SPEED * boardMultiplier : SPEED * (sprinting ? SPRINT_MULTIPLIER : 1);
       const speed = base * (hurt ? 0.6 : 1);
       const nx = clamp(pos.current.x + (dx / len) * speed * dt, 8, MAP_WIDTH - 8);
       if (!solid.some((l) => overlapsBuilding(nx, pos.current.y, l))) pos.current.x = nx;
@@ -392,25 +395,36 @@ export function Overworld() {
         if (contactRef.current.has(pickup.obstacleId)) continue;
 
         dispatch({ type: 'COLLECT_HIDDEN', obstacleId: pickup.obstacleId });
-        const name = MATERIALS_BY_ID[pickup.itemId]?.name ?? 'salvage';
-        setPicked(`Found something: ${name}`);
-        window.setTimeout(() => setPicked((m) => (m === `Found something: ${name}` ? null : m)), 1600);
+        // A find is a material, cash, or both — say whichever it actually was
+        // rather than defaulting to a generic "salvage" that's wrong for a
+        // pure cash pickup.
+        const itemName = pickup.itemId ? MATERIALS_BY_ID[pickup.itemId]?.name : undefined;
+        const parts = [
+          itemName ? `${pickup.quantity && pickup.quantity > 1 ? `${pickup.quantity}× ` : ''}${itemName}` : null,
+          pickup.cash ? `$${pickup.cash}` : null,
+        ].filter(Boolean);
+        const found = parts.length > 0 ? parts.join(' + ') : 'salvage';
+        setPicked(`Found something: ${found}`);
+        window.setTimeout(() => setPicked((m) => (m === `Found something: ${found}` ? null : m)), 1600);
       }
       contactRef.current = stillTouching;
 
       /*
        * Cameras worth sabotaging. Deliberate rather than automatic — every
        * tier spends Heat, so this keeps the prompt-and-key pattern a location
-       * uses rather than the hidden pickups' silent walk-through. Only the
-       * ones `canSabotage` says are actually standing get drawn or targeted;
-       * one just taken down stays gone until Helio's had time to replace it,
-       * regardless of which of the three actions did it.
+       * uses rather than the hidden pickups' silent walk-through. Visible and
+       * targetable on cooldown rules alone — same as a street hack node —
+       * regardless of whether the deck can actually reach one yet
+       * (`canSabotage` also requires deck tier 3+); a FLACK housing standing
+       * on its pole is still standing whether or not the player's rig can
+       * read it. One just taken down stays gone until Helio's had time to
+       * replace it, regardless of which of the three actions did it.
        */
       const cameraDraw: { x: number; y: number; dismantlable: boolean }[] = [];
       let closestCamera: CameraNode | null = null;
       let closestCameraDist = CAMERA_INTERACT_RADIUS;
       for (const node of CAMERA_NODES) {
-        if (!canSabotage(saveRef.current, node)) continue;
+        if (onCooldown(saveRef.current, node.id, node.respawnDays)) continue;
         const dist = Math.hypot(node.x - pos.current.x, node.y - pos.current.y);
         const inRange = dist < CAMERA_INTERACT_RADIUS;
         cameraDraw.push({ x: node.x, y: node.y, dismantlable: inRange });
@@ -583,7 +597,7 @@ export function Overworld() {
         hackDraw,
         moving,
         now,
-        drivingRef.current,
+        boardTierRef.current,
       );
       raf = requestAnimationFrame(frame);
     };
@@ -694,19 +708,29 @@ export function Overworld() {
       {/* Same slot as the location prompt, mutually exclusive with it — three
           risk/reward tiers instead of one, each with its own cost and payout
           stated on the button itself, per Heat System guardrail 2: nothing
-          spends Heat without showing the price first. */}
+          spends Heat without showing the price first. Below deck tier 3
+          (canSabotage's own gate) the camera is still right there, same
+          "locked door is still a door" rule a street hack node follows —
+          just one disabled prompt saying what it's waiting on instead of
+          three live ones. */}
       {!nearby && nearbyCamera && !open && (
         <div className="overworld__sabotage">
-          {sabotageActionsFor(nearbyCamera).map((action) => (
-            <button
-              key={action.id}
-              className="overworld__prompt overworld__prompt--camera"
-              onClick={() => dispatch({ type: 'SABOTAGE_CAMERA', nodeId: nearbyCamera.id, actionId: action.id })}
-            >
-              {action.label} · Heat +{action.heatCost} · {action.quantity}×{' '}
-              {MATERIALS_BY_ID[action.itemId]?.name ?? action.itemId}
+          {canSabotage(save, nearbyCamera) ? (
+            sabotageActionsFor(nearbyCamera).map((action) => (
+              <button
+                key={action.id}
+                className="overworld__prompt overworld__prompt--camera"
+                onClick={() => dispatch({ type: 'SABOTAGE_CAMERA', nodeId: nearbyCamera.id, actionId: action.id })}
+              >
+                {action.label} · Heat +{action.heatCost} · {action.quantity}×{' '}
+                {MATERIALS_BY_ID[action.itemId]?.name ?? action.itemId}
+              </button>
+            ))
+          ) : (
+            <button className="overworld__prompt overworld__prompt--camera" disabled>
+              FLACK housing · Needs a Cracked Deck (rig tier 3)
             </button>
-          ))}
+          )}
         </div>
       )}
 
@@ -764,14 +788,6 @@ export function Overworld() {
       )}
 
       {market && <Market onClose={() => setMarket(false)} />}
-
-      {/* Only offered once there's a car to offer — same rule as Crew not
-          showing before the first mentor skill. */}
-      {hasCar && !open && (
-        <button className="overworld__drive" onClick={() => setDriving((v) => !v)}>
-          {driving ? 'Get out' : 'Take the car'}
-        </button>
-      )}
 
       <Joystick onChange={(dx, dy) => (touch.current = { dx, dy })} />
 

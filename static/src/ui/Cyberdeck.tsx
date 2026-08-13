@@ -1,13 +1,21 @@
 import { useState } from 'react';
 import { useGame, useSave } from '../state/GameContext';
-import { STREET_HACK_NODES } from '../world/streethacks';
-import { canHackStreetNode, cashFor, effectiveTier, levelsFor, type HackLevel } from '../systems/streethacks';
+import { STREET_HACK_NODES, type StreetHackNode } from '../world/streethacks';
+import {
+  canHackStreetNode,
+  cashFor,
+  effectiveTier,
+  HACK_KIND_MIN_TIER,
+  levelsFor,
+  type HackLevel,
+} from '../systems/streethacks';
 import { HACKING_TIERS, CIPHER_TIERS, buildCipherConfig, buildTraceConfig } from '../content/hacking';
 import { MissionBriefing } from './minigames/MissionBriefing';
 import { TraceMinigame } from './minigames/TraceMinigame';
 import { CipherMinigame } from './minigames/CipherMinigame';
 import { SKINS } from '../content/skins';
-import { heatReliefFor } from '../systems/market';
+import { deckTier, heatReliefFor } from '../systems/market';
+import { DECK_TIERS, ITEMS_BY_ID } from '../content/economy';
 import type { RunOutcome } from '../systems/missions';
 import './cyberdeck.css';
 
@@ -25,6 +33,22 @@ const LEVEL_LABEL: Record<HackLevel, string> = {
   quick: 'Quick read',
   standard: 'Standard crack',
   deep: 'Deep crack',
+};
+
+/** The build's own name for a given tier of the deck line — read off
+ * `DECK_TIERS`/`ITEMS_BY_ID` rather than hand-duplicated, so a rename in
+ * content/economy.ts can't drift out of sync with what the Hack tab says. */
+function deckNameForTier(tier: number): string {
+  const itemId = DECK_TIERS[tier - 1];
+  return itemId ? ITEMS_BY_ID[itemId]?.name ?? itemId : `tier ${tier}`;
+}
+
+/** Kinds a given deck tier can reach, worst to best — what the Rig tab shows
+ * as the player's own unlock ladder. */
+const HACK_KIND_LABEL: Record<StreetHackNode['kind'], string> = {
+  phone: 'Payphones',
+  atm: 'ATMs',
+  building: 'Building systems',
 };
 
 export function Cyberdeck({ onClose }: { onClose: () => void }) {
@@ -96,11 +120,16 @@ function HackApp({ onBack, onDone }: { onBack: () => void; onDone: () => void })
   const node = nearbyHackNodeId ? STREET_HACK_NODES.find((n) => n.id === nearbyHackNodeId) ?? null : null;
 
   if (!node || !canHackStreetNode(save, node)) {
+    const rigTooLow = node && deckTier(save) < HACK_KIND_MIN_TIER[node.kind];
     return (
       <div className="cyberdeck__hack">
         <Header onBack={onBack} title="Hack" />
         <p className="cyberdeck__empty">
-          {node ? 'Nothing left to crack here — give it a few days.' : 'Nothing in range. Find an ATM or a phone line.'}
+          {!node
+            ? 'Nothing in range. Find an ATM, a payphone, or a building panel.'
+            : rigTooLow
+              ? `This needs a ${deckNameForTier(HACK_KIND_MIN_TIER[node.kind])} (rig tier ${HACK_KIND_MIN_TIER[node.kind]}). Yours isn’t there yet.`
+              : 'Already cracked — give it a few days.'}
         </p>
       </div>
     );
@@ -167,6 +196,7 @@ function HackApp({ onBack, onDone }: { onBack: () => void; onDone: () => void })
             tier,
             skillTier: save.skills.hacking.tier,
             heatTier: save.heat.threshold_tier,
+            deckTier: deckTier(save),
           })}
           onResolve={resolve}
         />
@@ -179,6 +209,7 @@ function HackApp({ onBack, onDone }: { onBack: () => void; onDone: () => void })
             skinId: node.skinId,
             skillTier: save.skills.hacking.tier,
             heatTier: save.heat.threshold_tier,
+            deckTier: deckTier(save),
           })}
           onResolve={resolve}
         />
@@ -187,23 +218,44 @@ function HackApp({ onBack, onDone }: { onBack: () => void; onDone: () => void })
   );
 }
 
-/** Flavour and one real stat — the hacking skill tier a mentor actually
- * taught, which is the thing that quietly makes every level easier
- * (`content/hacking.ts`'s +1 pulse/+1 guess at skill tier 2). */
+/**
+ * The build itself, and the ladder it climbs — which kinds of target the
+ * current deck tier can actually reach, plus the hacking skill tier (a
+ * mentor-taught stat, not a build one) that quietly makes every level
+ * easier regardless of kind (`content/hacking.ts`'s +1 pulse/+1 guess at
+ * skill tier 2, on top of the deck's own tier-5 version of the same bonus).
+ */
 function RigApp({ onBack }: { onBack: () => void }) {
   const save = useSave();
-  const tier = save.skills.hacking.tier;
+  const rig = deckTier(save);
+  const skillTier = save.skills.hacking.tier;
 
   return (
     <div className="cyberdeck__hack">
       <Header onBack={onBack} title="Rig" />
       <p className="cyberdeck__hack-sub">
-        Home-soldered. Held together with electrical tape and somebody else’s firmware.
+        {rig > 0 ? `${deckNameForTier(rig)} — build ${rig} of 5.` : 'Nothing built yet. Salvage is out there.'}
       </p>
       <dl className="cyberdeck__stats">
-        <dt>Hacking</dt>
-        <dd>{tier > 0 ? `Tier ${tier}` : 'Self-taught, so far'}</dd>
+        <dt>Hacking skill</dt>
+        <dd>{skillTier > 0 ? `Tier ${skillTier}` : 'Self-taught, so far'}</dd>
       </dl>
+      <p className="cyberdeck__hack-sub" style={{ marginTop: 'calc(var(--step) * 1.5)' }}>
+        What this build can reach:
+      </p>
+      <ul className="cyberdeck__unlocks">
+        {(Object.entries(HACK_KIND_LABEL) as [StreetHackNode['kind'], string][]).map(([kind, label]) => (
+          <li key={kind} className={rig >= HACK_KIND_MIN_TIER[kind] ? 'is-unlocked' : ''}>
+            {label} <span>· tier {HACK_KIND_MIN_TIER[kind]}</span>
+          </li>
+        ))}
+        <li className={rig >= 3 ? 'is-unlocked' : ''}>
+          Cameras (FLACK housings) <span>· tier 3</span>
+        </li>
+        <li className={rig >= 5 ? 'is-unlocked' : ''}>
+          +1 pulse/guess on every hack <span>· tier 5</span>
+        </li>
+      </ul>
     </div>
   );
 }

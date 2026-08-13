@@ -77,12 +77,12 @@ const PALETTE = {
   rockLight: '#5c6577',
   hedgeDark: '#38513e',
   hedge: '#48684f',
-  carBody: '#7a8a5c',
-  carGlass: '#a9c4d6',
   atmBody: '#3c7a4e',
   atmDark: '#1f4029',
   phoneBody: '#8a7a5c',
   phoneDark: '#4a4030',
+  panelBody: '#4a5468',
+  panelDark: '#232935',
   parkedCarBody: '#5a6270',
   parkedCarGlass: '#7d8ea0',
   binBody: '#333a2c',
@@ -169,10 +169,10 @@ export function drawTown(
   obstacles: Obstacle[],
   patrols: { x: number; y: number; radius: number }[],
   cameraNodes: { x: number; y: number; dismantlable: boolean }[],
-  hackNodes: { x: number; y: number; kind: 'atm' | 'phone'; hackable: boolean }[],
+  hackNodes: { x: number; y: number; kind: 'atm' | 'phone' | 'building'; hackable: boolean }[],
   moving: boolean,
   now: number,
-  driving: boolean,
+  boardTier: number,
 ) {
   const vw = canvas.clientWidth;
   const vh = canvas.clientHeight;
@@ -221,8 +221,7 @@ export function drawTown(
   for (const patrol of patrols) drawPatrolRing(ctx, patrol);
   for (const patrol of patrols) drawPatrol(ctx, patrol);
 
-  if (driving) drawBeater(ctx, player);
-  else drawPlayer(ctx, player, facing, playerSize, moving, now);
+  drawPlayer(ctx, player, facing, playerSize, moving, now, boardTier);
 
   ctx.restore();
 }
@@ -1231,13 +1230,15 @@ function drawSabotageCamera(
  */
 function drawStreetHack(
   ctx: CanvasRenderingContext2D,
-  node: { x: number; y: number; kind: 'atm' | 'phone'; hackable: boolean },
+  node: { x: number; y: number; kind: 'atm' | 'phone' | 'building'; hackable: boolean },
 ) {
   const size = 14;
   const x = px(node.x - size / 2);
   const y = px(node.y - size / 2);
-  const body = node.kind === 'atm' ? PALETTE.atmBody : PALETTE.phoneBody;
-  const dark = node.kind === 'atm' ? PALETTE.atmDark : PALETTE.phoneDark;
+  const body =
+    node.kind === 'atm' ? PALETTE.atmBody : node.kind === 'building' ? PALETTE.panelBody : PALETTE.phoneBody;
+  const dark =
+    node.kind === 'atm' ? PALETTE.atmDark : node.kind === 'building' ? PALETTE.panelDark : PALETTE.phoneDark;
 
   ctx.fillStyle = body;
   ctx.fillRect(x, y, size, size);
@@ -1245,11 +1246,19 @@ function drawStreetHack(
   ctx.lineWidth = 1;
   ctx.strokeRect(x - 0.5, y - 0.5, size + 1, size + 1);
 
-  // A small pale slot/screen so the two kinds also read apart at a distance,
-  // not just by hue — a card slot low and wide, a keypad centred and square.
+  // A small pale slot/screen so the kinds also read apart at a distance, not
+  // just by hue — a card slot low and wide, a keypad centred and square, a
+  // building panel a 2x2 grid of tiny lights (the one kind that isn't a
+  // machine bolted to the street, it's a way into the wall itself).
   ctx.fillStyle = PALETTE.windowLit;
   if (node.kind === 'atm') ctx.fillRect(x + 2, y + size - 5, size - 4, 2);
-  else ctx.fillRect(x + size / 2 - 2, y + 3, 4, 4);
+  else if (node.kind === 'phone') ctx.fillRect(x + size / 2 - 2, y + 3, 4, 4);
+  else {
+    ctx.fillRect(x + 3, y + 3, 3, 3);
+    ctx.fillRect(x + size - 6, y + 3, 3, 3);
+    ctx.fillRect(x + 3, y + size - 6, 3, 3);
+    ctx.fillRect(x + size - 6, y + size - 6, 3, 3);
+  }
 
   if (node.hackable) {
     ctx.strokeStyle = PALETTE.spriteShirt;
@@ -1304,33 +1313,50 @@ function drawTag(ctx: CanvasRenderingContext2D, loc: OverworldLocation, roofH: n
 }
 
 /**
- * The Beater, seen from above: a body, a windshield strip, four wheel nubs at
- * the corners. Doesn't rotate with facing — same simplification the patrol
- * vans already make, a fixed top-down silhouette rather than four headings
- * of sprite. Distinct from a patrol van's red on purpose: this one is yours.
+ * Under the player's feet once a board's actually owned — walking (tier 0)
+ * draws nothing here at all. Tiers 1–3 are wheels-on-ground: a deck plank
+ * that gets a cleaner tone each tier, wheel nubs at the corners. Tiers 4–5
+ * are the hover tiers: the deck lifts off a visible gap above the ground
+ * with its own soft glow underneath, brighter and closer to the terminal
+ * green the whole hacking side of the game already uses for "this is the
+ * good tech" at tier 5 — the Hoverboard and the Cyberdeck read as the same
+ * kind of object on purpose.
  */
-function drawBeater(ctx: CanvasRenderingContext2D, player: { x: number; y: number }) {
-  const w = 18;
-  const h = 12;
-  const x = px(player.x - w / 2);
-  const y = px(player.y - h / 2);
+function drawBoard(ctx: CanvasRenderingContext2D, cx: number, feetY: number, tier: number, now: number) {
+  const w = 14;
+  if (tier <= 0) return;
 
-  ctx.fillStyle = 'rgba(0,0,0,0.28)';
-  ctx.fillRect(x - 1, px(player.y + h / 2 - 1), w + 2, 2);
+  if (tier <= 3) {
+    const deck = [PALETTE.plank, '#8a6b42', PALETTE.parkedCarBody][tier - 1];
+    const h = 4;
+    const y = px(feetY - 1);
+    ctx.fillStyle = deck;
+    ctx.fillRect(px(cx - w / 2), y, w, h);
+    ctx.fillStyle = PALETTE.outline;
+    ctx.fillRect(px(cx - w / 2 + 1), y + h, 2, 2);
+    ctx.fillRect(px(cx + w / 2 - 3), y + h, 2, 2);
+    return;
+  }
 
-  ctx.fillStyle = PALETTE.carBody;
-  ctx.fillRect(x, y, w, h);
-  ctx.fillStyle = PALETTE.carGlass;
-  ctx.fillRect(x + 3, y + 2, w - 6, h - 7);
-  ctx.fillStyle = PALETTE.sprite;
-  ctx.fillRect(x + 2, y - 1, 3, 2);
-  ctx.fillRect(x + w - 5, y - 1, 3, 2);
-  ctx.fillRect(x + 2, y + h - 1, 3, 2);
-  ctx.fillRect(x + w - 5, y + h - 1, 3, 2);
+  const hover5 = tier >= 5;
+  const gap = hover5 ? 5 : 3;
+  const glowColor = hover5 ? PALETTE.marqueeGlow : PALETTE.camera;
+  const bodyColor = hover5 ? '#e8f8ee' : '#dce8f4';
+  const bob = Math.sin(now / 220) * 0.8; // a slight float, not a bounce
+  const y = px(feetY - gap + bob);
 
-  ctx.strokeStyle = PALETTE.outline;
+  ctx.fillStyle = glowColor;
+  ctx.globalAlpha = 0.3;
+  ctx.beginPath();
+  ctx.ellipse(cx, feetY + 1, w / 2 + 1, 2, 0, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.globalAlpha = 1;
+
+  ctx.fillStyle = bodyColor;
+  ctx.fillRect(px(cx - w / 2), y, w, 3);
+  ctx.strokeStyle = glowColor;
   ctx.lineWidth = 1;
-  ctx.strokeRect(x - 0.5, y - 0.5, w + 1, h + 1);
+  ctx.strokeRect(px(cx - w / 2) - 0.5, y - 0.5, w + 1, 4);
 }
 
 /**
@@ -1371,6 +1397,7 @@ function drawPlayer(
   size: { w: number; h: number },
   moving: boolean,
   now: number,
+  boardTier: number,
 ) {
   const cx = px(player.x);
   const feetY = px(player.y);
@@ -1384,6 +1411,8 @@ function drawPlayer(
   // A flat shadow, so the figure stands on the street instead of floating on it.
   ctx.fillStyle = 'rgba(0,0,0,0.28)';
   ctx.fillRect(cx - size.w / 2 - 1, feetY, size.w + 2, 2);
+
+  drawBoard(ctx, cx, feetY, boardTier, now);
 
   // A small bag behind the spine — the one holdover from a "physical
   // character" that a bare skeleton would otherwise lose entirely.
