@@ -64,6 +64,7 @@ let muted = false;
 /** Kept in sync from the settings panel. Defaults to audible. */
 export function setMuted(value: boolean): void {
   muted = value;
+  if (value) stopAmbient();
 }
 
 export function isMuted(): boolean {
@@ -118,6 +119,98 @@ export function play(cue: Cue): void {
   } catch {
     // A cue that throws must never take a mission down with it.
   }
+}
+
+/**
+ * THE AMBIENT BED.
+ *
+ * Every cue above is a reaction to something — a pulse, a trap, a clean
+ * exit. Nothing in the game plays while nothing is happening, and Style
+ * Guide 07's "warm and a little melancholy, suburban dusk" has never had a
+ * sound under it. This is that: three open, unresolved sine tones (no third
+ * that would resolve them into a triad — dusk doesn't resolve, it just
+ * holds) drifting very slightly against each other so the pad breathes
+ * instead of sitting dead static. It fades in over a few seconds and never
+ * jumps, and it is quiet enough that every cue above still reads clearly
+ * over the top of it — the loudest cue here (`trap`, 0.14) is more than
+ * five times `AMBIENT_GAIN`.
+ *
+ * Started once real audio is available (App.tsx, once a save exists) and
+ * stopped on mute — same "never load-bearing" contract as `play`, just
+ * running continuously instead of firing once.
+ */
+const AMBIENT_NOTES = [110, 164.81, 220]; // A2, E3, A3 — open fifth plus octave, no third
+/** Exported for tests: every reactive cue should stay clearly audible over
+ * this, never the other way around. */
+export const AMBIENT_GAIN = 0.025;
+const AMBIENT_FADE_IN = 3;
+const AMBIENT_FADE_OUT = 1.5;
+
+let ambient: { voices: OscillatorNode[]; master: GainNode } | null = null;
+
+export function startAmbient(): void {
+  if (ambient || muted) return;
+  const audio = context();
+  if (!audio) return;
+
+  try {
+    const master = audio.createGain();
+    master.gain.setValueAtTime(0.0001, audio.currentTime);
+    master.gain.exponentialRampToValueAtTime(AMBIENT_GAIN, audio.currentTime + AMBIENT_FADE_IN);
+    master.connect(audio.destination);
+
+    const voices: OscillatorNode[] = [];
+    AMBIENT_NOTES.forEach((freq, i) => {
+      const osc = audio.createOscillator();
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(freq, audio.currentTime);
+
+      // A slow wobble on each voice's own pitch, each at a slightly
+      // different rate — three voices drifting in and out of phase with
+      // each other reads as alive, three voices drifting in lockstep would
+      // just read as an out-of-tune single note.
+      const lfo = audio.createOscillator();
+      lfo.type = 'sine';
+      lfo.frequency.setValueAtTime(0.04 + i * 0.015, audio.currentTime);
+      const lfoDepth = audio.createGain();
+      lfoDepth.gain.setValueAtTime(2.5, audio.currentTime);
+      lfo.connect(lfoDepth).connect(osc.detune);
+
+      osc.connect(master);
+      lfo.start();
+      osc.start();
+      voices.push(osc, lfo);
+    });
+
+    ambient = { voices, master };
+  } catch {
+    // Same contract as `play`: audio that fails must never take anything else down with it.
+    ambient = null;
+  }
+}
+
+export function stopAmbient(): void {
+  if (!ambient) return;
+  const { voices, master } = ambient;
+  ambient = null;
+  const audio = ctx; // don't lazily create a context just to tear one down
+  if (audio) {
+    try {
+      master.gain.cancelScheduledValues(audio.currentTime);
+      master.gain.setValueAtTime(master.gain.value, audio.currentTime);
+      master.gain.exponentialRampToValueAtTime(0.0001, audio.currentTime + AMBIENT_FADE_OUT);
+    } catch {
+      // Fall through to the hard stop below either way.
+    }
+  }
+  window.setTimeout(
+    () => voices.forEach((v) => { try { v.stop(); } catch { /* already stopped */ } }),
+    audio ? AMBIENT_FADE_OUT * 1000 + 100 : 0,
+  );
+}
+
+export function isAmbientPlaying(): boolean {
+  return ambient !== null;
 }
 
 /** Exposed for tests: the palette is data and its shape is checkable. */

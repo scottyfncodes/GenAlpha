@@ -6,7 +6,8 @@ import { Overworld } from './world/Overworld';
 import { SettingsPanel } from './ui/SettingsPanel';
 import { Crew } from './ui/Crew';
 import { Phone } from './ui/Phone';
-import { setMuted } from './systems/audio';
+import { Ending } from './ui/Ending';
+import { setMuted, startAmbient, stopAmbient } from './systems/audio';
 
 /*
  * Dev scaffolding, genuinely out of the production bundle.
@@ -28,6 +29,12 @@ function Shell() {
   const [settings, setSettings] = useState(false);
   const [crew, setCrew] = useState(false);
   const [phone, setPhone] = useState(false);
+  /** Act 3's finale sets `currentChapter` to `'ending'` and just closes its
+   * own scene — there's nothing else marking a finished game as finished.
+   * Dismissable per session rather than a save flag: a player who Continues
+   * a completed save should see the recap again, not silently land in the
+   * quiet town with no explanation of why nothing else is happening. */
+  const [endingSeen, setEndingSeen] = useState(false);
 
   // The audio module holds its own mute flag so a cue can fire from anywhere
   // without threading the save through. This keeps it in step on load and
@@ -35,6 +42,19 @@ function Shell() {
   useEffect(() => {
     setMuted(save?.settings.audioMuted ?? false);
   }, [save?.settings.audioMuted]);
+
+  /*
+   * The ambient bed starts the moment there's an actual game to sit under —
+   * not the title screen, which already has its own two-second glitch
+   * reveal to carry — and stops the moment there isn't (Continue never
+   * happened yet, or the save was just wiped). Declared after the mute-sync
+   * effect above so `setMuted` has already run for this render by the time
+   * `startAmbient`'s own mute check reads it.
+   */
+  useEffect(() => {
+    if (save && !save.settings.audioMuted) startAmbient();
+    return () => stopAmbient();
+  }, [Boolean(save), save?.settings.audioMuted]);
 
   /*
    * There is deliberately no decay-on-mount here. Heat decays against
@@ -64,6 +84,9 @@ function Shell() {
       {crew && <Crew onClose={() => setCrew(false)} />}
       {settings && <SettingsPanel onClose={() => setSettings(false)} />}
       {phone && <Phone onClose={() => setPhone(false)} />}
+      {save.player.currentChapter === 'ending' && !endingSeen && (
+        <Ending onDismiss={() => setEndingSeen(true)} />
+      )}
       {Workbench && workbench && (
         <Suspense fallback={null}>
           <Workbench onClose={() => setWorkbench(false)} />

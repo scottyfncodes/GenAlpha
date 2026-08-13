@@ -1,17 +1,27 @@
-import type { SaveState } from './schema';
+import type { SaveState, StoryFlags } from './schema';
 import { prefersReducedMotion } from './env';
+import { backupNameFor, collidingCharacter, NAME_SWAP_FROM_FLAG, NAME_SWAP_TO_FLAG } from '../systems/names';
 
 export const SAVE_VERSION = '0.6.0';
 
 export function createNewSave(name: string): SaveState {
   const now = new Date().toISOString();
+  /*
+   * Decided once, here, and never revisited — the swap is stamped into the
+   * flags a fresh save starts with, so every render from the very first
+   * scene onward reads the same resolved name. See systems/names.ts.
+   */
+  const collision = collidingCharacter(name);
+  const flags: StoryFlags = collision
+    ? { [NAME_SWAP_FROM_FLAG]: collision, [NAME_SWAP_TO_FLAG]: backupNameFor(collision) }
+    : {};
   return {
     meta: { saveVersion: SAVE_VERSION, createdAt: now, lastPlayedAt: now, playtimeSeconds: 0 },
     player: {
       name,
       currentChapter: 'act1_glitch_01',
       currentLocation: 'home',
-      flags: {},
+      flags,
     },
     heat: { current: 0, threshold_tier: 'clear', lastDecayDay: 1, history: [] },
     skills: {

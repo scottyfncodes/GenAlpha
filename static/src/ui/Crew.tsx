@@ -1,6 +1,7 @@
 import { useSave } from '../state/GameContext';
 import { MENTORS } from '../content/mentors';
 import { progressOf } from '../systems/mentors';
+import { resolveCharacterName } from '../systems/names';
 import './crew.css';
 
 /**
@@ -66,7 +67,7 @@ export function Crew({ onClose }: { onClose: () => void }) {
           return (
             <li key={mentor.id} className={`crew__row ${soured ? 'crew__row--soured' : ''}`}>
               <div className="crew__row-head">
-                <b>{progress.name}</b>
+                <b>{resolveCharacterName(save.player.flags, progress.name)}</b>
                 <span className="crew__trust">
                   {progress.trust > 0 ? `trust ${progress.trust}` : 'barely knows you'}
                 </span>
@@ -93,7 +94,7 @@ export function Crew({ onClose }: { onClose: () => void }) {
           this screen anyway — she is the reason any of it is personal. */}
       {save.relationships.nova && (
         <div className="crew__nova">
-          <b>Ellen</b>
+          <b>{resolveCharacterName(save.player.flags, 'Ellen')}</b>
           <p>Not part of any of this. The reason for all of it.</p>
         </div>
       )}

@@ -150,6 +150,7 @@ const B1B_THE_IDEA: Scene = {
         { text: 'This drawer isn’t enough on its own. But the same kind of junk is sitting all over Bellhaven, if you actually look — a loose board under the right bush, wire nobody’s bothered to coil up.' },
         { text: 'And every one of those cameras on every corner is built out of precisely the parts you’d need. If you were willing to take one apart instead of just staring at it.' },
         { text: 'Whatever you end up with too much of, somebody apparently wants — there’s a whole quiet economy running underneath this town for exactly that. SHDW is what it runs on. You didn’t know that this morning either.', glitch: true },
+        { text: 'Your phone already has an app for all of it, buried in with the ones that came pre-installed. You just never had a reason to open it before tonight.' },
       ],
       effects: [
         { kind: 'flag', key: 'cyberdeck_plan_started', value: true },

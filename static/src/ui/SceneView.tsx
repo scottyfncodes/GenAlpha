@@ -16,6 +16,7 @@ import { GenAMark, markStateFor } from './GenAMark';
 import type { RunOutcome } from '../systems/missions';
 import { SKINS, type SkinId } from '../content/skins';
 import { speakerColor } from '../content/characters';
+import { resolveCharacterName } from '../systems/names';
 import './scene-view.css';
 
 const CHARS_PER_TICK: Record<string, number> = { slow: 1, normal: 2, fast: 4 };
@@ -233,10 +234,13 @@ function lineClass(l: SceneLine): string {
  * exactly right for a one-line walk-on nobody needs to recognise on sight.
  */
 function SpeakerTag({ name }: { name: string }) {
+  const save = useSave();
+  // Colour stays keyed to the canonical name — it's a lookup table, not
+  // something the player ever reads — only the label itself swaps.
   const color = speakerColor(name);
   return (
     <span className="scene__speaker" style={color ? { background: color } : undefined}>
-      {name}
+      {resolveCharacterName(save.player.flags, name)}
     </span>
   );
 }

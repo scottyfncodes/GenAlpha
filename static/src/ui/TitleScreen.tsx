@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Glitch } from './Glitch';
 import { GenAMark } from './GenAMark';
 import { hasSave } from '../state/persistence';
+import { backupNameFor, collidingCharacter } from '../systems/names';
 import './title-screen.css';
 
 type Stage = 'official' | 'rupture' | 'claimed';
@@ -16,6 +17,10 @@ export function TitleScreen({ onStart, onContinue }: { onStart: (name: string) =
   const [name, setName] = useState('');
   const [naming, setNaming] = useState(false);
   const canContinue = hasSave();
+  /** Live, not just at submit — the player should know *before* they hit
+   * Start that this is going to rename somebody, not find out three scenes
+   * in when a stranger called Robyn shows up expecting to be Ellen. */
+  const collision = collidingCharacter(name);
 
   useEffect(() => {
     const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -70,6 +75,12 @@ export function TitleScreen({ onStart, onContinue }: { onStart: (name: string) =
                 onChange={(e) => setName(e.target.value)}
                 onKeyDown={(e) => e.key === 'Enter' && name.trim() && onStart(name.trim())}
               />
+              {collision && (
+                <p className="title__namenote">
+                  There’s already {article(collision)} {collision} in Bellhaven — they’ll go by{' '}
+                  {backupNameFor(collision)} in your game.
+                </p>
+              )}
               <button
                 className="title__btn title__btn--primary"
                 disabled={!name.trim()}
@@ -83,4 +94,12 @@ export function TitleScreen({ onStart, onContinue }: { onStart: (name: string) =
       )}
     </main>
   );
+}
+
+/** "a Deja" vs "an Ellen" — every reserved name is a proper noun, so this
+ * only ever has to handle a plain leading-letter check, not the harder
+ * general-English cases (a "European", an "hour") that come up with common
+ * nouns. */
+function article(word: string): 'a' | 'an' {
+  return /^[aeiou]/i.test(word) ? 'an' : 'a';
 }

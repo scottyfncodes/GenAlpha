@@ -1,5 +1,15 @@
 import { describe, expect, it } from 'vitest';
-import { CUE_TABLE, isMuted, play, setMuted, type Cue } from './audio';
+import {
+  AMBIENT_GAIN,
+  CUE_TABLE,
+  isAmbientPlaying,
+  isMuted,
+  play,
+  setMuted,
+  startAmbient,
+  stopAmbient,
+  type Cue,
+} from './audio';
 
 /**
  * The audio module is mostly a browser API call, and the browser isn't here.
@@ -59,6 +69,27 @@ describe('never load-bearing', () => {
     expect(() => play('trap')).not.toThrow();
     setMuted(false);
     expect(isMuted()).toBe(false);
+  });
+});
+
+describe('the ambient bed', () => {
+  it('stays quieter than every reactive cue — a bed, never a competitor', () => {
+    for (const cue of Object.keys(CUE_TABLE) as Cue[]) {
+      expect(AMBIENT_GAIN, `${cue} is not clearly audible over the ambient bed`).toBeLessThan(CUE_TABLE[cue].gain);
+    }
+  });
+
+  it('is silent and harmless with no audio available, start or stop, either order', () => {
+    expect(() => startAmbient()).not.toThrow();
+    expect(isAmbientPlaying()).toBe(false); // no AudioContext in a test run — never actually starts
+    expect(() => stopAmbient()).not.toThrow();
+  });
+
+  it('never starts while muted', () => {
+    setMuted(true);
+    startAmbient();
+    expect(isAmbientPlaying()).toBe(false);
+    setMuted(false);
   });
 });
 
