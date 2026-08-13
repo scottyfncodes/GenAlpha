@@ -27,10 +27,29 @@ import './gen-a-mark.css';
  */
 export type MarkState = 'clean' | 'claiming' | 'closed';
 
-/** The A itself: apex, two legs, crossbar. Same path in all three states. */
-const LEG_LEFT = 'M 50 22 L 30 74';
-const LEG_RIGHT = 'M 50 22 L 70 74';
-const CROSSBAR = 'M 38 58 L 62 58';
+/** The A's apex and legs: same path in all three states, per the doc above
+ * — only the crossbar changes shape (below). Proportioned to the real
+ * circle-A rather than a typeface letterform: the apex pokes just past the
+ * circle's top point and the legs splay out to just past its bottom,
+ * because a stencilled circle-A is drawn bigger than its circle, not fitted
+ * neatly inside it. */
+const LEG_LEFT = 'M 50 10 L 22 92';
+const LEG_RIGHT = 'M 50 10 L 78 92';
+
+/**
+ * The crossbar is the one place the "same path in every state" rule
+ * doesn't hold, and on purpose. A plain horizontal bar between the two legs
+ * reads as an ordinary letter A — correct for `clean`, which needs to pass
+ * as harmless typography with no circle drawn yet to give it away. The
+ * actual anarchy symbol's crossbar doesn't stop at the legs, though: it
+ * runs the full width of the circle and flicks out past it on both sides,
+ * which is most of what actually reads as "anarchy A" rather than "letter
+ * A in a circle". So `claiming`/`closed` swap to the wide version the same
+ * frame the circle starts appearing — one more thing getting re-inked
+ * bolder as the mark is claimed, not just the circle closing.
+ */
+const CROSSBAR_NARROW = 'M 34 58 L 66 58';
+const CROSSBAR_WIDE = 'M 8 58 L 92 58';
 
 /**
  * The circle, as an arc that grows. Act 1 draws none of it; Act 2 draws most of
@@ -77,6 +96,7 @@ export function GenAMark({
   title?: string;
 }) {
   const dash = CIRCLE_DASH[state];
+  const crossbar = state === 'clean' ? CROSSBAR_NARROW : CROSSBAR_WIDE;
 
   return (
     <svg
@@ -98,7 +118,7 @@ export function GenAMark({
         <g className="gen-a__offset" aria-hidden>
           <path d={LEG_LEFT} />
           <path d={LEG_RIGHT} />
-          <path d={CROSSBAR} />
+          <path d={crossbar} />
           {dash && <path d={ROUGH_CIRCLE} pathLength={100} strokeDasharray={dash} />}
         </g>
       )}
@@ -106,7 +126,7 @@ export function GenAMark({
       <g className="gen-a__ink">
         <path d={LEG_LEFT} />
         <path d={LEG_RIGHT} />
-        <path d={CROSSBAR} />
+        <path d={crossbar} />
         {dash && (
           <path
             d={ROUGH_CIRCLE}
