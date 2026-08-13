@@ -20,7 +20,7 @@ import { applyEffects } from '../systems/effects';
 import { buy, buyShdw, sell, sellShdw, tickMarket, useConsumable } from '../systems/market';
 import { tickSafehouses } from '../systems/safehouse';
 import { drain } from '../systems/heist';
-import { collectHidden, craft, sabotageCamera, sellMaterial } from '../systems/materials';
+import { collectHidden, craft, destroyJunctionBox, sabotageCamera, sellMaterial } from '../systems/materials';
 import { applyCatch } from '../systems/consequences';
 import { resolveStreetHack, type HackLevel } from '../systems/streethacks';
 import type { SabotageActionId } from '../world/collectibles';
@@ -58,6 +58,7 @@ type Action =
   | { type: 'TICK_PLAYTIME'; seconds: number }
   | { type: 'COLLECT_HIDDEN'; obstacleId: string }
   | { type: 'SABOTAGE_CAMERA'; nodeId: string; actionId: SabotageActionId }
+  | { type: 'DESTROY_JUNCTION_BOX'; nodeId: string }
   | { type: 'SELL_MATERIAL'; itemId: string }
   | { type: 'CRAFT_ITEM'; recipeId: string }
   | { type: 'CAUGHT'; tier: ThresholdTier }
@@ -168,6 +169,9 @@ function reducer(state: SaveState | null, action: Action): SaveState | null {
 
     case 'SABOTAGE_CAMERA':
       return sabotageCamera(state, action.nodeId, action.actionId);
+
+    case 'DESTROY_JUNCTION_BOX':
+      return destroyJunctionBox(state, action.nodeId);
 
     case 'SELL_MATERIAL':
       return sellMaterial(state, action.itemId);

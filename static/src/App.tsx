@@ -5,7 +5,7 @@ import { Hud } from './ui/Hud';
 import { Overworld } from './world/Overworld';
 import { SettingsPanel } from './ui/SettingsPanel';
 import { Crew } from './ui/Crew';
-import { Phone } from './ui/Phone';
+import { Backpack } from './ui/Backpack';
 import { Cyberdeck } from './ui/Cyberdeck';
 import { Ending } from './ui/Ending';
 import { setMuted, startAmbient, stopAmbient } from './systems/audio';
@@ -29,7 +29,7 @@ function Shell() {
   const [workbench, setWorkbench] = useState(false);
   const [settings, setSettings] = useState(false);
   const [crew, setCrew] = useState(false);
-  const [phone, setPhone] = useState(false);
+  const [backpack, setBackpack] = useState(false);
   /** Act 3's finale sets `currentChapter` to `'ending'` and just closes its
    * own scene — there's nothing else marking a finished game as finished.
    * Dismissable per session rather than a save flag: a player who Continues
@@ -80,11 +80,11 @@ function Shell() {
         onOpenWorkbench={() => setWorkbench(true)}
         onOpenSettings={() => setSettings(true)}
         onOpenCrew={() => setCrew(true)}
-        onOpenPhone={() => setPhone(true)}
+        onOpenBackpack={() => setBackpack(true)}
       />
       {crew && <Crew onClose={() => setCrew(false)} />}
       {settings && <SettingsPanel onClose={() => setSettings(false)} />}
-      {phone && <Phone onClose={() => setPhone(false)} />}
+      {backpack && <Backpack onClose={() => setBackpack(false)} />}
       {cyberdeckOpen && <Cyberdeck onClose={() => setCyberdeckOpen(false)} />}
       {save.player.currentChapter === 'ending' && !endingSeen && (
         <Ending onDismiss={() => setEndingSeen(true)} />

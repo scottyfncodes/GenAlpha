@@ -8,6 +8,7 @@ import {
   type CameraNode,
   type SabotageActionId,
 } from '../world/collectibles';
+import { JUNCTION_BOX_NODES, JUNCTION_BOX_RISK } from '../world/junctionboxes';
 import { addCash, addShdw, deckTier, grantItem, owns, quantityOf, removeItem } from './market';
 import { applyHeat } from './heat';
 
@@ -109,16 +110,51 @@ export function sabotageCamera(save: SaveState, nodeId: string, actionId: Sabota
   return markCollected(withHeat, nodeId, action.respawnDays);
 }
 
+/** Whether a junction box is currently standing — never cracked, or its
+ * tier's own respawn window (`JUNCTION_BOX_RISK`) has passed. No tool, no
+ * deck tier — the one gate here is the Heat cost, scaled by tier, per the
+ * build note that a higher-level plan should cost more to go after, not
+ * need different gear to reach. */
+export function canDestroyJunctionBox(save: SaveState, node: { id: string; tier: 1 | 2 | 3 | 4 | 5 }): boolean {
+  return !onCooldown(save, node.id, JUNCTION_BOX_RISK[node.tier].respawnDays);
+}
+
+/**
+ * Crack it open: the one file inside, once, at the Heat cost its tier
+ * carries. `acquiredVia: 'theft'` for the same reason a camera dismantle
+ * uses it — this is a decision with a cost on it, not a lucky find.
+ */
+export function destroyJunctionBox(save: SaveState, nodeId: string): SaveState {
+  const node = JUNCTION_BOX_NODES.find((n) => n.id === nodeId);
+  if (!node || !canDestroyJunctionBox(save, node)) return save;
+  const risk = JUNCTION_BOX_RISK[node.tier];
+
+  const withItem = grantItem(save, node.blueprintItemId, 1, 'theft');
+  const withHeat = {
+    ...withItem,
+    heat: applyHeat(withItem.heat, {
+      eventId: `junction_box_${nodeId}`,
+      delta: risk.heatCost,
+      logToHistory: true,
+    }),
+  };
+  return markCollected(withHeat, nodeId, risk.respawnDays);
+}
+
 export function sellMaterial(save: SaveState, itemId: string): SaveState {
   const material = MATERIALS_BY_ID[itemId];
   if (!material || !owns(save, itemId)) return save;
   return addShdw(removeItem(save, itemId), material.sellValueShdw);
 }
 
+/** A recipe needs its file before it needs its parts — knowing salvage will
+ * eventually make a Rebuilt Deck isn't the same as having the diagram for
+ * one. `blueprintItemId` is checked with plain `owns`, same as any other
+ * item; the file itself never gets consumed by building, only found. */
 export function canCraft(save: SaveState, recipeId: string): boolean {
   const recipe = RECIPES.find((r) => r.id === recipeId);
   if (!recipe) return false;
-  return recipe.inputs.every((i) => quantityOf(save, i.itemId) >= i.quantity);
+  return owns(save, recipe.blueprintItemId) && recipe.inputs.every((i) => quantityOf(save, i.itemId) >= i.quantity);
 }
 
 export function craft(save: SaveState, recipeId: string): SaveState {

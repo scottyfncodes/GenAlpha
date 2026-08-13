@@ -201,6 +201,21 @@
   cursor: default;
 }
 
+/* A junction box, same "this costs something" red-accent language a camera
+   or a street hack gets — one action, so it never needs the sabotage
+   stack's own column layout. */
+.overworld__prompt--junction {
+  background: var(--b-red);
+  color: var(--b-paper);
+  border-color: var(--b-ink);
+  font-size: 13px;
+}
+
+.overworld__prompt--junction:disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+
 .overworld__scene {
   position: absolute;
   inset: auto var(--step) calc(var(--step) * 2);

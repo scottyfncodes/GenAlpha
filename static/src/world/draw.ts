@@ -156,6 +156,9 @@ const PALETTE = {
   // between the player and the vans.
   dogBody: '#8a6a4a',
   birdBody: '#2a2f3a',
+  junctionBody: '#3a3a2a',
+  junctionDark: '#1e1e14',
+  junctionStripe: '#e0c020',
 } as const;
 
 const px = Math.round;
@@ -181,6 +184,7 @@ export function drawTown(
   patrols: { x: number; y: number; radius: number }[],
   cameraNodes: { x: number; y: number; dismantlable: boolean }[],
   hackNodes: { x: number; y: number; kind: 'atm' | 'phone' | 'building'; hackable: boolean }[],
+  junctionBoxNodes: { x: number; y: number; tier: 1 | 2 | 3 | 4 | 5; crackable: boolean }[],
   moving: boolean,
   now: number,
   boardTier: number,
@@ -234,6 +238,10 @@ export function drawTown(
   // player owns the rig to actually crack it, same as a locked door is
   // still a door; the prompt itself is what says no.
   for (const h of hackNodes) drawStreetHack(ctx, h);
+
+  // Junction boxes — always visible, on cooldown or not, same "locked door
+  // is still a door" rule everything else on this list follows.
+  for (const j of junctionBoxNodes) drawJunctionBox(ctx, j);
 
   // Detection rings under the vans, so a van sitting still doesn't visually
   // "arrive" on top of its own danger zone.
@@ -1343,6 +1351,41 @@ function drawStreetHack(
     ctx.fillRect(x + 3, y + size - 6, 3, 3);
     ctx.fillRect(x + size - 6, y + size - 6, 3, 3);
   }
+}
+
+/**
+ * A junction box: a squat olive-drab utility cabinet with a hazard-stripe
+ * lid, the one point object on this map that isn't trying to blend in —
+ * it's supposed to read as "there's something worth prying open in here"
+ * from across the street. `tier` darkens the stripe toward the higher
+ * tiers, a cheap tell that the box behind it is worth more before the
+ * player's even close enough to read the prompt.
+ */
+function drawJunctionBox(
+  ctx: CanvasRenderingContext2D,
+  node: { x: number; y: number; tier: 1 | 2 | 3 | 4 | 5; crackable: boolean },
+) {
+  const size = 14;
+  const x = px(node.x - size / 2);
+  const y = px(node.y - size / 2);
+
+  if (node.crackable) drawSoftGlow(ctx, x + size / 2, y + size / 2, size / 2, 3, 4);
+
+  ctx.fillStyle = PALETTE.junctionBody;
+  ctx.fillRect(x, y, size, size);
+  ctx.strokeStyle = PALETTE.junctionDark;
+  ctx.lineWidth = 1;
+  ctx.strokeRect(x - 0.5, y - 0.5, size + 1, size + 1);
+
+  // A hazard-stripe lid, higher tiers a shade darker/duller — worn from more
+  // hands trying to get into it.
+  ctx.fillStyle = PALETTE.junctionStripe;
+  ctx.globalAlpha = 1 - (node.tier - 1) * 0.12;
+  ctx.fillRect(x + 2, y + 2, size - 4, 3);
+  ctx.globalAlpha = 1;
+
+  ctx.fillStyle = PALETTE.junctionDark;
+  ctx.fillRect(x + size / 2 - 1, y + size - 6, 2, 4);
 }
 
 /**

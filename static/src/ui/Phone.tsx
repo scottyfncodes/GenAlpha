@@ -2,8 +2,9 @@ import { useState } from 'react';
 import { useGame, useSave } from '../state/GameContext';
 import { Market } from './Market';
 import { MATERIALS, RECIPES } from '../content/materials';
+import { BLUEPRINTS } from '../content/blueprints';
 import { canCraft } from '../systems/materials';
-import { quantityOf, shdwDirection, shdwHeld, shdwRate, shdwRateOnDay } from '../systems/market';
+import { owns, quantityOf, shdwDirection, shdwHeld, shdwRate, shdwRateOnDay } from '../systems/market';
 import { SHDW } from '../content/economy';
 import { discoveredEntries, undiscoveredCount } from '../systems/casefile';
 import './phone.css';
@@ -54,12 +55,12 @@ function PhoneHome({ onOpen, onClose }: { onOpen: (app: App) => void; onClose: (
       </div>
       <div className="phone__apps">
         <button className="phone__app" onClick={() => onOpen('market')}>
-          <span className="phone__app-icon">💱</span>
-          <span>The Table</span>
+          <span className="phone__app-icon">🐪</span>
+          <span>Silk Road</span>
         </button>
         <button className="phone__app" onClick={() => onOpen('salvage')}>
-          <span className="phone__app-icon">🔧</span>
-          <span>Salvage</span>
+          <span className="phone__app-icon">📁</span>
+          <span>Files</span>
         </button>
         <button className="phone__app" onClick={() => onOpen('shadow')}>
           <span className="phone__app-icon">📈</span>
@@ -75,22 +76,30 @@ function PhoneHome({ onOpen, onClose }: { onOpen: (app: App) => void; onClose: (
 }
 
 /**
- * Salvage: sell what you collected for SHDW, or build with it. Not a market —
- * no prices move here, no events touch it. A material is worth a flat amount
- * because it's salvage, not a listing.
+ * Files: a folder, not a workbench. Every recipe needs its own build plan
+ * before it can be built at all — found exactly one way, destroying a
+ * junction box (`world/junctionboxes.ts`) — so Build only ever lists what
+ * there's actually a file for. No quest markers for the rest: a recipe with
+ * no blueprint owned doesn't appear here half-greyed-out, it just isn't
+ * listed, same as a hidden bush gives no other tell than the sparkle.
+ * Selling salvage for SHDW is unrelated to any of that — parts are parts,
+ * not diagrams — and stays exactly as it always worked.
  */
 function Salvage({ onBack }: { onBack: () => void }) {
   const save = useSave();
   const { dispatch } = useGame();
   const [note, setNote] = useState<string | null>(null);
   const held = MATERIALS.filter((m) => quantityOf(save, m.itemId) > 0);
+  const ownedBlueprints = BLUEPRINTS.filter((b) => owns(save, b.itemId));
+  const buildableRecipes = RECIPES.filter((r) => owns(save, r.blueprintItemId));
+  const remainingBlueprints = BLUEPRINTS.length - ownedBlueprints.length;
 
   return (
     <div className="salvage lang-b">
       <header className="salvage__head">
         <div>
-          <p className="salvage__eyebrow">Whatever you picked up</p>
-          <h2 className="salvage__title">Salvage</h2>
+          <p className="salvage__eyebrow">Whatever you picked up, whatever you cracked open</p>
+          <h2 className="salvage__title">Files</h2>
         </div>
         <button className="salvage__back" onClick={onBack}>
           Done
@@ -127,36 +136,61 @@ function Salvage({ onBack }: { onBack: () => void }) {
       </section>
 
       <section className="salvage__section">
-        <h3 className="salvage__section-title">Build</h3>
-        <ul className="salvage__list">
-          {RECIPES.map((r) => {
-            const buildable = canCraft(save, r.id);
-            return (
-              <li key={r.id} className="salvage__row">
+        <h3 className="salvage__section-title">Blueprints</h3>
+        {ownedBlueprints.length === 0 ? (
+          <p className="salvage__empty">No files yet. A junction box has to give one up first.</p>
+        ) : (
+          <ul className="salvage__list">
+            {ownedBlueprints.map((b) => (
+              <li key={b.itemId} className="salvage__row">
                 <div className="salvage__row-head">
-                  <b>{r.label}</b>
+                  <b>{b.name}</b>
                 </div>
-                <p className="salvage__effect">{r.description}</p>
-                <p className="salvage__inputs">
-                  {r.inputs
-                    .map((i) => `${i.quantity}× ${MATERIALS.find((m) => m.itemId === i.itemId)?.name ?? i.itemId}`)
-                    .join(' + ')}
-                </p>
-                <button
-                  disabled={!buildable}
-                  onClick={() => {
-                    dispatch({ type: 'CRAFT_ITEM', recipeId: r.id });
-                    setNote(`Built: ${r.label}.`);
-                  }}
-                >
-                  Build
-                </button>
-                {!buildable && <span className="salvage__reason">Not enough parts yet.</span>}
+                <p className="salvage__effect">{b.description}</p>
               </li>
-            );
-          })}
-        </ul>
+            ))}
+          </ul>
+        )}
+        {remainingBlueprints > 0 && (
+          <p className="salvage__reason">
+            {remainingBlueprints} more file{remainingBlueprints === 1 ? '' : 's'} out there, unaccounted for.
+          </p>
+        )}
       </section>
+
+      {buildableRecipes.length > 0 && (
+        <section className="salvage__section">
+          <h3 className="salvage__section-title">Build</h3>
+          <ul className="salvage__list">
+            {buildableRecipes.map((r) => {
+              const buildable = canCraft(save, r.id);
+              return (
+                <li key={r.id} className="salvage__row">
+                  <div className="salvage__row-head">
+                    <b>{r.label}</b>
+                  </div>
+                  <p className="salvage__effect">{r.description}</p>
+                  <p className="salvage__inputs">
+                    {r.inputs
+                      .map((i) => `${i.quantity}× ${MATERIALS.find((m) => m.itemId === i.itemId)?.name ?? i.itemId}`)
+                      .join(' + ')}
+                  </p>
+                  <button
+                    disabled={!buildable}
+                    onClick={() => {
+                      dispatch({ type: 'CRAFT_ITEM', recipeId: r.id });
+                      setNote(`Built: ${r.label}.`);
+                    }}
+                  >
+                    Build
+                  </button>
+                  {!buildable && <span className="salvage__reason">Not enough parts yet.</span>}
+                </li>
+              );
+            })}
+          </ul>
+        </section>
+      )}
     </div>
   );
 }

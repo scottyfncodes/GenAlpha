@@ -21,10 +21,12 @@ import { useGame, useSave } from '../state/GameContext';
 import type { ThresholdTier } from '../state/schema';
 import { LIE_LOW_DECAY, lieLowBlocked } from '../systems/heat';
 import { safehouseBlocked, safehouseDecay } from '../systems/safehouse';
-import { canCollectHidden, canSabotage, onCooldown } from '../systems/materials';
+import { canCollectHidden, canDestroyJunctionBox, canSabotage, onCooldown } from '../systems/materials';
 import { boardTier, owns } from '../systems/market';
 import { consequenceFor, HURT_UNTIL_DAY_FLAG } from '../systems/consequences';
 import { MATERIALS_BY_ID } from '../content/materials';
+import { BLUEPRINTS_BY_ID } from '../content/blueprints';
+import { JUNCTION_BOX_NODES, JUNCTION_BOX_RISK, type JunctionBoxNode } from './junctionboxes';
 import { ITEMS_BY_ID } from '../content/economy';
 import { LIE_LOW_FLAG } from '../content/breather';
 import { SAFEHOUSE_ID } from '../content/safehouse';
@@ -78,6 +80,8 @@ const SCALE = 2; // pixel-art integer scale
  * bush pickup has no radius of its own, it fires on actually overlapping the
  * bush's rect (see the frame loop), the same feet-box test a building uses. */
 const CAMERA_INTERACT_RADIUS = 26;
+/** Same idea as `CAMERA_INTERACT_RADIUS`, for a junction box. */
+const JUNCTION_BOX_INTERACT_RADIUS = 26;
 /** How far past its own detection radius a hunting van keeps chasing —
  * wider than the circle that started the chase, so breaking line of sight
  * for a moment doesn't shake it instantly. */
@@ -168,6 +172,9 @@ export function Overworld() {
    * there either way, same as a camera is; only whether the prompt is
    * clickable depends on the rig. */
   const [nearbyHack, setNearbyHack] = useState<StreetHackNode | null>(null);
+  /** The junction box close enough to crack open right now, if any — same
+   * "spending Heat is a decision, not a walk" reasoning a camera gets. */
+  const [nearbyJunctionBox, setNearbyJunctionBox] = useState<JunctionBoxNode | null>(null);
   /**
    * Held in state, not derived: a scene's own effects change the chapter part
    * way through, which would otherwise unmount the scene mid-read.
@@ -273,6 +280,7 @@ export function Overworld() {
   const enterRef = useRef<(loc: OverworldLocation) => void>(() => {});
   const nearbyCameraRef = useRef<CameraNode | null>(null);
   const nearbyHackRef = useRef<StreetHackNode | null>(null);
+  const nearbyJunctionBoxRef = useRef<JunctionBoxNode | null>(null);
   /** Hidden pickups currently underfoot, so one fires once on approach rather
    * than every single frame the player happens to be standing on it. */
   const contactRef = useRef<Set<string>>(new Set());
@@ -486,6 +494,29 @@ export function Overworld() {
       }
 
       /*
+       * Junction boxes. Visible on cooldown rules alone, same as a camera or
+       * a street hack — the box is there whether or not it's worth cracking
+       * open right now.
+       */
+      const junctionBoxDraw: { x: number; y: number; tier: JunctionBoxNode['tier']; crackable: boolean }[] = [];
+      let closestJunctionBox: JunctionBoxNode | null = null;
+      let closestJunctionBoxDist = JUNCTION_BOX_INTERACT_RADIUS;
+      for (const node of JUNCTION_BOX_NODES) {
+        if (onCooldown(saveRef.current, node.id, JUNCTION_BOX_RISK[node.tier].respawnDays)) continue;
+        const dist = Math.hypot(node.x - pos.current.x, node.y - pos.current.y);
+        const inRange = dist < JUNCTION_BOX_INTERACT_RADIUS;
+        junctionBoxDraw.push({ x: node.x, y: node.y, tier: node.tier, crackable: inRange });
+        if (inRange && dist < closestJunctionBoxDist) {
+          closestJunctionBoxDist = dist;
+          closestJunctionBox = node;
+        }
+      }
+      if (closestJunctionBox?.id !== nearbyJunctionBoxRef.current?.id) {
+        nearbyJunctionBoxRef.current = closestJunctionBox;
+        setNearbyJunctionBox(closestJunctionBox);
+      }
+
+      /*
        * Patrols. Every route keeps walking regardless of tier; only the
        * active subset is drawn or checked against the player, and each has
        * its own cooldown so standing in one van's radius can't machine-gun
@@ -618,6 +649,7 @@ export function Overworld() {
         patrolDraw,
         cameraDraw,
         hackDraw,
+        junctionBoxDraw,
         moving,
         now,
         boardTierRef.current,
@@ -783,6 +815,20 @@ export function Overworld() {
             : owns(save, HACK_KIND_TOOL[nearbyHack.kind])
               ? 'Needs a better rig'
               : `Needs ${toolArticleFor(HACK_KIND_TOOL[nearbyHack.kind])}`}
+        </button>
+      )}
+
+      {/* Last in the priority order — a location, a camera, a street hack
+          all win over this. One action, not three tiers: the choice already
+          happened when the player decided this box was worth the walk. */}
+      {!nearby && !nearbyCamera && !nearbyHack && nearbyJunctionBox && !open && (
+        <button
+          className="overworld__prompt overworld__prompt--junction"
+          disabled={!canDestroyJunctionBox(save, nearbyJunctionBox)}
+          onClick={() => dispatch({ type: 'DESTROY_JUNCTION_BOX', nodeId: nearbyJunctionBox.id })}
+        >
+          Junction box · Heat +{JUNCTION_BOX_RISK[nearbyJunctionBox.tier].heatCost} ·{' '}
+          {BLUEPRINTS_BY_ID[nearbyJunctionBox.blueprintItemId]?.name ?? 'build plan'}
         </button>
       )}
 

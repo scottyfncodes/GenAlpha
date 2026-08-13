@@ -19,12 +19,12 @@ export function Hud({
   onOpenWorkbench,
   onOpenSettings,
   onOpenCrew,
-  onOpenPhone,
+  onOpenBackpack,
 }: {
   onOpenWorkbench: () => void;
   onOpenSettings: () => void;
   onOpenCrew: () => void;
-  onOpenPhone: () => void;
+  onOpenBackpack: () => void;
 }) {
   const save = useSave();
   const { dispatch, deleteSave, heatAlertUntil, nearbyHackNodeId, setCyberdeckOpen } = useGame();
@@ -111,8 +111,8 @@ export function Hud({
           reachable from turn one, per the build note: the loop shouldn't
           have to wait on a flag to be worth playing.
         */}
-        <button className="hud__toggle" onClick={onOpenPhone}>
-          Phone
+        <button className="hud__toggle" onClick={onOpenBackpack}>
+          Backpack
         </button>
         {/* The cyberdeck's own button, separate from the phone the moment
             there's a reason for it to exist — Once built (`content/materials.ts`

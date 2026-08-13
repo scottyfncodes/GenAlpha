@@ -11,6 +11,20 @@
   z-index: 5;
 }
 
+/* The heat box only ever needs the left ~80% of a phone-width screen (it
+   caps at 320px); the strip to its right was just empty ground showing
+   through. The button bar moves up into it — a right-aligned column
+   instead of a row stacked under the heat box, since the space that's
+   actually free there is a narrow vertical strip, not a wide horizontal
+   one. */
+.hud__bar {
+  position: absolute;
+  top: var(--step);
+  right: var(--step);
+  flex-direction: column;
+  align-items: flex-end;
+}
+
 .hud > * { pointer-events: auto; }
 
 .hud__heat {

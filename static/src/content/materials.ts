@@ -114,6 +114,10 @@ export interface Recipe {
   inputs: { itemId: string; quantity: number }[];
   outputItemId: string;
   description: string;
+  /** The file this recipe needs before it can be built at all —
+   * `content/blueprints.ts`. Checked alongside the material inputs in
+   * `systems/materials.ts` `canCraft`. */
+  blueprintItemId: string;
 }
 
 export const RECIPES: Recipe[] = [
@@ -126,6 +130,7 @@ export const RECIPES: Recipe[] = [
     ],
     outputItemId: 'signal_jammer',
     description: 'Same trick the market sells, built instead of bought.',
+    blueprintItemId: 'bp_signal_jammer',
   },
   {
     id: 'craft_clean_sim',
@@ -136,6 +141,7 @@ export const RECIPES: Recipe[] = [
     ],
     outputItemId: 'clean_sim',
     description: 'A phone with no history is just a phone somebody forgot to register.',
+    blueprintItemId: 'bp_clean_sim',
   },
   /*
    * The board line. Each tier upgrade consumes the tier below it as one of
@@ -157,6 +163,7 @@ export const RECIPES: Recipe[] = [
     ],
     outputItemId: 'board_1',
     description: 'A board that used to be a fence panel, trucked and wheeled. The first real reason to look twice at a bush.',
+    blueprintItemId: 'bp_board_1',
   },
   {
     id: 'craft_board_2',
@@ -168,6 +175,7 @@ export const RECIPES: Recipe[] = [
     ],
     outputItemId: 'board_2',
     description: 'New bearings so it stops sounding like it’s dying, new bushings so it actually turns.',
+    blueprintItemId: 'bp_board_2',
   },
   {
     id: 'craft_board_3',
@@ -180,6 +188,7 @@ export const RECIPES: Recipe[] = [
     ],
     outputItemId: 'board_3',
     description: 'A motor where your back foot goes and a logic board to keep it from running away with you. Now it does some of the work.',
+    blueprintItemId: 'bp_board_3',
   },
   {
     id: 'craft_board_4',
@@ -192,6 +201,7 @@ export const RECIPES: Recipe[] = [
     ],
     outputItemId: 'board_4',
     description: 'Three inches of clearance nobody in Bellhaven has seen before. Unstable. Also: it works.',
+    blueprintItemId: 'bp_board_4',
   },
   {
     id: 'craft_board_5',
@@ -204,6 +214,7 @@ export const RECIPES: Recipe[] = [
     ],
     outputItemId: 'board_5',
     description: 'Whatever was wrong with the prototype, it isn’t wrong anymore.',
+    blueprintItemId: 'bp_board_5',
   },
   /*
    * The deck line. Same trade-up shape as the board — `deckTier`
@@ -222,6 +233,7 @@ export const RECIPES: Recipe[] = [
     ],
     outputItemId: 'cyberdeck_1',
     description: 'Everything it needs is already lying around Bellhaven, if you know which bushes to check and which cameras to take apart. Reads a payphone line — nothing else, yet.',
+    blueprintItemId: 'bp_cyberdeck_1',
   },
   {
     id: 'craft_cyberdeck_2',
@@ -233,6 +245,7 @@ export const RECIPES: Recipe[] = [
     ],
     outputItemId: 'cyberdeck_2',
     description: 'Enough current behind it to talk to a kiosk ATM without frying either of you.',
+    blueprintItemId: 'bp_cyberdeck_2',
   },
   {
     id: 'craft_cyberdeck_3',
@@ -244,6 +257,7 @@ export const RECIPES: Recipe[] = [
     ],
     outputItemId: 'cyberdeck_3',
     description: 'Reads a FLACK housing now, not just a call box. Helio’s own network, from the outside — the graphics card is what actually breaks the encryption fast enough to matter.',
+    blueprintItemId: 'bp_cyberdeck_3',
   },
   {
     id: 'craft_cyberdeck_4',
@@ -255,6 +269,7 @@ export const RECIPES: Recipe[] = [
     ],
     outputItemId: 'cyberdeck_4',
     description: 'Quiet enough to sit inside a building’s own systems without it noticing you’re there.',
+    blueprintItemId: 'bp_cyberdeck_4',
   },
   {
     id: 'craft_cyberdeck_5',
@@ -267,5 +282,6 @@ export const RECIPES: Recipe[] = [
     ],
     outputItemId: 'cyberdeck_5',
     description: 'Everything the last four builds were practice for.',
+    blueprintItemId: 'bp_cyberdeck_5',
   },
 ];

@@ -45,11 +45,11 @@ export function Market({ onClose }: { onClose: () => void }) {
   };
 
   return (
-    <div className="market lang-b" role="dialog" aria-label="The Wednesday table">
+    <div className="market lang-b" role="dialog" aria-label="Silk Road">
       <header className="market__head">
         <div>
-          <p className="market__eyebrow">Behind the Fenwick shops</p>
-          <h2 className="market__title">The Wednesday Table</h2>
+          <p className="market__eyebrow">Built goods, no questions</p>
+          <h2 className="market__title">Silk Road 🐪</h2>
         </div>
         <button className="market__close" onClick={onClose}>
           Done
