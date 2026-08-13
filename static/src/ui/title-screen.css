@@ -107,10 +107,37 @@
   opacity: 0.75;
 }
 
-/* Mark and wordmark as one lockup, so they turn over together. */
-.title__lockup {
+/* "Gen" and "Alpha" each on their own line, and each line is exactly one
+   atomic unit — the mark can never end up stranded alone the way it would
+   wrapping naturally inside one long run of letter-spaced text. */
+.title__word-line {
+  display: block;
+  white-space: nowrap;
+}
+
+.title__word-line--alpha {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: calc(var(--step) * 2);
+}
+
+/*
+ * The mark sitting inline as the A in "Alpha" — sized off the wordmark's
+ * own font-size (an em unit, not the `size` prop's px, which this
+ * overrides) so it scales with the same `clamp()` the surrounding letters
+ * do, and nudged down slightly: the SVG's viewBox has more headroom above
+ * the ink than a capital letter's own cap-height would, so a naive
+ * baseline-align reads as the A floating high.
+ *
+ * Sized a touch bigger than the letters around it rather than matched
+ * exactly — the `clean` state (Act 1, no circle yet) draws only the bare
+ * strokes of the A, which sit well inside the SVG's own viewBox with a lot
+ * of empty margin on every side; at equal box size it reads smaller than
+ * the letters next to it. The negative margin then pulls "lpha" back in
+ * against that empty margin, so the two don't visibly drift apart.
+ */
+.title__word .gen-a {
+  width: 0.92em;
+  height: 0.92em;
+  margin: -0.05em -0.12em 0;
 }

@@ -39,12 +39,29 @@ export function TitleScreen({ onStart, onContinue }: { onStart: (name: string) =
         two seconds: a council logo before the rupture, a claimed one after.
         Nothing says so. By the time the player sees it on a wall in Act 2
         they have already watched it change once and not been told why.
+
+        It's also, now, literally the A in the game's own name — "Gen A"
+        reads as Gen Alpha to the adult world (GenAMark.tsx's own framing)
+        and this is that joke stated once, in the packaging, the one place
+        it's allowed to be stated at all. `act3.test.ts` still fails if a
+        line of dialogue ever names the mark — that rule is about the
+        *story* explaining itself, not about whether the title screen gets
+        to wink. Screen readers get "Gen Alpha" cleanly either way: the
+        mark and the split word are `aria-hidden`, the label sits on the h1.
       */}
       <Glitch active={stage === 'rupture'} intensity={2}>
-        <div className="title__lockup">
-          <GenAMark state={stage === 'claimed' ? 'claiming' : 'clean'} size={72} />
-          <h1 className="title__word">STATIC</h1>
-        </div>
+        <h1 className="title__word" aria-label="Gen Alpha">
+          {/* Stacked, not inline — at this font-size the letter-spacing
+              alone makes "Gen Alpha" run wider than any reasonable
+              viewport, and letting it wrap on its own splits the mark onto
+              a line by itself. Two short lines, each its own atomic unit,
+              never breaks unpredictably. */}
+          <span className="title__word-line" aria-hidden="true">Gen</span>
+          <span className="title__word-line title__word-line--alpha" aria-hidden="true">
+            <GenAMark state={stage === 'claimed' ? 'claiming' : 'clean'} size={72} />
+            lpha
+          </span>
+        </h1>
       </Glitch>
 
       <p className="title__tag">
