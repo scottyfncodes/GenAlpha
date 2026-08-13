@@ -824,7 +824,13 @@ export function Overworld() {
 
       {market && <Market onClose={() => setMarket(false)} />}
 
-      <Joystick onChange={(dx, dy) => (touch.current = { dx, dy })} />
+      {/* Hidden rather than just covered — it already does nothing here
+          (`blockedRef` zeroes touch input under the same two conditions),
+          so leaving it on screen was just a control sitting on top of a
+          location card with no function, not a real toggle underneath it. */}
+      {!open && !cyberdeckOpen && (
+        <Joystick onChange={(dx, dy) => (touch.current = { dx, dy })} />
+      )}
 
       {!open && (
         <p className="overworld__hint">
