@@ -92,7 +92,7 @@ export function TitleScreen({ onStart, onContinue }: { onStart: (name: string) =
             said it, and a caption under them would be the one thing this
             screen isn't allowed to do (Style Guide 07: noticed, not
             explained). */}
-        {stage !== 'claimed' && <p className="title__tag">Bellhaven Community Safety Initiative</p>}
+        {stage !== 'claimed' && <p className="title__tag">Where community meets safety</p>}
 
         {stage === 'claimed' && (
           <div className="title__menu">
