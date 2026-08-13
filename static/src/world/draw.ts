@@ -1,5 +1,6 @@
 import { MAP_HEIGHT, MAP_WIDTH, visibleLocations, type OverworldLocation } from './locations';
 import type { Obstacle } from './obstacles';
+import type { NpcKind } from './npcs';
 import type { ThresholdTier } from '../state/schema';
 import { mulberry32, seedFrom } from '../systems/rng';
 
@@ -49,7 +50,7 @@ const PALETTE = {
   windowLit: '#f0c07a',
   windowDark: '#2a3242',
   warmGlow: 'rgba(240, 160, 60, 0.10)',
-  hereGlow: 'rgba(236, 226, 208, 0.12)',
+  hereGlow: 'rgba(236, 226, 208, 0.055)',
   curb: '#272e3a',
   crack: 'rgba(20, 24, 32, 0.35)',
   lampPost: '#232935',
@@ -64,8 +65,8 @@ const PALETTE = {
   spriteShirt: '#ece2d0',
   spriteBag: '#8a6b4a',
   spriteBagStrap: '#5c4630',
-  capCrown: '#2fb0a8',
-  capBrim: '#1f7d76',
+  capCrown: '#1a1a1c',
+  capBrim: '#000000',
   outline: '#20262f',
   patrolBody: '#e6402a',
   patrolCab: '#100e0d',
@@ -151,6 +152,10 @@ const PALETTE = {
   plank: '#6d5030',
   plankDark: '#4a3620',
   rope: '#a89468',
+  // Ambient life — a small, cheap palette so the town doesn't look empty
+  // between the player and the vans.
+  dogBody: '#8a6a4a',
+  birdBody: '#2a2f3a',
 } as const;
 
 const px = Math.round;
@@ -172,6 +177,7 @@ export function drawTown(
   playerSize: { w: number; h: number },
   obstacles: Obstacle[],
   sparklingObstacleIds: Set<string>,
+  npcs: { x: number; y: number; kind: NpcKind; facing: 1 | -1; id: string }[],
   patrols: { x: number; y: number; radius: number }[],
   cameraNodes: { x: number; y: number; dismantlable: boolean }[],
   hackNodes: { x: number; y: number; kind: 'atm' | 'phone' | 'building'; hackable: boolean }[],
@@ -212,6 +218,11 @@ export function drawTown(
     if (sparklingObstacleIds.has(obstacle.id)) drawSparkle(ctx, obstacle, now);
   }
   for (const loc of locations) drawLocation(ctx, loc, here?.id === loc.id, tier);
+
+  // Ambient people and animals — decorative only, drawn after locations so
+  // a building still occludes them, and well before the player so nothing
+  // ambient can ever render on top of the one figure that matters.
+  for (const n of npcs) drawNpc(ctx, n.x, n.y, n.kind, n.facing, n.id);
 
   // Ordinary cameras, worth taking apart — the same small box the story pole
   // renders as, so it reads as the same kind of object. `dismantlable` is
@@ -545,19 +556,51 @@ function drawGround(ctx: CanvasRenderingContext2D) {
   }
 }
 
+/**
+ * Street centrelines — an explicit, irregular list rather than an evenly
+ * repeating `+= 160`, so the blocks between them read as a town that grew
+ * one lot at a time instead of graph paper. Kept close enough to the old
+ * uniform 160/152 spacing that every location still sits a plausible short
+ * walk from its nearest road (nothing here moves a building, an obstacle,
+ * or a patrol route — those stay put; only the streets between them
+ * stop being perfectly regular), and each gets its own width (20–28px)
+ * for the same hand-built reason.
+ */
+const V_ROADS: { x: number; w: number }[] = [
+  { x: 0, w: 24 },
+  { x: 152, w: 20 },
+  { x: 318, w: 26 },
+  { x: 468, w: 24 },
+  { x: 648, w: 22 },
+  { x: 804, w: 24 },
+  { x: 964, w: 20 },
+  { x: 1124, w: 26 },
+];
+
+const H_ROADS: { y: number; h: number }[] = [
+  { y: 0, h: 24 },
+  { y: 144, h: 20 },
+  { y: 296, h: 26 },
+  { y: 460, h: 22 },
+  { y: 600, h: 24 },
+  { y: 756, h: 20 },
+];
+
 /** Streets, with a broken centre line. Empty ones, all the way across. */
 function drawRoads(ctx: CanvasRenderingContext2D) {
   ctx.fillStyle = PALETTE.road;
-  for (let x = 0; x < MAP_WIDTH; x += 160) ctx.fillRect(x, 0, 24, MAP_HEIGHT);
-  for (let y = 0; y < MAP_HEIGHT; y += 152) ctx.fillRect(0, y, MAP_WIDTH, 24);
+  for (const road of V_ROADS) ctx.fillRect(road.x, 0, road.w, MAP_HEIGHT);
+  for (const road of H_ROADS) ctx.fillRect(0, road.y, MAP_WIDTH, road.h);
 
   ctx.fillStyle = PALETTE.roadLine;
   ctx.globalAlpha = 0.5;
-  for (let x = 0; x < MAP_WIDTH; x += 160) {
-    for (let y = 4; y < MAP_HEIGHT; y += 20) ctx.fillRect(x + 11, y, 2, 8);
+  for (const road of V_ROADS) {
+    const cx = road.x + road.w / 2 - 1;
+    for (let y = 4; y < MAP_HEIGHT; y += 20) ctx.fillRect(cx, y, 2, 8);
   }
-  for (let y = 0; y < MAP_HEIGHT; y += 152) {
-    for (let x = 4; x < MAP_WIDTH; x += 20) ctx.fillRect(x, y + 11, 8, 2);
+  for (const road of H_ROADS) {
+    const cy = road.y + road.h / 2 - 1;
+    for (let x = 4; x < MAP_WIDTH; x += 20) ctx.fillRect(x, cy, 8, 2);
   }
   ctx.globalAlpha = 1;
 
@@ -571,27 +614,27 @@ function drawRoads(ctx: CanvasRenderingContext2D) {
 function drawCracks(ctx: CanvasRenderingContext2D) {
   ctx.strokeStyle = PALETTE.crack;
   ctx.lineWidth = 1;
-  for (let x = 0; x < MAP_WIDTH; x += 160) {
-    const rand = noise(`crack:v:${x}`);
+  for (const road of V_ROADS) {
+    const rand = noise(`crack:v:${road.x}`);
     for (let i = 0; i < 6; i++) {
       const cy = rand() * MAP_HEIGHT;
       const len = 6 + rand() * 10;
       const branch = (rand() - 0.5) * 10;
       ctx.beginPath();
-      ctx.moveTo(px(x + 4 + rand() * 16), px(cy));
-      ctx.lineTo(px(x + 4 + rand() * 16 + branch), px(cy + len));
+      ctx.moveTo(px(road.x + 4 + rand() * (road.w - 8)), px(cy));
+      ctx.lineTo(px(road.x + 4 + rand() * (road.w - 8) + branch), px(cy + len));
       ctx.stroke();
     }
   }
-  for (let y = 0; y < MAP_HEIGHT; y += 152) {
-    const rand = noise(`crack:h:${y}`);
+  for (const road of H_ROADS) {
+    const rand = noise(`crack:h:${road.y}`);
     for (let i = 0; i < 6; i++) {
       const cx = rand() * MAP_WIDTH;
       const len = 6 + rand() * 10;
       const branch = (rand() - 0.5) * 10;
       ctx.beginPath();
-      ctx.moveTo(px(cx), px(y + 4 + rand() * 16));
-      ctx.lineTo(px(cx + len), px(y + 4 + rand() * 16 + branch));
+      ctx.moveTo(px(cx), px(road.y + 4 + rand() * (road.h - 8)));
+      ctx.lineTo(px(cx + len), px(road.y + 4 + rand() * (road.h - 8) + branch));
       ctx.stroke();
     }
   }
@@ -696,22 +739,31 @@ function drawLocation(ctx: CanvasRenderingContext2D, loc: OverworldLocation, isH
   }
 }
 
-/** A soft halo centred on the location, same layered-rings trick `drawGlow`
- * uses for a resistance place's ambient warmth: several same-alpha circles,
- * largest first, so they stack additively into a glow that's brightest at
- * the centre and falls off softly at the edge — no hard edge to clip a
- * roofline, unlike the outline this replaced. */
+/**
+ * A soft halo, same layered-rings trick `drawGlow` uses for a resistance
+ * place's ambient warmth: several same-alpha circles, largest first, so
+ * they stack additively into a glow that's brightest at the centre and
+ * falls off softly at the edge. Shared by everything the player can act
+ * on — a location, a camera, a street hack node — so "you're close enough"
+ * reads the same low-key way everywhere, rather than a location getting a
+ * halo and a camera getting a hard-edged ring.
+ */
+function drawSoftGlow(ctx: CanvasRenderingContext2D, cx: number, cy: number, baseR: number, rings: number, step: number) {
+  ctx.fillStyle = PALETTE.hereGlow;
+  for (let ring = rings; ring > 0; ring--) {
+    ctx.beginPath();
+    ctx.arc(cx, cy, baseR + ring * step, 0, Math.PI * 2);
+    ctx.fill();
+  }
+}
+
+/** The location-sized version: `drawSoftGlow` scaled to the building's own
+ * footprint rather than a small fixed object. */
 function drawHereGlow(ctx: CanvasRenderingContext2D, loc: OverworldLocation) {
   const cx = px(loc.x + loc.w / 2);
   const cy = px(loc.y + loc.h / 2);
   const baseR = Math.max(loc.w, loc.h) / 2;
-
-  ctx.fillStyle = PALETTE.hereGlow;
-  for (let ring = 4; ring > 0; ring--) {
-    ctx.beginPath();
-    ctx.arc(cx, cy, baseR + ring * 7, 0, Math.PI * 2);
-    ctx.fill();
-  }
+  drawSoftGlow(ctx, cx, cy, baseR, 3, 5);
 }
 
 /**
@@ -1215,17 +1267,13 @@ function drawCamera(ctx: CanvasRenderingContext2D, loc: OverworldLocation, isHer
   const x = px(loc.x + loc.w / 2 - size / 2);
   const y = px(loc.y + loc.h / 2 - size / 2);
 
+  if (isHere) drawSoftGlow(ctx, x + size / 2, y + size / 2, size / 2, 3, 4);
+
   ctx.fillStyle = PALETTE.camera;
   ctx.fillRect(x, y, size, size);
   ctx.strokeStyle = PALETTE.cameraDark;
   ctx.lineWidth = 1;
   ctx.strokeRect(x - 0.5, y - 0.5, size + 1, size + 1);
-
-  if (isHere) {
-    ctx.strokeStyle = PALETTE.spriteShirt;
-    ctx.lineWidth = 2;
-    ctx.strokeRect(x - 4, y - 4, size + 8, size + 8);
-  }
 }
 
 /**
@@ -1246,17 +1294,13 @@ function drawSabotageCamera(
   const x = px(node.x - size / 2);
   const y = px(node.y - size / 2);
 
+  if (dismantlable) drawSoftGlow(ctx, x + size / 2, y + size / 2, size / 2, 3, 4);
+
   ctx.fillStyle = PALETTE.camera;
   ctx.fillRect(x, y, size, size);
   ctx.strokeStyle = PALETTE.cameraDark;
   ctx.lineWidth = 1;
   ctx.strokeRect(x - 0.5, y - 0.5, size + 1, size + 1);
-
-  if (dismantlable) {
-    ctx.strokeStyle = PALETTE.spriteShirt;
-    ctx.lineWidth = 2;
-    ctx.strokeRect(x - 4, y - 4, size + 8, size + 8);
-  }
 }
 
 /**
@@ -1278,6 +1322,8 @@ function drawStreetHack(
   const dark =
     node.kind === 'atm' ? PALETTE.atmDark : node.kind === 'building' ? PALETTE.panelDark : PALETTE.phoneDark;
 
+  if (node.hackable) drawSoftGlow(ctx, x + size / 2, y + size / 2, size / 2, 3, 4);
+
   ctx.fillStyle = body;
   ctx.fillRect(x, y, size, size);
   ctx.strokeStyle = dark;
@@ -1296,12 +1342,6 @@ function drawStreetHack(
     ctx.fillRect(x + size - 6, y + 3, 3, 3);
     ctx.fillRect(x + 3, y + size - 6, 3, 3);
     ctx.fillRect(x + size - 6, y + size - 6, 3, 3);
-  }
-
-  if (node.hackable) {
-    ctx.strokeStyle = PALETTE.spriteShirt;
-    ctx.lineWidth = 2;
-    ctx.strokeRect(x - 4, y - 4, size + 8, size + 8);
   }
 }
 
@@ -1417,6 +1457,86 @@ function limb(ctx: CanvasRenderingContext2D, x1: number, y1: number, x2: number,
   ctx.moveTo(px(x1), px(y1));
   ctx.lineTo(px(x2), px(y2));
   ctx.stroke();
+}
+
+/** A small fixed wardrobe so ambient pedestrians don't all wear the same
+ * shirt — picked once per npc id, never reshuffled. */
+const NPC_SHIRTS = ['#7a8a9c', '#9c7a6a', '#6a9c7e', '#c2a15c', '#8a6a9c', '#5c8fae'];
+
+/**
+ * Ambient life, dispatched by kind — cheap on purpose, the same sprite
+ * budget every obstacle on this canvas keeps to. None of these are the
+ * player: no cap, no backpack, no board, so the protagonist never gets lost
+ * in a crowd of themselves.
+ */
+function drawNpc(ctx: CanvasRenderingContext2D, x: number, y: number, kind: NpcKind, facing: 1 | -1, id: string) {
+  switch (kind) {
+    case 'person':
+      return drawPedestrian(ctx, x, y, id);
+    case 'dog':
+      return drawDog(ctx, x, y);
+    case 'bird':
+      return drawBird(ctx, x, y, facing);
+  }
+}
+
+/** A plain townsperson: a torso block and a head, no limbs animated — small
+ * enough on screen that a walk cycle would be wasted detail. */
+function drawPedestrian(ctx: CanvasRenderingContext2D, x: number, y: number, id: string) {
+  const cx = px(x);
+  const feetY = px(y);
+  const bodyW = 6;
+  const bodyH = 9;
+  const headR = 2.5;
+  const shirt = NPC_SHIRTS[Math.floor(noise(`shirt:${id}`)() * NPC_SHIRTS.length)];
+
+  ctx.fillStyle = 'rgba(0,0,0,0.22)';
+  ctx.fillRect(cx - 4, feetY, 8, 2);
+
+  ctx.fillStyle = PALETTE.outline;
+  ctx.fillRect(cx - bodyW / 2 - 1, feetY - bodyH - 1, bodyW + 2, bodyH + 2);
+  ctx.fillStyle = shirt;
+  ctx.fillRect(cx - bodyW / 2, feetY - bodyH, bodyW, bodyH);
+
+  ctx.fillStyle = PALETTE.spriteSkin;
+  ctx.beginPath();
+  ctx.arc(cx, feetY - bodyH - headR, headR, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.strokeStyle = PALETTE.outline;
+  ctx.lineWidth = 1;
+  ctx.stroke();
+}
+
+/** A dog, low to the ground — a body block, a head-end bump, and four short
+ * stub legs so it reads as an animal rather than a rock. */
+function drawDog(ctx: CanvasRenderingContext2D, x: number, y: number) {
+  const cx = px(x);
+  const cy = px(y);
+
+  ctx.fillStyle = 'rgba(0,0,0,0.2)';
+  ctx.fillRect(cx - 5, cy + 3, 10, 2);
+
+  ctx.fillStyle = PALETTE.outline;
+  ctx.fillRect(cx - 6, cy - 3, 12, 7);
+  ctx.fillStyle = PALETTE.dogBody;
+  ctx.fillRect(cx - 5, cy - 2, 10, 5);
+  ctx.fillRect(cx - 6, cy - 4, 4, 3);
+
+  ctx.fillStyle = PALETTE.outline;
+  ctx.fillRect(cx - 5, cy + 2, 2, 3);
+  ctx.fillRect(cx + 3, cy + 2, 2, 3);
+}
+
+/** A bird overhead — a body dash and two wing flicks angled off whichever
+ * way it's travelling, no more detail than that reads at this size. */
+function drawBird(ctx: CanvasRenderingContext2D, x: number, y: number, facing: 1 | -1) {
+  const cx = px(x);
+  const cy = px(y);
+
+  ctx.fillStyle = PALETTE.birdBody;
+  ctx.fillRect(cx - 2, cy - 1, 4, 2);
+  ctx.fillRect(cx - 5 * facing, cy - 2, 3, 1);
+  ctx.fillRect(cx + 2 * facing, cy - 2, 3, 1);
 }
 
 /**

@@ -278,7 +278,7 @@ export const LOCATIONS: OverworldLocation[] = [
   },
   {
     id: 'camera_pole_5th',
-    label: 'Pole 5-C',
+    label: 'FLACK Camera Housing',
     language: 'B',
     render: 'camera',
     x: 900, y: 504, w: 72, h: 72,
@@ -299,7 +299,7 @@ export const LOCATIONS: OverworldLocation[] = [
    */
   {
     id: 'pizza_place',
-    label: 'Sal’s',
+    label: 'Sal’s Pizza',
     language: 'A',
     render: 'pizza',
     x: 744, y: 32, w: 88, h: 68,

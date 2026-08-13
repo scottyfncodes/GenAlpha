@@ -8,6 +8,7 @@ import {
   type OverworldLocation,
 } from './locations';
 import { OBSTACLES } from './obstacles';
+import { NPCS, wanderPos } from './npcs';
 import { PATROL_ROUTES, activeRoutes, patrolTuning, type PatrolRoute } from './patrols';
 import {
   CAMERA_NODES,
@@ -592,6 +593,8 @@ export function Overworld() {
         }
       }
 
+      const npcDraw = NPCS.map((npc) => ({ ...wanderPos(npc, now), kind: npc.kind, id: npc.id }));
+
       drawTown(
         ctx,
         canvas,
@@ -604,6 +607,7 @@ export function Overworld() {
         { w: PLAYER_W, h: PLAYER_H },
         OBSTACLES,
         sparklingObstacleIds,
+        npcDraw,
         patrolDraw,
         cameraDraw,
         hackDraw,
@@ -704,6 +708,13 @@ export function Overworld() {
               so this teaches the one interaction the whole game runs on and
               then gets out of the way for good. */}
           {isFirstBeat && <p className="overworld__firsthint">Tap to start</p>}
+          {/* A structure's name, on its own, whenever a scene hook is about
+              to replace it in the prompt below — every place says what it
+              is on approach (a house, the arcade, Sal's Pizza) whether or
+              not there's also a story thread here right now. */}
+          {nearbyScene && nearbyScenes.length === 1 && (
+            <p className="overworld__nameplate">{nearby.label}</p>
+          )}
           <button
             className={`overworld__prompt ${isFirstBeat ? 'overworld__prompt--first' : ''}`}
             onClick={() => enter(nearby)}
@@ -740,7 +751,7 @@ export function Overworld() {
             ))
           ) : (
             <button className="overworld__prompt overworld__prompt--camera" disabled>
-              FLACK housing · {owns(save, 'bolt_cutters') ? 'Needs a Cracked Deck (rig tier 3)' : 'Needs Bolt Cutters'}
+              FLACK Camera Housing · {owns(save, 'bolt_cutters') ? 'Needs a Cracked Deck (rig tier 3)' : 'Needs Bolt Cutters'}
             </button>
           )}
         </div>

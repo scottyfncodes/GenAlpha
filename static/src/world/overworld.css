@@ -136,6 +136,27 @@
   pointer-events: none;
 }
 
+/* A structure's plain name, sitting just above the prompt button whenever
+   the button itself is showing a scene hook instead — a nameplate, not
+   another button, so it's never mistaken for a second thing to press. */
+.overworld__nameplate {
+  position: absolute;
+  left: 50%;
+  bottom: calc(var(--step) * 24);
+  transform: translateX(-50%);
+  margin: 0;
+  background: rgba(20, 17, 15, 0.55);
+  color: var(--b-paper);
+  border-radius: 999px;
+  padding: 4px 12px;
+  font-family: var(--font-a);
+  font-weight: 700;
+  font-size: 12px;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+  pointer-events: none;
+}
+
 /* Three risk/reward tiers stacked in the location prompt's own slot, instead
    of one pill — occupies the same footprint whether it's one button or
    three, so it never collides with the hint line below. */

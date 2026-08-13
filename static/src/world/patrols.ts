@@ -27,6 +27,12 @@ export interface PatrolRoute {
  * open ground, so a van reads as driving a beat rather than sliding through
  * a field. Each one was walked back through the same flood-fill/overlap
  * script as the maze filler before being finalised here.
+ *
+ * Re-snapped to `draw.ts`'s `V_ROADS`/`H_ROADS` when the street grid went
+ * from a uniform repeat to irregular block spacing — the road network moved
+ * a little, so the beats that follow it moved the same amount, without
+ * touching any building, obstacle, or hidden pickup coordinate (none of
+ * those were ever positioned relative to the road grid in the first place).
  */
 export const PATROL_ROUTES: PatrolRoute[] = [
   {
@@ -35,8 +41,8 @@ export const PATROL_ROUTES: PatrolRoute[] = [
     id: 'midtown_sweep',
     loop: false,
     points: [
-      { x: 332, y: 164 },
-      { x: 812, y: 164 },
+      { x: 331, y: 154 },
+      { x: 816, y: 154 },
     ],
   },
   {
@@ -45,8 +51,8 @@ export const PATROL_ROUTES: PatrolRoute[] = [
     id: 'west_beat',
     loop: false,
     points: [
-      { x: 172, y: 164 },
-      { x: 172, y: 468 },
+      { x: 162, y: 154 },
+      { x: 162, y: 471 },
     ],
   },
   {
@@ -54,8 +60,8 @@ export const PATROL_ROUTES: PatrolRoute[] = [
     id: 'downtown_watch',
     loop: false,
     points: [
-      { x: 492, y: 316 },
-      { x: 800, y: 316 },
+      { x: 480, y: 309 },
+      { x: 816, y: 309 },
     ],
   },
   {
@@ -63,10 +69,10 @@ export const PATROL_ROUTES: PatrolRoute[] = [
     id: 'center_loop',
     loop: true,
     points: [
-      { x: 492, y: 336 },
-      { x: 492, y: 488 },
-      { x: 712, y: 488 },
-      { x: 712, y: 336 },
+      { x: 480, y: 309 },
+      { x: 480, y: 471 },
+      { x: 659, y: 471 },
+      { x: 659, y: 309 },
     ],
   },
   {
@@ -75,10 +81,10 @@ export const PATROL_ROUTES: PatrolRoute[] = [
     id: 'annex_loop',
     loop: true,
     points: [
-      { x: 812, y: 164 },
-      { x: 1200, y: 164 },
-      { x: 1200, y: 495 },
-      { x: 812, y: 495 },
+      { x: 816, y: 154 },
+      { x: 1200, y: 154 },
+      { x: 1200, y: 471 },
+      { x: 816, y: 471 },
     ],
   },
 ];
