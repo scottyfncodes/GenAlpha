@@ -63,8 +63,8 @@ const PALETTE = {
   spriteShirt: '#ece2d0',
   spriteBag: '#8a6b4a',
   spriteBagStrap: '#5c4630',
-  capCrown: '#48566b',
-  capBrim: '#324056',
+  capCrown: '#2fb0a8',
+  capBrim: '#1f7d76',
   outline: '#20262f',
   patrolBody: '#e6402a',
   patrolCab: '#100e0d',
@@ -170,6 +170,7 @@ export function drawTown(
   scale: number,
   playerSize: { w: number; h: number },
   obstacles: Obstacle[],
+  sparklingObstacleIds: Set<string>,
   patrols: { x: number; y: number; radius: number }[],
   cameraNodes: { x: number; y: number; dismantlable: boolean }[],
   hackNodes: { x: number; y: number; kind: 'atm' | 'phone' | 'building'; hackable: boolean }[],
@@ -205,7 +206,10 @@ export function drawTown(
   // obstacles/buildings so a building in front of one just occludes it.
   for (const p of STREETLIGHT_POINTS) drawStreetlight(ctx, p);
 
-  for (const obstacle of obstacles) drawObstacle(ctx, obstacle);
+  for (const obstacle of obstacles) {
+    drawObstacle(ctx, obstacle);
+    if (sparklingObstacleIds.has(obstacle.id)) drawSparkle(ctx, obstacle, now);
+  }
   for (const loc of locations) drawLocation(ctx, loc, here?.id === loc.id, tier);
 
   // Ordinary cameras, worth taking apart — the same small box the story pole
@@ -256,6 +260,24 @@ function drawObstacle(ctx: CanvasRenderingContext2D, obstacle: Obstacle) {
     case 'building':
       return drawDecorativeBuilding(ctx, obstacle);
   }
+}
+
+/**
+ * A very slight glimmer over a bush that still has something in it — one
+ * soft pixel that brightens and fades on a slow cycle, offset per-obstacle
+ * (`noise`) so a whole hedge of them doesn't pulse in lockstep. Deliberately
+ * subtle: it's a reason to look twice at a particular bush, not a marker
+ * that announces it from across the street.
+ */
+function drawSparkle(ctx: CanvasRenderingContext2D, o: Obstacle, now: number) {
+  const offset = noise(`sparkle:${o.id}`)() * 2000;
+  const t = ((now + offset) % 2200) / 2200;
+  const twinkle = Math.max(0, Math.sin(t * Math.PI * 2));
+  if (twinkle < 0.05) return;
+  ctx.globalAlpha = 0.15 + twinkle * 0.4;
+  ctx.fillStyle = PALETTE.windowLit;
+  ctx.fillRect(px(o.x + o.w * 0.5) - 1, px(o.y + o.h * 0.2) - 1, 2, 2);
+  ctx.globalAlpha = 1;
 }
 
 /** Trunk, then a canopy as two overlapping discs so it doesn't read as a
@@ -638,13 +660,15 @@ function drawLocation(ctx: CanvasRenderingContext2D, loc: OverworldLocation, isH
       return;
     case 'house':
       drawHouse(ctx, loc, tier);
-      break;
+      drawHouseOutline(ctx, loc, isHere);
+      return;
     case 'school':
       drawSchool(ctx, loc, tier);
       break;
     case 'library':
       drawLibrary(ctx, loc, tier);
-      break;
+      drawLibraryOutline(ctx, loc, isHere);
+      return;
     case 'plaza':
       drawPlaza(ctx, loc);
       break;
@@ -665,7 +689,8 @@ function drawLocation(ctx: CanvasRenderingContext2D, loc: OverworldLocation, isH
       break;
     case 'treehouse':
       drawTreehouse(ctx, loc, tier);
-      break;
+      drawTreehouseOutline(ctx, loc, isHere);
+      return;
     default:
       drawBuilding(ctx, loc, tier);
   }
@@ -677,6 +702,68 @@ function drawHereOutline(ctx: CanvasRenderingContext2D, loc: OverworldLocation, 
   ctx.strokeStyle = PALETTE.spriteShirt;
   ctx.lineWidth = 2;
   ctx.strokeRect(loc.x - 2, loc.y - 2, loc.w + 4, loc.h + 4);
+}
+
+/** The "you are here" outline for a house: it has to follow the pitched roof
+ * — apex above the box, eaves overhanging past the walls on both sides —
+ * instead of a rectangle that clips the peak and floats past the eaves. */
+function drawHouseOutline(ctx: CanvasRenderingContext2D, loc: OverworldLocation, isHere: boolean) {
+  if (!isHere) return;
+  const roofH = Math.round(loc.h * 0.34);
+  const bodyY = loc.y + roofH;
+  const overhang = 6;
+  const apexX = loc.x + loc.w / 2;
+
+  ctx.strokeStyle = PALETTE.spriteShirt;
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(px(loc.x - overhang - 1), px(bodyY + 2));
+  ctx.lineTo(px(loc.x - 2), px(bodyY + 2));
+  ctx.lineTo(px(loc.x - 2), px(loc.y + loc.h + 2));
+  ctx.lineTo(px(loc.x + loc.w + 2), px(loc.y + loc.h + 2));
+  ctx.lineTo(px(loc.x + loc.w + 2), px(bodyY + 2));
+  ctx.lineTo(px(loc.x + loc.w + overhang + 1), px(bodyY + 2));
+  ctx.lineTo(px(apexX), px(loc.y - 2));
+  ctx.closePath();
+  ctx.stroke();
+}
+
+/** Same idea for the library's pediment — the outline climbs to the same
+ * apex the triangle actually draws to instead of squaring it off. */
+function drawLibraryOutline(ctx: CanvasRenderingContext2D, loc: OverworldLocation, isHere: boolean) {
+  if (!isHere) return;
+  const roofH = 16;
+
+  ctx.strokeStyle = PALETTE.spriteShirt;
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(px(loc.x - 2), px(loc.y + roofH));
+  ctx.lineTo(px(loc.x + loc.w / 2), px(loc.y - 2));
+  ctx.lineTo(px(loc.x + loc.w + 2), px(loc.y + roofH));
+  ctx.lineTo(px(loc.x + loc.w + 2), px(loc.y + loc.h + 2));
+  ctx.lineTo(px(loc.x - 2), px(loc.y + loc.h + 2));
+  ctx.closePath();
+  ctx.stroke();
+}
+
+/** And the treehouse: a round canopy sitting over a narrower trunk/platform
+ * column, not a box — a ring around the canopy plus a stroke around the
+ * platform reads as "this round thing plus this narrow thing" instead of
+ * one rectangle neither part actually fills. */
+function drawTreehouseOutline(ctx: CanvasRenderingContext2D, loc: OverworldLocation, isHere: boolean) {
+  if (!isHere) return;
+  const cx = loc.x + loc.w / 2;
+  const r = loc.w * 0.55;
+  const canopyCy = loc.y + loc.h * 0.28;
+  const platW = loc.w * 0.7;
+  const platY = loc.y + loc.h * 0.42;
+
+  ctx.strokeStyle = PALETTE.spriteShirt;
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.arc(px(cx), px(canopyCy), r + 2, 0, Math.PI * 2);
+  ctx.stroke();
+  ctx.strokeRect(px(cx - platW / 2) - 2, px(platY) - 2, platW + 4, loc.y + loc.h - platY + 4);
 }
 
 /**

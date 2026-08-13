@@ -55,6 +55,12 @@
 .gen-a--claiming .gen-a__offset { transform: translate(2.5px, -2px) rotate(-2.5deg); transform-origin: 50% 50%; }
 .gen-a--closed .gen-a__offset { transform: translate(1.5px, -1.5px); }
 
+/* The two flicked drops off the circle's own stroke — filled, not stroked,
+   same red as the ink itself. */
+.gen-a__splatter circle {
+  fill: var(--b-red);
+}
+
 /* The one frame at Founders' Day. Cut in hard, hold, cut out — a hand-assembled
    thing arriving, not an animation easing. Respects reduced motion by simply
    being there. */

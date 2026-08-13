@@ -390,8 +390,15 @@ export function Overworld() {
        * itself twenty times while the player is still standing there.
        */
       const stillTouching = new Set<string>();
+      // A very slight sparkle on any bush that still has something in it —
+      // just enough of a tell that a player who's found one once starts
+      // noticing the others, without spelling out which bush before they've
+      // walked into it (the "cut every bush" instinct stays the discovery,
+      // this only rewards a second look at the right one).
+      const sparklingObstacleIds = new Set<string>();
       for (const pickup of HIDDEN_PICKUPS) {
         if (!canCollectHidden(saveRef.current, pickup.obstacleId)) continue;
+        sparklingObstacleIds.add(pickup.obstacleId);
         const bush = OBSTACLES.find((o) => o.id === pickup.obstacleId);
         if (!bush || !overlapsBuilding(pos.current.x, pos.current.y, bush)) continue;
 
@@ -596,6 +603,7 @@ export function Overworld() {
         SCALE,
         { w: PLAYER_W, h: PLAYER_H },
         OBSTACLES,
+        sparklingObstacleIds,
         patrolDraw,
         cameraDraw,
         hackDraw,

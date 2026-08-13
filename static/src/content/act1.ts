@@ -17,8 +17,26 @@ const B1_OPEN: Scene = {
   hook: 'Get up. It’s Tuesday.',
   language: 'A',
   requires: { chapter: 'act1_glitch_01' },
-  start: 'terminal_check',
+  start: 'cold_open',
   nodes: {
+    /*
+     * A two-line cold open ahead of the terminal beat — just enough who/
+     * where/when that a brand-new player has ground to stand on (a town, an
+     * age, a Tuesday) before the headline/price/thread ambience below asks
+     * them to notice things without being told what they mean. Kept to a
+     * couplet on purpose: the terminal_check node still does the actual
+     * world-building per Style Guide 07 (noticed, not explained) — this just
+     * stops the player's very first frame from being an alarm clock with zero
+     * context under it.
+     */
+    cold_open: {
+      id: 'cold_open',
+      lines: [
+        { text: 'Bellhaven. A town small enough that the corner store still remembers your order, and wired tight enough that somebody official probably knows it too.' },
+        { text: 'You’re fourteen. This is your house, on an ordinary Tuesday, at the hour nothing has happened yet.' },
+      ],
+      next: 'terminal_check',
+    },
     /*
      * The opening beat, ahead of the kitchen. Per the build note: the player
      * should get the world before they get the plot — a headline, a price, a

@@ -65,7 +65,7 @@ export function TitleScreen({ onStart, onContinue }: { onStart: (name: string) =
       </Glitch>
 
       <p className="title__tag">
-        {stage === 'claimed' ? 'Somebody is watching the town. Somebody else is watching them.' : 'Bellhaven Community Safety Initiative'}
+        {stage === 'claimed' ? 'Bellhaven is being watched. So is whoever’s doing the watching.' : 'Bellhaven Community Safety Initiative'}
       </p>
 
       {stage === 'claimed' && (

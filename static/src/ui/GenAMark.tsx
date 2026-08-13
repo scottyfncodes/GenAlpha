@@ -46,6 +46,26 @@ const CIRCLE_DASH: Record<MarkState, string | undefined> = {
   closed: '100 0',
 };
 
+/**
+ * A hand-cut loop, not a compass circle — ten points at an uneven radius
+ * (36–44) around the centre, closed with straight segments so the rounded
+ * `stroke-linejoin` softens each corner into a wobble instead of a facet.
+ * This is what actually sells "somebody drew this with a marker" per the
+ * reference art; a perfect `<circle>` reads as a logo no matter how thick
+ * the stroke gets.
+ */
+const ROUGH_CIRCLE =
+  'M 91 50 L 78 74 L 61 92 L 37 86 L 12 72 L 15 44 L 23 18 L 50 12 L 78 16 L 88 43 Z';
+
+/** Two flicked drops off the circle's own stroke, the way a marker spatters
+ * when it's dragged fast — only in the two hand-made states, same as the
+ * misregistration layer, and for the same reason (Language A doesn't get to
+ * look drawn on). */
+const SPLATTER: { cx: number; cy: number; r: number }[] = [
+  { cx: 100, cy: 36, r: 2.4 },
+  { cx: 26, cy: 82, r: 1.8 },
+];
+
 export function GenAMark({
   state,
   size = 96,
@@ -79,9 +99,7 @@ export function GenAMark({
           <path d={LEG_LEFT} />
           <path d={LEG_RIGHT} />
           <path d={CROSSBAR} />
-          {dash && (
-            <circle cx="50" cy="50" r="40" pathLength={100} strokeDasharray={dash} />
-          )}
+          {dash && <path d={ROUGH_CIRCLE} pathLength={100} strokeDasharray={dash} />}
         </g>
       )}
 
@@ -90,10 +108,8 @@ export function GenAMark({
         <path d={LEG_RIGHT} />
         <path d={CROSSBAR} />
         {dash && (
-          <circle
-            cx="50"
-            cy="50"
-            r="40"
+          <path
+            d={ROUGH_CIRCLE}
             pathLength={100}
             strokeDasharray={dash}
             /* Rotated so the gap in the claiming state sits at the top left,
@@ -102,6 +118,14 @@ export function GenAMark({
           />
         )}
       </g>
+
+      {state !== 'clean' && (
+        <g className="gen-a__splatter" aria-hidden>
+          {SPLATTER.map((s) => (
+            <circle key={`${s.cx}-${s.cy}`} cx={s.cx} cy={s.cy} r={s.r} />
+          ))}
+        </g>
+      )}
     </svg>
   );
 }
