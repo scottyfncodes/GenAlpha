@@ -54,21 +54,38 @@
   fill: rgba(12, 10, 9, 0.94);
 }
 
-/* The status light on the housing rim — same irregular double-flicker the
-   title's own REC dot uses, so every "this is recording" tell on the
-   screen reads as the same nervous tic. */
-.title__eye-led {
-  fill: var(--b-red);
-  animation: title-eye-led-blink 4.5s steps(1, end) infinite;
+/* Squinting further shut in sync with `.title__eye-gaze`'s own animation
+   below — same 11s cycle, same six held positions, so the lids visibly
+   tighten every time the gaze stops to look somewhere and only relax back
+   to their baseline hood at the two centre-rest points. Opposite signs on
+   purpose (upper lid down, lower lid up) so the gap between them actually
+   narrows rather than both sliding the same direction. */
+.title__eye-lid--upper {
+  animation: title-eye-squint-upper 11s ease-in-out infinite;
 }
 
-@keyframes title-eye-led-blink {
-  0%, 100% { opacity: 1; }
-  4% { opacity: 0.15; }
-  8% { opacity: 1; }
-  46% { opacity: 1; }
-  50% { opacity: 0.15; }
-  54% { opacity: 1; }
+.title__eye-lid--lower {
+  animation: title-eye-squint-lower 11s ease-in-out infinite;
+}
+
+@keyframes title-eye-squint-upper {
+  0%, 6% { transform: translateY(0); }
+  14%, 22% { transform: translateY(3px); }
+  30%, 38% { transform: translateY(2.5px); }
+  46%, 54% { transform: translateY(3.5px); }
+  62%, 70% { transform: translateY(2px); }
+  78%, 86% { transform: translateY(1.5px); }
+  94%, 100% { transform: translateY(0); }
+}
+
+@keyframes title-eye-squint-lower {
+  0%, 6% { transform: translateY(0); }
+  14%, 22% { transform: translateY(-2px); }
+  30%, 38% { transform: translateY(-1.5px); }
+  46%, 54% { transform: translateY(-2.5px); }
+  62%, 70% { transform: translateY(-1.5px); }
+  78%, 86% { transform: translateY(-1px); }
+  94%, 100% { transform: translateY(0); }
 }
 
 /* The housing never moves — only the gaze inside it does, the way a real
@@ -95,10 +112,9 @@
   .title__eye {
     transition: none;
   }
-  .title__eye-gaze {
-    animation: none;
-  }
-  .title__eye-led {
+  .title__eye-gaze,
+  .title__eye-lid--upper,
+  .title__eye-lid--lower {
     animation: none;
   }
 }

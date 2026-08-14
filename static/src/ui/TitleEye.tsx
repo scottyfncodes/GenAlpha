@@ -9,12 +9,15 @@ import './title-eye.css';
  * broke through in front of, not a separate decoration above it.
  *
  * The lens is hooded rather than a bare wide-open circle — two heavy lids
- * clipped to the lens itself, narrowing the gaze down to a watching slit.
- * A fully open eye reads as startled; this is reading the room, not
- * caught off guard by it. A clean manufactured ellipse for the housing,
- * not a hand-cut wobble: everything else in Language B is something the
- * resistance drew or scrawled by hand, but a camera housing is TraceBook's
- * own equipment — it's supposed to look machined.
+ * clipped to the lens itself, narrowing the gaze down to a watching slit,
+ * and the lids themselves squint further shut in sync with the same
+ * animation that sweeps the gaze — held tighter at each place it stops to
+ * look, easing back only when it returns to centre. A fully open eye
+ * reads as startled; this is reading the room, not caught off guard by
+ * it. A clean manufactured ellipse for the housing, not a hand-cut
+ * wobble: everything else in Language B is something the resistance drew
+ * or scrawled by hand, but a camera housing is TraceBook's own equipment
+ * — it's supposed to look machined.
  */
 export function TitleEye({ visible }: { visible: boolean }) {
   return (
@@ -78,10 +81,9 @@ function Camera({
           <circle className="title__eye-pupil" cx={cx} cy={cy} r={pupilR} />
           <circle className="title__eye-glint" cx={cx - pupilR * 0.6} cy={cy - pupilR * 0.6} r={pupilR * 0.35} />
         </g>
-        <path className="title__eye-lid" d={upperLid} />
-        <path className="title__eye-lid" d={lowerLid} />
+        <path className="title__eye-lid title__eye-lid--upper" d={upperLid} />
+        <path className="title__eye-lid title__eye-lid--lower" d={lowerLid} />
       </g>
-      <circle className="title__eye-led" cx={cx + rx - 10} cy={cy - ry * 0.3} r={2.4} />
     </g>
   );
 }
