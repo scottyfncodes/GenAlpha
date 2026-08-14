@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { gravitate, GRAVITY_RADIUS } from './pursuit';
+import { gravitate, GRAVITY_RADIUS, underTreeCover } from './pursuit';
 
 describe('gravitate', () => {
   it('never pulls at clear or watched', () => {
@@ -36,5 +36,28 @@ describe('gravitate', () => {
     const player = { x: 50, y: 0 };
     const after = gravitate(pos, player, 'hunted', 100);
     expect(after.x).toBeLessThanOrEqual(50);
+  });
+});
+
+describe('underTreeCover', () => {
+  const trees = [
+    { x: 100, y: 100, w: 20, h: 40, kind: 'tree' },
+    { x: 300, y: 300, w: 20, h: 40, kind: 'bush' },
+  ];
+
+  it('is true standing inside a tree’s canopy', () => {
+    expect(underTreeCover({ x: 110, y: 120 }, trees)).toBe(true);
+  });
+
+  it('is true just past the trunk rect, inside the canopy margin', () => {
+    expect(underTreeCover({ x: 98, y: 120 }, trees)).toBe(true);
+  });
+
+  it('is false well clear of any tree', () => {
+    expect(underTreeCover({ x: 500, y: 500 }, trees)).toBe(false);
+  });
+
+  it('ignores obstacles that aren’t trees, even standing right on one', () => {
+    expect(underTreeCover({ x: 310, y: 320 }, trees)).toBe(false);
   });
 });

@@ -109,6 +109,7 @@
 }
 
 .hud__toggle {
+  position: relative;
   align-self: flex-start;
   background: rgba(16, 14, 13, 0.72);
   color: var(--b-paper);
@@ -116,6 +117,38 @@
   padding: 4px 10px;
   font-size: 11px;
   font-family: var(--font-mono);
+}
+
+/* The feed ping — a new headline waiting, same badge shape the phone's own
+   Feed icon uses, so the tell reads as the same kind of "something's new"
+   in both places. A gentle pulse, not a blink: this is a nudge, not an
+   alarm — nothing about missing it costs the player anything. */
+.hud__toggle-badge {
+  position: absolute;
+  top: -7px;
+  right: -7px;
+  min-width: 16px;
+  height: 16px;
+  padding: 0 4px;
+  border-radius: 999px;
+  background: var(--b-red);
+  color: var(--b-paper);
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 16px;
+  text-align: center;
+  animation: hud-feed-ping 2.4s ease-in-out infinite;
+}
+
+@keyframes hud-feed-ping {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.15); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hud__toggle-badge {
+    animation: none;
+  }
 }
 
 /* The cyberdeck button, blinking exactly while something in reach is

@@ -72,7 +72,7 @@ const PALETTE = {
   patrolCab: '#100e0d',
   patrolLight: '#f0c07a',
   patrolRing: 'rgba(230, 64, 42, 0.22)',
-  // A cooler, bluer read than the van's red — on foot, but still Helio,
+  // A cooler, bluer read than the van's red — on foot, but still TraceBook,
   // still worth telling apart from an ordinary pedestrian at a glance.
   copUniform: '#2e3a52',
   copCap: '#171d29',
@@ -547,7 +547,7 @@ function drawPatrolRing(ctx: CanvasRenderingContext2D, patrol: { x: number; y: n
   ctx.fill();
 }
 
-/** A Helio van: a body, a darker cab end, two headlights. Small and flat,
+/** A TraceBook van: a body, a darker cab end, two headlights. Small and flat,
  * matching the sprite budget everything else here keeps to. */
 function drawPatrol(ctx: CanvasRenderingContext2D, patrol: { x: number; y: number }) {
   const w = 16, h = 10;

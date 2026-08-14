@@ -103,7 +103,7 @@ const WHAT_FOR: Scene = {
       id: 'terminal',
       lines: [
         { text: 'The library terminal still has the same laminated sign about time limits. You are much better at this than you were in February.' },
-        { text: 'Helio files quarterly. The filings are public. Everything about this is public, which is the part that keeps not making sense.' },
+        { text: 'TraceBook files quarterly. The filings are public. Everything about this is public, which is the part that keeps not making sense.' },
       ],
       minigame: {
         kind: 'hacking',

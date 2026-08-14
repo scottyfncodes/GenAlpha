@@ -2,7 +2,7 @@ import type { SkinId } from '../content/skins';
 
 /**
  * Street hacks: the cyberdeck's whole reason to exist. A camera pays parts
- * because it's a piece of Helio's own network sitting right there on a pole;
+ * because it's a piece of TraceBook's own network sitting right there on a pole;
  * these are the rest of the town's machines — a corner ATM, a payphone
  * nobody's cut the line to, a building's own systems once the rig can reach
  * that deep — cracked for quick cash instead. Same Trace/Cipher mechanic
@@ -29,7 +29,7 @@ export interface StreetHackNode {
   tier: 1 | 2 | 3 | 4;
   skinId: SkinId;
   label: string;
-  /** Days before Helio (or whoever owns the line) resets it. */
+  /** Days before TraceBook (or whoever owns the line) resets it. */
   respawnDays: number;
 }
 

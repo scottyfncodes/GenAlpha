@@ -73,3 +73,28 @@ export const UNSEEN_TICK_MS = 4000;
 /** Heat eased off per tick — gentle; this rewards not being seen, it isn't
  * a substitute for Lie Low's real, deliberate relief. */
 export const UNSEEN_RELIEF_PER_TICK = 1;
+
+/** How far a tree's canopy reaches past its own trunk rect — a drone looks
+ * straight down, so standing anywhere under the leaves (not just on the
+ * trunk pixel) is cover, the same way it would be for real. */
+const TREE_COVER_MARGIN = 8;
+
+/**
+ * Whether the player is currently standing under a tree's canopy — the one
+ * thing on this map a drone's own downward-looking eye can't see through.
+ * Ground-level threats (a van, an officer on foot) aren't fooled by it,
+ * only the drone loop reads this.
+ */
+export function underTreeCover(
+  pos: { x: number; y: number },
+  obstacles: { x: number; y: number; w: number; h: number; kind: string }[],
+): boolean {
+  return obstacles.some(
+    (o) =>
+      o.kind === 'tree' &&
+      pos.x >= o.x - TREE_COVER_MARGIN &&
+      pos.x <= o.x + o.w + TREE_COVER_MARGIN &&
+      pos.y >= o.y - TREE_COVER_MARGIN &&
+      pos.y <= o.y + o.h + TREE_COVER_MARGIN,
+  );
+}

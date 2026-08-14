@@ -94,7 +94,7 @@ export function collectHidden(save: SaveState, obstacleId: string): SaveState {
 }
 
 /**
- * Whether a camera is currently standing — never sabotaged, or Helio's had
+ * Whether a camera is currently standing — never sabotaged, or TraceBook's had
  * time to put a new one up — *and* whether the player can actually reach
  * one at all. Bolt cutters first (the housing's still bolted to the pole
  * whatever the deck says), then the deck itself built up to tier 3

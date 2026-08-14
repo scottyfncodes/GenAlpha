@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useGame, useSave } from '../state/GameContext';
 import { Market } from './Market';
 import { MATERIALS, RECIPES } from '../content/materials';
@@ -7,6 +7,8 @@ import { canCraft } from '../systems/materials';
 import { owns, quantityOf, shdwDirection, shdwHeld, shdwRate, shdwRateOnDay } from '../systems/market';
 import { SHDW } from '../content/economy';
 import { discoveredEntries, undiscoveredCount } from '../systems/casefile';
+import { FEED_LAST_SEEN_FLAG, unreadFeedCount, visibleFeedEntries } from '../systems/feed';
+import { escalationStage } from '../world/escalation';
 import './phone.css';
 
 /**
@@ -21,7 +23,7 @@ import './phone.css';
  * phone's screen instead of the whole viewport without a single line of
  * Market's own CSS changing.
  */
-type App = 'home' | 'market' | 'salvage' | 'shadow' | 'leads';
+type App = 'home' | 'market' | 'salvage' | 'shadow' | 'leads' | 'feed';
 
 export function Phone({ onClose }: { onClose: () => void }) {
   const [app, setApp] = useState<App>('home');
@@ -33,6 +35,7 @@ export function Phone({ onClose }: { onClose: () => void }) {
         {app === 'salvage' && <Salvage onBack={() => setApp('home')} />}
         {app === 'shadow' && <Shadow onBack={() => setApp('home')} />}
         {app === 'leads' && <Leads onBack={() => setApp('home')} />}
+        {app === 'feed' && <Feed onBack={() => setApp('home')} />}
         {app === 'home' && (
           <PhoneHome onOpen={setApp} onClose={onClose} />
         )}
@@ -44,6 +47,7 @@ export function Phone({ onClose }: { onClose: () => void }) {
 function PhoneHome({ onOpen, onClose }: { onOpen: (app: App) => void; onClose: () => void }) {
   const save = useSave();
   const leads = discoveredEntries(save).length;
+  const unread = unreadFeedCount(save);
 
   return (
     <div className="phone__home">
@@ -70,7 +74,60 @@ function PhoneHome({ onOpen, onClose }: { onOpen: (app: App) => void; onClose: (
           <span className="phone__app-icon">🗂️</span>
           <span>Leads{leads > 0 ? ` (${leads})` : ''}</span>
         </button>
+        <button className="phone__app" onClick={() => onOpen('feed')}>
+          <span className="phone__app-icon">
+            📰
+            {unread > 0 && <span className="phone__app-badge">{unread}</span>}
+          </span>
+          <span>Feed</span>
+        </button>
       </div>
+    </div>
+  );
+}
+
+/**
+ * The news feed — continuous plot points delivered the way a phone actually
+ * delivers them, instead of a cutscene: new cameras, a new data center,
+ * safety propaganda, read straight off `content/feed.ts` at whatever
+ * `EscalationStage` the town's currently at (`world/escalation.ts`), same
+ * stage the patrols/drones/fencing are reading to decide how much of
+ * themselves to put on the map. Opening this marks every headline up to the
+ * current stage as seen, which is what clears the badge on both this app's
+ * own icon and the Backpack button that leads here.
+ */
+function Feed({ onBack }: { onBack: () => void }) {
+  const save = useSave();
+  const { dispatch } = useGame();
+  const entries = visibleFeedEntries(save);
+
+  useEffect(() => {
+    dispatch({ type: 'SET_FLAGS', flags: { [FEED_LAST_SEEN_FLAG]: escalationStage(save.world.day) } });
+    // Only ever needs to fire once, on open — re-running this on every
+    // render would just be re-writing the same flag.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  return (
+    <div className="feed lang-b">
+      <header className="feed__head">
+        <div>
+          <p className="feed__eyebrow">What TraceBook wants the town reading</p>
+          <h2 className="feed__title">Feed</h2>
+        </div>
+        <button className="feed__back" onClick={onBack}>
+          Done
+        </button>
+      </header>
+
+      <ul className="feed__list">
+        {entries.map((e) => (
+          <li key={e.id} className="feed__row">
+            <b className="feed__row-headline">{e.headline}</b>
+            <p className="feed__row-body">{e.body}</p>
+          </li>
+        ))}
+      </ul>
     </div>
   );
 }

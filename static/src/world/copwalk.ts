@@ -1,8 +1,9 @@
 import type { ThresholdTier } from '../state/schema';
 import type { PatrolRoute } from './patrols';
+import type { EscalationStage } from './escalation';
 
 /**
- * Helio officers on foot — the same contractor the vans and the "Helio
+ * TraceBook officers on foot — the same contractor the vans and the "TraceBook
  * officer" who walks you to a payphone (`systems/consequences.ts`
  * `CALL_PARENTS`) already belong to, just covering the ground a van can't:
  * the school perimeter, the square, the residential streets, the fence
@@ -75,10 +76,27 @@ const TUNING: Record<ThresholdTier, CopTuning> = {
   hunted: { activeRoutes: 4, speed: 62, detectionRadius: 46, cooldownMs: 3500, heatOnSpot: 3, hunting: true },
 };
 
-export function copTuning(tier: ThresholdTier): CopTuning {
-  return TUNING[tier];
+const AMBIENT_SPEED = 34;
+const AMBIENT_DETECTION_RADIUS = 22;
+
+/**
+ * `stage` (see `world/escalation.ts`) adds routes on top of the Heat tier's
+ * own count, capped at how many beats exist — foot patrol becoming part of
+ * the ordinary background of town as the story goes on, same additive
+ * relationship the drones use.
+ */
+export function copTuning(tier: ThresholdTier, stage: EscalationStage = 0): CopTuning {
+  const base = TUNING[tier];
+  const activeRoutes = Math.min(COP_ROUTES.length, base.activeRoutes + stage);
+  if (activeRoutes <= 0) return base;
+  return {
+    ...base,
+    activeRoutes,
+    speed: base.speed || AMBIENT_SPEED,
+    detectionRadius: (base.detectionRadius || AMBIENT_DETECTION_RADIUS) + stage * 2,
+  };
 }
 
-export function activeCopRoutes(tier: ThresholdTier): PatrolRoute[] {
-  return COP_ROUTES.slice(0, copTuning(tier).activeRoutes);
+export function activeCopRoutes(tier: ThresholdTier, stage: EscalationStage = 0): PatrolRoute[] {
+  return COP_ROUTES.slice(0, copTuning(tier, stage).activeRoutes);
 }

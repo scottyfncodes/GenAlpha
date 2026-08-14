@@ -104,7 +104,7 @@ export interface SabotageAction {
   label: string;
   /** Shown on the prompt before it's spent — Heat System guardrail 2. */
   heatCost: number;
-  /** Days the camera stays down before Helio replaces it. */
+  /** Days the camera stays down before TraceBook replaces it. */
   respawnDays: number;
   itemId: string;
   quantity: number;

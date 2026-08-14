@@ -292,7 +292,7 @@ export const LOCATIONS: OverworldLocation[] = [
   },
   /*
    * Safe havens. `canLieLow` was already a per-location flag with nowhere to
-   * live but Home and the safehouse — a kid ducking a van full of Helio
+   * live but Home and the safehouse — a kid ducking a van full of TraceBook
    * jackets doesn't only have those two doors. Same mechanic, same cost,
    * just somewhere ordinary and public to use it, which is the actual point:
    * you're not hiding, you're getting a slice.
@@ -308,7 +308,7 @@ export const LOCATIONS: OverworldLocation[] = [
     canLieLow: true,
     ambient: {
       watched: 'The guy behind the counter slides you a slice you didn’t order and doesn’t mention it again.',
-      flagged: 'Two Helio jackets at the corner table, not eating, just sitting.',
+      flagged: 'Two TraceBook jackets at the corner table, not eating, just sitting.',
       hunted: 'The OPEN sign is off but the door isn’t locked. That’s on purpose.',
     },
   },

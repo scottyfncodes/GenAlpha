@@ -108,6 +108,30 @@
   white-space: nowrap;
 }
 
+/* One flex-stacked column for the location prompt and everything that can
+   appear above it (the confined-hint footnote, the first-time nudge, the
+   nameplate) — normal flow with a `gap`, so each line's own height pushes
+   the next one instead of four hand-tuned `bottom` offsets that only ever
+   got checked against one screen size. The prompt button itself keeps its
+   own standalone positioning (above) for the other places it's used alone
+   (camera/hack/junction/drone prompts); nested here, that's overridden below. */
+.overworld__promptstack {
+  position: absolute;
+  left: 50%;
+  bottom: calc(var(--step) * 20);
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  max-width: 88vw;
+}
+
+.overworld__promptstack .overworld__prompt {
+  position: static;
+  transform: none;
+}
+
 /* The one-time nudge toward the only interaction a brand-new player needs to
    discover. A slow glow rather than a shake or a bounce — this is an
    invitation, not an alarm, and it has to sit comfortably on screen for
@@ -122,11 +146,8 @@
 }
 
 .overworld__firsthint {
-  position: absolute;
-  left: 50%;
-  bottom: calc(var(--step) * 27);
-  transform: translateX(-50%);
   margin: 0;
+  text-align: center;
   color: var(--b-paper);
   font-family: var(--font-a);
   font-weight: 700;
@@ -140,12 +161,7 @@
    be, not just what to do about it. Smaller and quieter than the hint
    below it: a footnote, not a second instruction. */
 .overworld__confinedhint {
-  position: absolute;
-  left: 50%;
-  bottom: calc(var(--step) * 32);
-  transform: translateX(-50%);
   margin: 0;
-  max-width: 70vw;
   text-align: center;
   color: var(--b-paper);
   opacity: 0.75;
@@ -159,10 +175,6 @@
    the button itself is showing a scene hook instead — a nameplate, not
    another button, so it's never mistaken for a second thing to press. */
 .overworld__nameplate {
-  position: absolute;
-  left: 50%;
-  bottom: calc(var(--step) * 24);
-  transform: translateX(-50%);
   margin: 0;
   background: rgba(20, 17, 15, 0.55);
   color: var(--b-paper);

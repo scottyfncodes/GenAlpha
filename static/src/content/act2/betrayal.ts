@@ -179,7 +179,7 @@ const TELLING: Scene = {
       lines: [
         { text: 'And then he reads it out. Not to you — just out loud, working, the way he does.' },
         { speaker: 'Bishop', text: 'That’s an intake schema. That’s — no, that’s the intake form. I’ve filled that in. I filled that in twice, in March, in the back room, and they gave me a badge for it.' },
-        { text: 'Tier 1 is who you are. Tier 3 is what you’ll probably do next. The column names match the ones you pulled out of a Helio quarterly, because there is no other sensible way to name a column like that, because everybody who builds one builds the same one.' },
+        { text: 'Tier 1 is who you are. Tier 3 is what you’ll probably do next. The column names match the ones you pulled out of a TraceBook quarterly, because there is no other sensible way to name a column like that, because everybody who builds one builds the same one.' },
         { speaker: 'Bishop', text: 'They said it was theirs. They said it was ours.' },
       ],
       next: 'nobody',
@@ -420,7 +420,7 @@ const COMES_BACK: Scene = {
     list: {
       id: 'list',
       lines: [
-        { text: 'It is the asset list. All of it. Contacts, holdings, the two people inside Helio, the legal fund, the account structure, every door the adults have spent eleven years building.' },
+        { text: 'It is the asset list. All of it. Contacts, holdings, the two people inside TraceBook, the legal fund, the account structure, every door the adults have spent eleven years building.' },
         { text: 'He took it on the way out. He has been sitting on the single most valuable object in this story for six days in a bedroom.' },
         { speaker: 'Deja', text: 'Bishop. What are we supposed to — ' },
         { speaker: 'Bishop', text: 'Use it.' },

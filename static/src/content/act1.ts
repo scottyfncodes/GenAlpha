@@ -40,7 +40,7 @@ const B1_OPEN: Scene = {
     /*
      * The opening beat, ahead of the kitchen. Per the build note: the player
      * should get the world before they get the plot — a headline, a price, a
-     * thread nobody's answering seriously yet — so the Helio rollout and the
+     * thread nobody's answering seriously yet — so the TraceBook rollout and the
      * SHDW economy both exist as ambient fact before either one matters to
      * the story. None of it is explained, per Style Guide 07: the reader
      * notices a headline the way the protagonist does, which is to say barely.

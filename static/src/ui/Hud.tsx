@@ -8,6 +8,7 @@ import { MENTORS } from '../content/mentors';
 import { deckTier } from '../systems/market';
 import { canHackStreetNode } from '../systems/streethacks';
 import { STREET_HACK_NODES } from '../world/streethacks';
+import { unreadFeedCount } from '../systems/feed';
 import './hud.css';
 
 /**
@@ -29,6 +30,7 @@ export function Hud({
   const save = useSave();
   const { dispatch, deleteSave, heatAlertUntil, nearbyHackNodeId, setCyberdeckOpen } = useGame();
   const hasCyberdeck = deckTier(save) > 0;
+  const unreadFeed = unreadFeedCount(save);
   const nearbyHackNode = nearbyHackNodeId ? STREET_HACK_NODES.find((n) => n.id === nearbyHackNodeId) : undefined;
   const cyberdeckBlinking = hasCyberdeck && Boolean(nearbyHackNode) && canHackStreetNode(save, nearbyHackNode!);
   const [open, setOpen] = useState(false);
@@ -113,6 +115,15 @@ export function Hud({
         */}
         <button className="hud__toggle" onClick={onOpenBackpack}>
           Backpack
+          {/* A ping for the phone's Feed app, one door down — the same
+              unread count Phone.tsx shows on the Feed icon itself, surfaced
+              here too so a new headline doesn't wait to be noticed until
+              the player happens to open the phone for something else. */}
+          {unreadFeed > 0 && (
+            <span className="hud__toggle-badge" aria-label={`${unreadFeed} unread on the feed`}>
+              {unreadFeed}
+            </span>
+          )}
         </button>
         {/* The cyberdeck's own button, separate from the phone the moment
             there's a reason for it to exist — Once built (`content/materials.ts`

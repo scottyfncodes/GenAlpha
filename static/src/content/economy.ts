@@ -153,7 +153,7 @@ export const ITEMS: GoodsItem[] = [
     name: 'Cracked Deck',
     basePrice: 420,
     category: 'gear',
-    effect: 'Reads a FLACK housing now, not just a call box. Helio’s own network, from the outside.',
+    effect: 'Reads a FLACK housing now, not just a call box. TraceBook’s own network, from the outside.',
   },
   {
     itemId: 'cyberdeck_4',
@@ -239,7 +239,7 @@ export const ITEMS: GoodsItem[] = [
    * The player's own drone — a second, opposite use of the same idea Phase
    * Two runs on. `world/playerdrone.ts` covers what it does: a recon flight
    * for free intel (Heat relief, no risk to the airframe) or a one-way
-   * kamikaze run at a piece of Helio's own infrastructure (the best payout
+   * kamikaze run at a piece of TraceBook's own infrastructure (the best payout
    * in the salvage economy, and the drone doesn't come back either way —
    * that's what kamikaze means). Same trade-up shape as every other line:
    * each tier consumes the one below it (`craft_recon_drone`/

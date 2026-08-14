@@ -16,40 +16,86 @@
   opacity: 1;
 }
 
-.title__eye-lid {
-  fill: none;
+.title__eye-arm {
+  stroke: var(--b-paper);
+  stroke-width: 2;
+  opacity: 0.4;
+}
+
+.title__eye-housing {
+  fill: rgba(20, 17, 15, 0.35);
   stroke: var(--b-paper);
   stroke-width: 1.4;
   opacity: 0.5;
 }
 
+.title__eye-bezel {
+  fill: rgba(20, 17, 15, 0.55);
+  stroke: var(--b-paper);
+  stroke-width: 1;
+  opacity: 0.45;
+}
+
 .title__eye-iris {
   fill: var(--b-red);
-  opacity: 0.28;
+  opacity: 0.32;
 }
 
 .title__eye-pupil {
   fill: var(--b-ink);
-  opacity: 0.9;
+  opacity: 0.92;
 }
 
-.title__eye-main {
-  animation: title-eye-dilate 6s ease-in-out infinite;
+.title__eye-glint {
+  fill: var(--b-paper);
+  opacity: 0.55;
+}
+
+/* The status light on the housing rim — same irregular double-flicker the
+   title's own REC dot uses, so every "this is recording" tell on the
+   screen reads as the same nervous tic. */
+.title__eye-led {
+  fill: var(--b-red);
+  animation: title-eye-led-blink 4.5s steps(1, end) infinite;
+}
+
+@keyframes title-eye-led-blink {
+  0%, 100% { opacity: 1; }
+  4% { opacity: 0.15; }
+  8% { opacity: 1; }
+  46% { opacity: 1; }
+  50% { opacity: 0.15; }
+  54% { opacity: 1; }
+}
+
+/* The housing never moves — only the gaze inside it does, the way a real
+   dome camera pans its lens without turning the shell. Held positions with
+   a jump between them, not a smooth sweep: this is scanning for something,
+   not admiring the view. Constrained well inside the bezel's own radius so
+   the "eyeball" never visually leaves its lens. */
+.title__eye-gaze {
+  animation: title-eye-look 11s ease-in-out infinite;
   transform-origin: 150px 220px;
 }
 
-/* A slow, shallow dilation on the main eye only — barely a pulse, just
-   enough that it doesn't read as a static decal painted on the screen. */
-@keyframes title-eye-dilate {
-  0%, 100% { transform: scale(1); }
-  50% { transform: scale(1.08); }
+@keyframes title-eye-look {
+  0%, 6% { transform: translate(0, 0); }
+  14%, 22% { transform: translate(-11px, 4px); }
+  30%, 38% { transform: translate(10px, -5px); }
+  46%, 54% { transform: translate(-6px, -7px); }
+  62%, 70% { transform: translate(8px, 6px); }
+  78%, 86% { transform: translate(-3px, 2px); }
+  94%, 100% { transform: translate(0, 0); }
 }
 
 @media (prefers-reduced-motion: reduce) {
   .title__eye {
     transition: none;
   }
-  .title__eye-main {
+  .title__eye-gaze {
+    animation: none;
+  }
+  .title__eye-led {
     animation: none;
   }
 }

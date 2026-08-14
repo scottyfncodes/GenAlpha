@@ -13,7 +13,8 @@ import { NPCS, wanderPos } from './npcs';
 import { PATROL_ROUTES, activeRoutes, patrolTuning, type PatrolRoute } from './patrols';
 import { activeDroneRoutes, droneTuning, DRONE_ROUTES, DRONE_TAKEDOWN_BY_TOOL_TIER, DRONE_TAKEDOWN_RADIUS } from './drones';
 import { COP_ROUTES, activeCopRoutes, copTuning } from './copwalk';
-import { gravitate, UNSEEN_COOLDOWN_MS, UNSEEN_RELIEF_PER_TICK, UNSEEN_TICK_MS } from '../systems/pursuit';
+import { gravitate, underTreeCover, UNSEEN_COOLDOWN_MS, UNSEEN_RELIEF_PER_TICK, UNSEEN_TICK_MS } from '../systems/pursuit';
+import { escalationStage } from './escalation';
 import {
   CAMERA_NODES,
   HIDDEN_PICKUPS,
@@ -456,9 +457,15 @@ export function Overworld() {
        * approach.
        */
       const visible = visibleLocations(flagsRef.current);
+      // How far the town's own baseline surveillance has crept up over the
+      // course of the story so far — see world/escalation.ts. Filters both
+      // collision and drawing below, so a stage-gated fence segment isn't
+      // just invisible before its day, it isn't solid yet either.
+      const stage = escalationStage(saveRef.current.world.day);
+      const activeObstacles = OBSTACLES.filter((o) => !o.minStage || stage >= o.minStage);
       // A bush hiding a salvage find is walkable, full stop — that's the only
       // tell it ever gives, so it can't also be a wall.
-      const solidObstacles = OBSTACLES.filter((o) => !HIDDEN_PICKUP_OBSTACLE_IDS.has(o.id));
+      const solidObstacles = activeObstacles.filter((o) => !HIDDEN_PICKUP_OBSTACLE_IDS.has(o.id));
       const blockers: { x: number; y: number; w: number; h: number }[] = [...visible, ...solidObstacles];
       const solid = blockers.filter((l) => !overlapsBuilding(pos.current.x, pos.current.y, l));
 
@@ -549,7 +556,7 @@ export function Overworld() {
        * regardless of whether the deck can actually reach one yet
        * (`canSabotage` also requires deck tier 3+); a FLACK housing standing
        * on its pole is still standing whether or not the player's rig can
-       * read it. One just taken down stays gone until Helio's had time to
+       * read it. One just taken down stays gone until TraceBook's had time to
        * replace it, regardless of which of the three actions did it.
        */
       const cameraDraw: { x: number; y: number; dismantlable: boolean }[] = [];
@@ -628,6 +635,12 @@ export function Overworld() {
       // waiting out `UNSEEN_COOLDOWN_MS` in the open.
       const inSafeSpace = Boolean(openRef.current?.canLieLow);
 
+      // A tree's canopy blocks a drone's own downward-looking eye — not a
+      // van's or a cop's, both of which are looking straight ahead at
+      // ground level and couldn't care less what's overhead. Only the
+      // drone loop below reads this.
+      const hiddenByTree = underTreeCover(pos.current, activeObstacles);
+
       /*
        * Drones — FLACK Phase Two. Every route keeps flying regardless of
        * tier, same "always moving, only the active subset checked" shape as
@@ -639,10 +652,12 @@ export function Overworld() {
        * currently closest and within `DRONE_TAKEDOWN_RADIUS` becomes the
        * one the take-down prompt offers — a drone already knocked down for
        * the day (`onCooldown`) isn't drawn or checked at all, same as a
-       * cracked junction box.
+       * cracked junction box. Standing under a tree suppresses both the
+       * gravity pull and the detection check below — a drone can fly
+       * directly overhead and never know.
        */
-      const droneTune = droneTuning(tierRef.current);
-      const activeDrones = new Set(activeDroneRoutes(tierRef.current).map((r) => r.id));
+      const droneTune = droneTuning(tierRef.current, stage);
+      const activeDrones = new Set(activeDroneRoutes(tierRef.current, stage).map((r) => r.id));
       const droneDraw: { x: number; y: number; radius: number; takeable: boolean }[] = [];
       let closestDrone: { id: string; x: number; y: number } | null = null;
       let closestDroneDist = DRONE_TAKEDOWN_RADIUS;
@@ -654,7 +669,7 @@ export function Overworld() {
         if (onCooldown(saveRef.current, route.id, DRONE_TAKEDOWN_BY_TOOL_TIER[1].respawnDays)) continue;
 
         const basePos = patrolPosition(route, next);
-        const p = inSafeSpace ? basePos : gravitate(basePos, pos.current, tierRef.current, dt);
+        const p = inSafeSpace || hiddenByTree ? basePos : gravitate(basePos, pos.current, tierRef.current, dt);
         const dist = Math.hypot(p.x - pos.current.x, p.y - pos.current.y);
         const inRange = dist < DRONE_TAKEDOWN_RADIUS;
         droneDraw.push({ x: p.x, y: p.y, radius: droneTune.detectionRadius, takeable: inRange });
@@ -663,7 +678,7 @@ export function Overworld() {
           closestDrone = { id: route.id, x: p.x, y: p.y };
         }
 
-        if (dist < droneTune.detectionRadius) {
+        if (dist < droneTune.detectionRadius && !hiddenByTree) {
           lastSpottedAtRef.current = now;
 
           const inAlertWindow =
@@ -716,8 +731,8 @@ export function Overworld() {
        * so a van that gives up resumes patrolling from wherever the route
        * naturally is rather than picking up mid-chase.
        */
-      const tuning = patrolTuning(tierRef.current);
-      const active = new Set(activeRoutes(tierRef.current).map((r) => r.id));
+      const tuning = patrolTuning(tierRef.current, stage);
+      const active = new Set(activeRoutes(tierRef.current, stage).map((r) => r.id));
       const patrolDraw: { x: number; y: number; radius: number }[] = [];
       for (const route of PATROL_ROUTES) {
         const prev = patrolStateRef.current.get(route.id)!;
@@ -819,7 +834,7 @@ export function Overworld() {
             delta: heatOnSpot,
             logToHistory: false,
           });
-          setSpotted(sprinting ? 'Running got you noticed — that’s double the Heat.' : 'A Helio van slows near you.');
+          setSpotted(sprinting ? 'Running got you noticed — that’s double the Heat.' : 'A TraceBook van slows near you.');
           window.setTimeout(() => setSpotted((m) => (m === null ? m : null)), 1800);
         }
       }
@@ -830,8 +845,8 @@ export function Overworld() {
        * gravity is what actually brings one into range as Heat climbs
        * rather than an active pursuit AI standing in for it.
        */
-      const copTune = copTuning(tierRef.current);
-      const activeCops = new Set(activeCopRoutes(tierRef.current).map((r) => r.id));
+      const copTune = copTuning(tierRef.current, stage);
+      const activeCops = new Set(activeCopRoutes(tierRef.current, stage).map((r) => r.id));
       const copDraw: { x: number; y: number; radius: number }[] = [];
       for (const route of COP_ROUTES) {
         const prev = copStateRef.current.get(route.id)!;
@@ -908,7 +923,7 @@ export function Overworld() {
         tierRef.current,
         SCALE,
         { w: PLAYER_W, h: PLAYER_H },
-        OBSTACLES,
+        activeObstacles,
         sparklingObstacleIds,
         npcDraw,
         patrolDraw,
@@ -1007,7 +1022,13 @@ export function Overworld() {
       )}
 
       {nearby && !open && (
-        <>
+        // One flex-stacked column instead of four independently
+        // bottom-anchored elements — the old scheme hand-tuned a `bottom`
+        // offset per line, which held up on a tall desktop test window and
+        // visibly collided on an actual phone's shorter viewport. Normal
+        // flow with a `gap` can't do that: each line's height pushes the
+        // next one, on any screen.
+        <div className="overworld__promptstack">
           {/* The very first thing a new player sees is this bubble, and
               nothing else on screen says "click here" — no tutorial, no
               quest arrow, nothing. `isFirstBeat` is true only until Beat 1
@@ -1035,7 +1056,7 @@ export function Overworld() {
                 ? nearbyScene.hook
                 : nearby.label}
           </button>
-        </>
+        </div>
       )}
 
       {/* Same slot as the location prompt, mutually exclusive with it — three

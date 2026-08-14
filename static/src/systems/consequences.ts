@@ -46,7 +46,7 @@ const SHAKEDOWN: Consequence = {
 
 const CALL_PARENTS: Consequence = {
   id: 'call_parents',
-  label: 'A Helio officer walks you to a payphone and stands there while you call home.',
+  label: 'A TraceBook officer walks you to a payphone and stands there while you call home.',
   cashDelta: 0,
   heatDelta: 5,
   daysLost: 0,

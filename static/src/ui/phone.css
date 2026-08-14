@@ -396,3 +396,99 @@
   opacity: 0.55;
   font-style: italic;
 }
+
+/* The unread badge on an app icon — currently only Feed uses it, kept
+   generic to the icon rather than feed-specific so any future app can
+   reuse it the same way. */
+.phone__app-icon {
+  position: relative;
+  display: inline-block;
+}
+
+.phone__app-badge {
+  position: absolute;
+  top: -6px;
+  right: -10px;
+  min-width: 16px;
+  height: 16px;
+  padding: 0 4px;
+  border-radius: 999px;
+  background: var(--b-red);
+  color: var(--b-paper);
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 16px;
+  text-align: center;
+}
+
+/* Feed — the news, same dossier shape Leads already uses (a header, a back
+   button, a plain list), because this is also a list of things the player
+   didn't have to be told twice. Ordered newest first by systems/feed.ts. */
+.feed {
+  height: 100%;
+  overflow-y: auto;
+  padding: calc(var(--step) * 2);
+  padding-bottom: calc(var(--step) * 4);
+}
+
+.feed__head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--step);
+  border-bottom: 2px solid var(--b-red);
+  padding-bottom: var(--step);
+  margin-bottom: var(--step);
+}
+
+.feed__eyebrow {
+  margin: 0;
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--b-orange);
+}
+
+.feed__title {
+  margin: 2px 0 0;
+  font-size: 22px;
+  text-transform: uppercase;
+}
+
+.feed__back {
+  background: none;
+  border: 1px solid currentColor;
+  color: inherit;
+  padding: 6px 12px;
+  font-family: var(--font-mono);
+  font-size: 12px;
+}
+
+.feed__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.feed__row {
+  border-left: 2px solid var(--b-red);
+  padding-left: 10px;
+}
+
+.feed__row-headline {
+  display: block;
+  font-family: var(--font-mono);
+  font-size: 13px;
+  margin-bottom: 4px;
+}
+
+.feed__row-body {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.5;
+  opacity: 0.85;
+}

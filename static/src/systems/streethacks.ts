@@ -96,7 +96,7 @@ export function effectiveTier(node: StreetHackNode, level: HackLevel): 1 | 2 | 3
  * Whether this node can be hit right now: the physical tool this kind needs
  * is actually in the bag (the first layer — the rig doesn't matter if the
  * box is still bolted shut), the rig is built up to the tier this kind of
- * target needs (`HACK_KIND_MIN_TIER`), and Helio hasn't reset this
+ * target needs (`HACK_KIND_MIN_TIER`), and TraceBook hasn't reset this
  * particular machine yet.
  */
 export function canHackStreetNode(save: SaveState, node: StreetHackNode): boolean {

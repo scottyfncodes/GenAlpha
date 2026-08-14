@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { MAP_HEIGHT, MAP_WIDTH } from './locations';
-import { DRONE_ROUTES, DRONE_TAKEDOWN_BY_TOOL_TIER } from './drones';
+import { DRONE_ROUTES, DRONE_TAKEDOWN_BY_TOOL_TIER, droneTuning } from './drones';
 import { MATERIALS_BY_ID } from '../content/materials';
 import { RECIPES } from '../content/materials';
 import { BLUEPRINTS_BY_ID } from '../content/blueprints';
@@ -22,6 +22,35 @@ describe('drone routes', () => {
   it('gives every route a distinct id', () => {
     const ids = DRONE_ROUTES.map((r) => r.id);
     expect(new Set(ids).size).toBe(ids.length);
+  });
+});
+
+describe('escalation stage', () => {
+  it('leaves clear and watched silent at stage 0, same as before escalation existed', () => {
+    expect(droneTuning('clear', 0).activeRoutes).toBe(0);
+    expect(droneTuning('watched', 0).activeRoutes).toBe(0);
+  });
+
+  it('brings routes online at clear/watched once the stage is high enough', () => {
+    expect(droneTuning('clear', 2).activeRoutes).toBeGreaterThan(0);
+    expect(droneTuning('watched', 1).activeRoutes).toBeGreaterThan(0);
+  });
+
+  it('never activates more routes than actually exist', () => {
+    expect(droneTuning('hunted', 3).activeRoutes).toBeLessThanOrEqual(DRONE_ROUTES.length);
+    expect(droneTuning('clear', 3).activeRoutes).toBeLessThanOrEqual(DRONE_ROUTES.length);
+  });
+
+  it('gives a stage-activated drone real speed and detection, not a frozen, blind one', () => {
+    const tuning = droneTuning('clear', 3);
+    expect(tuning.speed).toBeGreaterThan(0);
+    expect(tuning.detectionRadius).toBeGreaterThan(0);
+  });
+
+  it('widens detection radius with stage even at an already-maxed tier', () => {
+    const base = droneTuning('hunted', 0).detectionRadius;
+    const escalated = droneTuning('hunted', 3).detectionRadius;
+    expect(escalated).toBeGreaterThan(base);
   });
 });
 

@@ -1,7 +1,8 @@
 import type { ThresholdTier } from '../state/schema';
+import type { EscalationStage } from './escalation';
 
 /**
- * Helio's patrol vans (the contractor already named throughout the story —
+ * TraceBook's patrol vans (the contractor already named throughout the story —
  * see `content/heist.ts`, and the "van idles at the end of the block" ambient
  * line already on `camera_pole_5th` at `hunted`). Ghosts on a fixed beat, in
  * the Pac-Man sense the build note asked for: each route is a closed loop or
@@ -130,10 +131,28 @@ const TUNING: Record<ThresholdTier, PatrolTuning> = {
   hunted: { activeRoutes: 5, speed: 85, detectionRadius: 52, cooldownMs: 3000, heatOnSpot: 4, hunting: true },
 };
 
-export function patrolTuning(tier: ThresholdTier): PatrolTuning {
-  return TUNING[tier];
+const AMBIENT_SPEED = 40;
+const AMBIENT_DETECTION_RADIUS = 24;
+
+/**
+ * `stage` (see `world/escalation.ts`) adds routes on top of the Heat tier's
+ * own count, capped at how many beats exist — `clear` is the tier with the
+ * most headroom (it runs zero on its own), so this is where the police
+ * state's slow creep actually shows: a van on the street during an
+ * otherwise quiet walk, later in the story, that wasn't there in week one.
+ */
+export function patrolTuning(tier: ThresholdTier, stage: EscalationStage = 0): PatrolTuning {
+  const base = TUNING[tier];
+  const escalatedActiveRoutes = Math.min(PATROL_ROUTES.length, base.activeRoutes + stage);
+  if (escalatedActiveRoutes <= 0) return base;
+  return {
+    ...base,
+    activeRoutes: escalatedActiveRoutes,
+    speed: base.speed || AMBIENT_SPEED,
+    detectionRadius: (base.detectionRadius || AMBIENT_DETECTION_RADIUS) + stage * 2,
+  };
 }
 
-export function activeRoutes(tier: ThresholdTier): PatrolRoute[] {
-  return PATROL_ROUTES.slice(0, patrolTuning(tier).activeRoutes);
+export function activeRoutes(tier: ThresholdTier, stage: EscalationStage = 0): PatrolRoute[] {
+  return PATROL_ROUTES.slice(0, patrolTuning(tier, stage).activeRoutes);
 }

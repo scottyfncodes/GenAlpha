@@ -35,6 +35,14 @@ export interface Obstacle {
   w: number;
   h: number;
   kind: ObstacleKind;
+  /**
+   * Absent on everything ordinary — this piece of scenery has always been
+   * there. Set only on the handful of fence segments added as the story's
+   * `EscalationStage` (see `world/escalation.ts`) climbs, so the town's
+   * perimeter security visibly grows over the course of the game rather
+   * than sitting at its endgame density from day one.
+   */
+  minStage?: 1 | 2 | 3;
 }
 
 export const OBSTACLES: Obstacle[] = [
@@ -135,4 +143,29 @@ export const OBSTACLES: Obstacle[] = [
   { id: 'filler_53', x: 1150, y: 200, w: 16, h: 24, kind: 'bush' },
   { id: 'filler_54', x: 160, y: 600, w: 16, h: 24, kind: 'bush' },
   { id: 'filler_55', x: 880, y: 700, w: 16, h: 24, kind: 'bush' },
+
+  /*
+   * Perimeter security around the Annex Fence itself — the building the
+   * district's own fence is named for, and the one Act 2/3 heist content
+   * (`content/heist.ts`) actually sends the player to break into. The north
+   * approach along the road (where `filler_18` already sits) is the gap the
+   * Annex's own blurb calls out as "kept re-opening"; south and east close
+   * off the rest, so the building reads as fenced-in on three sides rather
+   * than sitting in open ground like everywhere else in town.
+   */
+  { id: 'filler_56', x: 1040, y: 456, w: 136, h: 16, kind: 'fence' },
+  { id: 'filler_57', x: 1176, y: 344, w: 16, h: 108, kind: 'fence' },
+
+  /*
+   * The one piece of scenery in town that isn't there from day one — new
+   * fencing along the Town Square's south side, matching the square's own
+   * `hunted`-tier ambient line about "two more cameras on the bandstand
+   * than there were last week." `minStage` keeps it off the map entirely
+   * until the story's actually gone on long enough to earn it (see
+   * `world/escalation.ts`); set back from both the road at y460-482 and
+   * the little cluster of ambient pedestrians/pets that already wander the
+   * square's own south side, so it never gets in the way of reaching the
+   * location itself, only of cutting across the lot behind it.
+   */
+  { id: 'filler_58', x: 540, y: 508, w: 100, h: 16, kind: 'fence', minStage: 2 },
 ];

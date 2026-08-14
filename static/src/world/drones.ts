@@ -1,5 +1,6 @@
 import type { ThresholdTier } from '../state/schema';
 import type { PatrolRoute } from './patrols';
+import type { EscalationStage } from './escalation';
 
 /**
  * FLACK Phase Two — the rollout Act 1's opening headline already named
@@ -79,12 +80,37 @@ const TUNING: Record<ThresholdTier, DroneTuning> = {
   hunted: { activeRoutes: 4, speed: 80, detectionRadius: 42, cooldownMs: 4000, heatOnSpot: 3 },
 };
 
-export function droneTuning(tier: ThresholdTier): DroneTuning {
-  return TUNING[tier];
+/** Speed/detection a stage-activated drone flies at when the tier it's
+ * borrowing a slot from doesn't have its own values to use — `clear` and
+ * `watched` are 0 on both, on purpose, since there's normally nothing
+ * flying to give them one. */
+const AMBIENT_SPEED = 45;
+const AMBIENT_DETECTION_RADIUS = 26;
+
+/**
+ * `stage` (see `world/escalation.ts`) adds routes on top of whatever the
+ * Heat tier alone would activate, capped at how many routes actually exist
+ * — the town's baseline surveillance creeping up over the course of the
+ * story, on top of (never instead of) the moment-to-moment tier system
+ * already tuned above. `flagged`/`hunted` are already close to every route
+ * flying, so stage mostly widens how far each one can see instead; `clear`/
+ * `watched` are the tiers with real headroom, so a late-game walk that
+ * would have been silent on day one now has something in the sky.
+ */
+export function droneTuning(tier: ThresholdTier, stage: EscalationStage = 0): DroneTuning {
+  const base = TUNING[tier];
+  const activeRoutes = Math.min(DRONE_ROUTES.length, base.activeRoutes + stage);
+  if (activeRoutes <= 0) return base;
+  return {
+    ...base,
+    activeRoutes,
+    speed: base.speed || AMBIENT_SPEED,
+    detectionRadius: (base.detectionRadius || AMBIENT_DETECTION_RADIUS) + stage * 2,
+  };
 }
 
-export function activeDroneRoutes(tier: ThresholdTier): PatrolRoute[] {
-  return DRONE_ROUTES.slice(0, droneTuning(tier).activeRoutes);
+export function activeDroneRoutes(tier: ThresholdTier, stage: EscalationStage = 0): PatrolRoute[] {
+  return DRONE_ROUTES.slice(0, droneTuning(tier, stage).activeRoutes);
 }
 
 /** How close the player has to be to take a shot at a drone — tighter than
@@ -106,7 +132,7 @@ export interface DroneTakedownResult {
  * applies to a box's tier. The shot itself still has to connect
  * (`systems/droneshoot.ts`); this is only the reward for actually landing
  * it. A slingshot only stuns it — cheap parts, real Heat, back up fast. An
- * EMP gun kills it outright — the best haul, no Heat at all, and Helio
+ * EMP gun kills it outright — the best haul, no Heat at all, and TraceBook
  * needs a week to replace it.
  */
 export const DRONE_TAKEDOWN_BY_TOOL_TIER: Record<1 | 2 | 3, DroneTakedownResult> = {

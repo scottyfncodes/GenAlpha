@@ -33,7 +33,7 @@ export const SKINS: Record<SkinId, Skin> = {
   villain: {
     id: 'villain',
     language: 'A',
-    title: 'Helio Family Safety Portal',
+    title: 'TraceBook Family Safety Portal',
     framing: 'Spoof your way past the login wall.',
     revealAdjacentCounts: false,
   },
