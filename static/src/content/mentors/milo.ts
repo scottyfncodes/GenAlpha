@@ -244,14 +244,30 @@ const UNLOCK_EASY: Scene = {
         { text: 'That’s all. He goes back to the board.' },
       ],
       choices: [
-        { text: '“What? Say it.”', goto: 'nothing' },
-        { text: 'Wait him out.', goto: 'nothing' },
+        { text: '“What? Say it.”', goto: 'nothing_demanded' },
+        { text: 'Wait him out.', goto: 'nothing_waited' },
       ],
+    },
+    nothing_demanded: {
+      id: 'nothing_demanded',
+      lines: [
+        { speaker: 'Milo', text: 'I’m not doing a speech.' },
+        { text: 'He says it like the demand just proved his point rather than answered it.' },
+      ],
+      next: 'nothing',
+    },
+    nothing_waited: {
+      id: 'nothing_waited',
+      lines: [
+        { text: 'You don’t say anything. Neither does he, for a while — long enough that the silence stops being about him and starts being about you.' },
+        { speaker: 'Milo', text: 'I’m not doing a speech.' },
+      ],
+      next: 'nothing',
     },
     nothing: {
       id: 'nothing',
       lines: [
-        { speaker: 'Milo', text: 'I’m not doing a speech. You already know, that’s why you’re standing there.' },
+        { speaker: 'Milo', text: 'You already know, that’s why you’re standing there.' },
         { text: 'He finds the next screw.' },
         { speaker: 'Milo', text: 'It was right about everything it said. That’s the trick. It just picks which true things you get.' },
       ],

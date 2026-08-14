@@ -52,15 +52,29 @@ const FUNDING: Scene = {
         { speaker: 'Milo', text: 'It’s not a dig. Servers cost. Legal costs. Somebody’s paying for the room they meet in.' },
       ],
       choices: [
-        { text: '“They’re on our side, Milo.”', goto: 'reply' },
-        { text: '“I don’t know.”', goto: 'reply' },
+        { text: '“They’re on our side, Milo.”', goto: 'reply_defended' },
+        { text: '“I don’t know.”', goto: 'reply_honest' },
       ],
+    },
+    reply_defended: {
+      id: 'reply_defended',
+      lines: [
+        { speaker: 'Milo', text: 'Right. I’m not saying they’re not.' },
+        { text: 'He puts the iron down anyway — the answer wasn’t the problem, how fast it came out was.' },
+      ],
+      next: 'reply',
+    },
+    reply_honest: {
+      id: 'reply_honest',
+      lines: [
+        { speaker: 'Milo', text: 'Good. That’s the correct amount to know.' },
+        { text: 'He puts the iron down.' },
+      ],
+      next: 'reply',
     },
     reply: {
       id: 'reply',
       lines: [
-        { speaker: 'Milo', text: 'Right. I’m not saying they’re not.' },
-        { text: 'He puts the iron down.' },
         { speaker: 'Milo', text: 'I’m saying you’ve spent four months learning that the way to understand anything is follow the money, and there’s exactly one organisation in this town you haven’t done it to.' },
         { text: 'You remember, suddenly and completely, Bishop in a car park in the summer, asked a question about funding, and answering a slightly different one.' },
       ],

@@ -215,14 +215,26 @@ const RECON: Scene = {
         { text: 'You think about Casey’s house with the swing set still up, and about a mailbox somebody cleared.', glitch: true },
       ],
       choices: [
-        { text: '“How much is in it?”', goto: 'how_much' },
-        { text: '“Could we take it?”', goto: 'how_much' },
+        { text: '“How much is in it?”', goto: 'how_much_asked' },
+        { text: '“Could we take it?”', goto: 'how_much_named' },
       ],
+    },
+    how_much_asked: {
+      id: 'how_much_asked',
+      lines: [{ speaker: 'Aaron', text: 'Eight and a half thousand. It’s their float. It’s not their money-money.' }],
+      next: 'how_much',
+    },
+    how_much_named: {
+      id: 'how_much_named',
+      lines: [
+        { text: 'You say it before Aaron does. He looks at you for a second — recalibrating, not surprised.' },
+        { speaker: 'Aaron', text: 'Yeah. Eight and a half thousand. It’s their float, not their money-money.' },
+      ],
+      next: 'how_much',
     },
     how_much: {
       id: 'how_much',
       lines: [
-        { speaker: 'Aaron', text: 'Eight and a half thousand. It’s their float. It’s not their money-money.' },
         { speaker: 'Aaron', text: 'Money-money’s further up. This is the bit that pays for the vans.' },
         { text: 'Aaron does not say we should take it. Aaron says the number, and then waits, which is how Aaron says everything.' },
         { text: 'Nobody has asked you to do this. There is nobody left to ask you.' },

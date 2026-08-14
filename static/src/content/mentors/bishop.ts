@@ -42,14 +42,26 @@ const CONTACT: Scene = {
         { text: 'He says it like a compliment somebody paid him.' },
       ],
       choices: [
-        { text: '“How do you know that?”', goto: 'how' },
-        { text: 'Say nothing and wait.', goto: 'how' },
+        { text: '“How do you know that?”', goto: 'how_asked' },
+        { text: 'Say nothing and wait.', goto: 'how_waited' },
       ],
+    },
+    how_asked: {
+      id: 'how_asked',
+      lines: [{ speaker: 'Bishop', text: 'Because people talk about you. Not badly. That’s rarer than you’d think.' }],
+      next: 'how',
+    },
+    how_waited: {
+      id: 'how_waited',
+      lines: [
+        { text: 'You don’t ask. He waits a beat, like he was hoping you would, then answers anyway.' },
+        { speaker: 'Bishop', text: 'Not going to ask? Fine — people talk about you. Not badly. That’s rarer than you’d think.' },
+      ],
+      next: 'how',
     },
     how: {
       id: 'how',
       lines: [
-        { speaker: 'Bishop', text: 'Because people talk about you. Not badly. That’s rarer than you’d think.' },
         { text: 'He’s twelve, maybe, with a hand-cut patch sewn onto his bag: two letters, and around the A, a circle, fully closed.' },
         { text: 'You have been looking at a half-drawn version of that circle under council grey for a month.' },
         { speaker: 'Bishop', text: 'Yeah. You know what it is. Course you do.' },
@@ -95,14 +107,26 @@ const ASK: Scene = {
         { speaker: 'Bishop', text: 'Okay so officially I have to ask you some questions. Vouching, opsec, all that.' },
       ],
       choices: [
-        { text: '“Go on then.”', goto: 'waived' },
-        { text: '“You don’t know anything about me.”', goto: 'waived' },
+        { text: '“Go on then.”', goto: 'waived_easy' },
+        { text: '“You don’t know anything about me.”', goto: 'waived_pushback' },
       ],
+    },
+    waived_easy: {
+      id: 'waived_easy',
+      lines: [{ speaker: 'Bishop', text: 'Nah, you’re fine.' }],
+      next: 'waived',
+    },
+    waived_pushback: {
+      id: 'waived_pushback',
+      lines: [
+        { text: 'It’s the closest thing to a challenge you’ve offered anybody all month, and it doesn’t land at all.' },
+        { speaker: 'Bishop', text: 'Fair. I don’t. Doesn’t change the answer though — you’re fine.' },
+      ],
+      next: 'waived',
     },
     waived: {
       id: 'waived',
       lines: [
-        { speaker: 'Bishop', text: 'Nah, you’re fine.' },
         { text: 'That’s it. That’s the whole vetting.' },
         { speaker: 'Bishop', text: 'I can tell. I’ve been doing this two years, you get a feel for it.' },
         { text: 'It lands like a window opening. After a month of being weighed by everyone you’ve met, somebody has looked at you for four seconds and decided you’re in.' },

@@ -42,9 +42,22 @@ const THE_UNIT: Scene = {
         { text: 'She says it flatly, without looking at you, which is Deja for a great deal.' },
       ],
       choices: [
-        { text: 'Say nothing.', goto: 'keys' },
-        { text: '“Huh.”', goto: 'keys' },
+        { text: 'Say nothing.', goto: 'keys_quiet' },
+        { text: '“Huh.”', goto: 'keys_huh' },
       ],
+    },
+    keys_quiet: {
+      id: 'keys_quiet',
+      lines: [{ text: 'You don’t say anything. Deja doesn’t need you to.' }],
+      next: 'keys',
+    },
+    keys_huh: {
+      id: 'keys_huh',
+      lines: [
+        { text: '“Huh” is doing a lot of work and she knows it.' },
+        { speaker: 'Deja', text: 'Yeah. Huh.' },
+      ],
+      next: 'keys',
     },
     keys: {
       id: 'keys',

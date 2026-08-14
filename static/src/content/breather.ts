@@ -51,9 +51,22 @@ const BREATHER: Scene = {
         { speaker: 'Mom', text: 'Sit down a minute.' },
       ],
       choices: [
-        { text: 'Sit down.', goto: 'tea' },
-        { text: '“I’m really tired.”', goto: 'tea' },
+        { text: 'Sit down.', goto: 'tea_sit' },
+        { text: '“I’m really tired.”', goto: 'tea_tired' },
       ],
+    },
+    tea_sit: {
+      id: 'tea_sit',
+      lines: [{ text: 'You sit. She doesn’t say anything for a second, like she’d braced for the other answer.' }],
+      next: 'tea',
+    },
+    tea_tired: {
+      id: 'tea_tired',
+      lines: [
+        { speaker: 'Mom', text: 'I know. Two minutes.' },
+        { text: 'You sit down anyway. Two minutes was never actually the offer.' },
+      ],
+      next: 'tea',
     },
     tea: {
       id: 'tea',

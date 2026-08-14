@@ -44,14 +44,27 @@ const OPENING: Scene = {
         { text: 'She is fifteen, has a maths textbook open in front of her that she is genuinely doing, and does not look up.' },
       ],
       choices: [
-        { text: '“What is this?”', goto: 'what' },
-        { text: 'Sit down.', goto: 'what' },
+        { text: '“What is this?”', goto: 'what_asked' },
+        { text: 'Sit down.', goto: 'what_sat' },
       ],
+    },
+    what_asked: {
+      id: 'what_asked',
+      lines: [{ speaker: 'Ines', text: 'Wednesdays.' }],
+      next: 'what',
+    },
+    what_sat: {
+      id: 'what_sat',
+      lines: [
+        { text: 'You sit. Nobody explains anything. Apparently that’s also how it works.' },
+        { speaker: 'Ines', text: 'Wednesdays, since you’re wondering.' },
+      ],
+      next: 'what',
     },
     what: {
       id: 'what',
       lines: [
-        { speaker: 'Ines', text: 'Wednesdays. Things people need and can’t be seen buying. Phones with nobody’s name on them, mostly.' },
+        { speaker: 'Ines', text: 'Things people need and can’t be seen buying. Phones with nobody’s name on them, mostly.' },
         { speaker: 'Ines', text: 'Prices move. Somebody does something loud downtown, everything goes up for a week, because everyone’s nervous and nervous is expensive.' },
         { text: 'She turns the textbook over.' },
         { speaker: 'Ines', text: 'That’s not a complaint. That’s the whole thing. If you can’t read the week you shouldn’t be buying in it.' },

@@ -39,15 +39,38 @@ const CAR_PARK: Scene = {
         { text: 'In March you ate lunch on the low wall by the science block because it was easier than deciding where to sit.' },
       ],
       choices: [
-        { text: '“The frame’s fine.”', goto: 'settled' },
-        { text: '“The frame’s bent.”', goto: 'settled' },
-        { text: 'Say nothing, and enjoy it a second longer.', goto: 'settled' },
+        { text: '“The frame’s fine.”', goto: 'settled_deja' },
+        { text: '“The frame’s bent.”', goto: 'settled_milo' },
+        { text: 'Say nothing, and enjoy it a second longer.', goto: 'settled_neither' },
       ],
+    },
+    settled_deja: {
+      id: 'settled_deja',
+      lines: [
+        { speaker: 'Deja', text: 'Thank you.' },
+        { text: 'She says it like she’s won a court case. Milo makes a noise that isn’t quite a word.' },
+      ],
+      next: 'settled',
+    },
+    settled_milo: {
+      id: 'settled_milo',
+      lines: [
+        { speaker: 'Milo', text: 'Thank you.' },
+        { text: 'He says it like he’s won a court case. Deja looks personally betrayed for exactly one second, then lets it go.' },
+      ],
+      next: 'settled',
+    },
+    settled_neither: {
+      id: 'settled_neither',
+      lines: [
+        { text: 'Neither of them notices you didn’t actually answer. They’re too busy being furious at each other on your behalf.' },
+      ],
+      next: 'settled',
     },
     settled: {
       id: 'settled',
       lines: [
-        { text: 'Whichever way you go, one of them says “thank you” like they’ve won a court case, and Ines tells all four of you to move because she is trying to pack a table away.' },
+        { text: 'Ines tells all four of you to move because she is trying to pack a table away.' },
         { text: 'Nobody says anything about how any of this happened. It is just Tuesday, and there are four of you.' },
       ],
       effects: [
