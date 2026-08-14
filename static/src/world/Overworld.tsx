@@ -44,6 +44,7 @@ import { BLUEPRINTS_BY_ID } from '../content/blueprints';
 import { JUNCTION_BOX_NODES, JUNCTION_BOX_RISK, type JunctionBoxNode } from './junctionboxes';
 import { ITEMS_BY_ID } from '../content/economy';
 import { LIE_LOW_FLAG } from '../content/breather';
+import { WINDOW_ESCAPE_FLAG } from '../content/act1';
 import { SAFEHOUSE_ID } from '../content/safehouse';
 import { ALL_SCENES } from '../content/all';
 import { pendingScenes, scenesAt, type Scene } from '../systems/scenes';
@@ -130,6 +131,14 @@ const HOME_BOUNDS = { x: [44, 148] as const, y: [234, 276] as const };
  * landing arguably "at" both locations at once.
  */
 const FRONT_DOOR_SPAWN = { x: 70, y: 284 };
+/**
+ * Where the player lands instead, if `content/act1.ts`'s `WINDOW_ESCAPE_FLAG`
+ * is set — under the near window rather than the door, same south-wall
+ * threshold line (y284) as `FRONT_DOOR_SPAWN`, just further west, closer to
+ * `houseWindowGeometry`'s own first window. The window they actually climbed
+ * out of, not a second front door.
+ */
+const WINDOW_SPAWN = { x: 52, y: 284 };
 /** How far past its own detection radius a hunting van keeps chasing —
  * wider than the circle that started the chase, so breaking line of sight
  * for a moment doesn't shake it instantly. */
@@ -351,15 +360,24 @@ export function Overworld() {
   // doesn't put the player across town from where the story left them.
   const pos = useRef(spawnFor(save.player.currentLocation));
   /**
+   * Tracks the opening chapter directly (`currentChapter === 'act1_glitch_01'`),
+   * not `confinedToHome` — that also depends on whether a scene is open, and
+   * flips false the instant the opening scene is *tapped*, well before its
+   * last node (and any choice inside it, like `leave_choice`'s window pick)
+   * has actually run. The chapter itself only changes once, at the very end
+   * of the scene, which is the transition the spawn-point choice below
+   * needs to key off instead — reading the flag too early would always see
+   * it unset.
+   *
    * Seeded from the save's own state at mount, not hardcoded `true` — a
    * save that's already past the opening beat has to start this `false`,
-   * or the very first frame after a Continue would read as confinement
-   * lifting *right now* and teleport the player to the front door on every
-   * load. Only a save that's still mid-confinement on mount can ever see
-   * this flip during the session, which is the one moment the front-door
-   * spawn below is supposed to fire.
+   * or the very first frame after a Continue would read as the opening
+   * chapter ending *right now* and teleport the player on every load. Only
+   * a save that's still mid-confinement on mount can ever see this flip
+   * during the session, which is the one moment the spawn-point choice
+   * below is supposed to fire.
    */
-  const wasConfinedRef = useRef(save.player.currentChapter === 'act1_glitch_01');
+  const wasInOpeningChapterRef = useRef(save.player.currentChapter === 'act1_glitch_01');
   const keys = useRef<Set<string>>(new Set());
   const touch = useRef({ dx: 0, dy: 0 });
   const nearbyRef = useRef<OverworldLocation | null>(null);
@@ -536,11 +554,19 @@ export function Overworld() {
        * feet — never pokes above the roofline into open air.
        */
       const confinedToHome = saveRef.current.player.currentChapter === 'act1_glitch_01' && !activeRef.current;
-      // The instant confinement lifts (the opening scene just closed), the
-      // player steps out at the front door rather than wherever inside
-      // `HOME_BOUNDS` they happened to be standing when it ended.
-      if (wasConfinedRef.current && !confinedToHome) pos.current = { ...FRONT_DOOR_SPAWN };
-      wasConfinedRef.current = confinedToHome;
+      // The moment the opening chapter itself ends (not just the moment the
+      // scene modal happens to close over it — see `wasInOpeningChapterRef`),
+      // the player is repositioned to wherever they actually left the house
+      // from: the front door, or the window if they picked "Climb out the
+      // window instead" back at `leave_choice`. Reads the flag now rather
+      // than at scene-open specifically because by the time the chapter
+      // effect fires (the scene's very last node), any choice made earlier
+      // in the same scene has already landed in the save.
+      const stillInOpeningChapter = saveRef.current.player.currentChapter === 'act1_glitch_01';
+      if (wasInOpeningChapterRef.current && !stillInOpeningChapter) {
+        pos.current = { ...(saveRef.current.player.flags[WINDOW_ESCAPE_FLAG] ? WINDOW_SPAWN : FRONT_DOOR_SPAWN) };
+      }
+      wasInOpeningChapterRef.current = stillInOpeningChapter;
       const xBounds = confinedToHome ? HOME_BOUNDS.x : ([8, MAP_WIDTH - 8] as const);
       const yBounds = confinedToHome ? HOME_BOUNDS.y : ([8, MAP_HEIGHT - 8] as const);
 
@@ -595,8 +621,8 @@ export function Overworld() {
           pickup.cash ? `$${pickup.cash}` : null,
         ].filter(Boolean);
         const found = parts.length > 0 ? parts.join(' + ') : 'salvage';
-        setPicked(`Found something: ${found}`);
-        window.setTimeout(() => setPicked((m) => (m === `Found something: ${found}` ? null : m)), 1600);
+        setPicked(`Found: ${found}`);
+        window.setTimeout(() => setPicked((m) => (m === `Found: ${found}` ? null : m)), 1600);
       }
       contactRef.current = stillTouching;
 
@@ -1231,7 +1257,7 @@ export function Overworld() {
               this one footnote explains the confinement and then gets out
               of the way for good. */}
           {isFirstBeat && !active && (
-            <p className="overworld__confinedhint">Not heading out till the day actually starts.</p>
+            <p className="overworld__confinedhint">Not heading out till breakfast.</p>
           )}
           {/* A structure's name, on its own, whenever a scene hook is about
               to replace it in the prompt below — every place says what it

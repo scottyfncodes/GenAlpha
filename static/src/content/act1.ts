@@ -10,6 +10,16 @@ import type { Scene } from '../systems/scenes';
  * world is played straight — nobody winks, nobody explains the theme.
  */
 
+/**
+ * Set the moment the player picks "Climb out the window instead" over
+ * breakfast in the opening beat, ahead of `kitchen` — Overworld.tsx reads
+ * this once confinement lifts to decide whether the player steps out onto
+ * the street through the front door or through the window they actually
+ * left by. Never cleared: it's a fact about this one morning, not a
+ * toggle, and the confinement logic that reads it only ever runs once.
+ */
+export const WINDOW_ESCAPE_FLAG = 'snuck_out_window';
+
 const B1_OPEN: Scene = {
   id: 'act1_01_ordinary_tuesday',
   beat: 1,
@@ -63,7 +73,41 @@ const B1_OPEN: Scene = {
         { text: 'ghost_on_5th: “anyone else notice they swapped the ones on Fifth” — 40 replies, most of them “lol no”', readout: true },
         { text: 'You check the box score first. Then a skate clip — some kid half your age landing something you still can’t. Then you close it, because none of that skates itself.' },
       ],
-      next: 'kitchen',
+      next: 'leave_choice',
+    },
+    /*
+     * The one real fork in Beat 1 — not which line you say back to Mom
+     * (kitchen's own choices, unchanged below), but whether you have the
+     * conversation at all. The window path skips `kitchen` entirely rather
+     * than trimming it, and still gets its own beat of warmth (her voice
+     * through the screen) rather than reading as the option that skips the
+     * good part.
+     */
+    leave_choice: {
+      id: 'leave_choice',
+      lines: [
+        {
+          text: 'Down the hall, the toaster’s going and Mom’s already talking to her phone like it can hear her. The window’s still got the give in the latch you never told anyone about.',
+        },
+      ],
+      choices: [
+        { text: 'Go down for breakfast', goto: 'kitchen' },
+        {
+          text: 'Climb out the window instead',
+          goto: 'window_sneak',
+          effects: [{ kind: 'flag', key: WINDOW_ESCAPE_FLAG, value: true }],
+        },
+      ],
+    },
+    window_sneak: {
+      id: 'window_sneak',
+      lines: [
+        { text: 'The latch gives on the second try, same as it always does. You’re over the porch roof and down before the toast even pops.' },
+        {
+          text: 'From the street you can still hear her through the screen, halfway into a sentence aimed at somebody who isn’t you. Straight home after. You never actually said okay to that part.',
+        },
+      ],
+      next: 'street',
     },
     kitchen: {
       id: 'kitchen',
