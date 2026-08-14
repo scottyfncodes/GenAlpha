@@ -16,12 +16,6 @@
   opacity: 1;
 }
 
-.title__eye-arm {
-  stroke: var(--b-paper);
-  stroke-width: 2;
-  opacity: 0.4;
-}
-
 .title__eye-housing {
   fill: rgba(20, 17, 15, 0.35);
   stroke: var(--b-paper);
@@ -75,16 +69,16 @@
    the "eyeball" never visually leaves its lens. */
 .title__eye-gaze {
   animation: title-eye-look 11s ease-in-out infinite;
-  transform-origin: 150px 220px;
+  transform-origin: 150px 92px;
 }
 
 @keyframes title-eye-look {
   0%, 6% { transform: translate(0, 0); }
-  14%, 22% { transform: translate(-11px, 4px); }
-  30%, 38% { transform: translate(10px, -5px); }
-  46%, 54% { transform: translate(-6px, -7px); }
-  62%, 70% { transform: translate(8px, 6px); }
-  78%, 86% { transform: translate(-3px, 2px); }
+  14%, 22% { transform: translate(-8px, 3px); }
+  30%, 38% { transform: translate(8px, -4px); }
+  46%, 54% { transform: translate(-5px, -5px); }
+  62%, 70% { transform: translate(6px, 5px); }
+  78%, 86% { transform: translate(-2px, 2px); }
   94%, 100% { transform: translate(0, 0); }
 }
 
