@@ -159,6 +159,13 @@ const PALETTE = {
   junctionBody: '#3a3a2a',
   junctionDark: '#1e1e14',
   junctionStripe: '#e0c020',
+  // FLACK Phase Two — a colder, higher hue than the ground patrol's red so
+  // the two threats never read as the same thing from a glance.
+  droneBody: '#4a4f5c',
+  droneRotor: '#9aa4b4',
+  droneLight: '#e84ac9',
+  droneRing: 'rgba(232, 74, 201, 0.18)',
+  droneShadow: 'rgba(0, 0, 0, 0.22)',
 } as const;
 
 const px = Math.round;
@@ -185,6 +192,7 @@ export function drawTown(
   cameraNodes: { x: number; y: number; dismantlable: boolean }[],
   hackNodes: { x: number; y: number; kind: 'atm' | 'phone' | 'building'; hackable: boolean }[],
   junctionBoxNodes: { x: number; y: number; tier: 1 | 2 | 3 | 4 | 5; crackable: boolean }[],
+  drones: { x: number; y: number; radius: number; takeable: boolean }[],
   moving: boolean,
   now: number,
   boardTier: number,
@@ -249,7 +257,18 @@ export function drawTown(
   for (const patrol of patrols) drawPatrolRing(ctx, patrol);
   for (const patrol of patrols) drawPatrol(ctx, patrol);
 
+  // Drone shadows and rings at street level — the same "ring first so the
+  // danger zone doesn't visually arrive with the object" rule the vans get.
+  for (const drone of drones) drawDroneShadow(ctx, drone.x, drone.y);
+  for (const drone of drones) drawDroneRing(ctx, drone);
+
   drawPlayer(ctx, player, facing, playerSize, moving, now, boardTier);
+
+  // The drone bodies themselves render above the player, not under —
+  // they're in the air, not on the street, and the one thing everything
+  // else on this canvas keeps to ("player always on top") is about ground
+  // traffic, not airspace.
+  for (const drone of drones) drawDrone(ctx, drone, now, drone.takeable);
 
   // The opening's own beat: before the first prompt is ever tapped, the
   // player is inside the house, not standing on it — drawn over the
@@ -535,6 +554,74 @@ function drawPatrol(ctx: CanvasRenderingContext2D, patrol: { x: number; y: numbe
   ctx.strokeStyle = PALETTE.outline;
   ctx.lineWidth = 1;
   ctx.strokeRect(x - 0.5, y - 0.5, w + 1, h + 1);
+}
+
+/** How far above its own ground shadow a drone hovers — just enough that
+ * the shadow reads as cast light rather than as the drone's own outline. */
+const DRONE_ALTITUDE = 9;
+
+function drawDroneRing(ctx: CanvasRenderingContext2D, drone: { x: number; y: number; radius: number }) {
+  ctx.fillStyle = PALETTE.droneRing;
+  ctx.beginPath();
+  ctx.arc(drone.x, drone.y, drone.radius, 0, Math.PI * 2);
+  ctx.fill();
+}
+
+/** Cast on the ground, not under the body — the one thing that tells the
+ * player it's actually airborne rather than a very square bird. */
+function drawDroneShadow(ctx: CanvasRenderingContext2D, x: number, y: number) {
+  ctx.fillStyle = PALETTE.droneShadow;
+  ctx.beginPath();
+  ctx.ellipse(px(x), px(y), 5, 2, 0, 0, Math.PI * 2);
+  ctx.fill();
+}
+
+/**
+ * A quadcopter: a small body, four rotor blurs (a soft circle rather than
+ * spokes — at this size a spinning blade reads as a smear, not a shape),
+ * and a status light that blinks whether or not the player is close enough
+ * to act on it. `takeable` adds the same soft-glow "you can act on this"
+ * treatment every other point object on the map gets once it's in reach.
+ */
+function drawDrone(ctx: CanvasRenderingContext2D, drone: { x: number; y: number }, now: number, takeable: boolean) {
+  const cx = px(drone.x);
+  const cy = px(drone.y) - DRONE_ALTITUDE;
+  const armR = 6;
+
+  if (takeable) drawSoftGlow(ctx, cx, cy, armR + 1, 3, 3);
+
+  ctx.fillStyle = PALETTE.droneRotor;
+  for (const [dx, dy] of [
+    [-armR, -armR],
+    [armR, -armR],
+    [-armR, armR],
+    [armR, armR],
+  ]) {
+    ctx.beginPath();
+    ctx.arc(cx + dx, cy + dy, 2.4, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  ctx.strokeStyle = PALETTE.droneRotor;
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(cx - armR, cy - armR);
+  ctx.lineTo(cx + armR, cy + armR);
+  ctx.moveTo(cx + armR, cy - armR);
+  ctx.lineTo(cx - armR, cy + armR);
+  ctx.stroke();
+
+  ctx.fillStyle = PALETTE.droneBody;
+  ctx.fillRect(cx - 4, cy - 3, 8, 6);
+  ctx.strokeStyle = PALETTE.outline;
+  ctx.strokeRect(cx - 4.5, cy - 3.5, 9, 7);
+
+  // A blink, not a steady glow — same on/off read as a camera's own status
+  // light elsewhere, so "watching" always looks like the same thing.
+  if (Math.floor(now / 500) % 2 === 0) {
+    ctx.fillStyle = PALETTE.droneLight;
+    ctx.fillRect(cx - 1, cy - 1, 2, 2);
+  }
 }
 
 /**

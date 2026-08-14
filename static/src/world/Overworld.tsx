@@ -10,6 +10,7 @@ import {
 import { OBSTACLES } from './obstacles';
 import { NPCS, wanderPos } from './npcs';
 import { PATROL_ROUTES, activeRoutes, patrolTuning, type PatrolRoute } from './patrols';
+import { activeDroneRoutes, droneTuning, DRONE_ROUTES, DRONE_TAKEDOWN_BY_TOOL_TIER, DRONE_TAKEDOWN_RADIUS } from './drones';
 import {
   CAMERA_NODES,
   HIDDEN_PICKUPS,
@@ -21,8 +22,8 @@ import { useGame, useSave } from '../state/GameContext';
 import type { ThresholdTier } from '../state/schema';
 import { LIE_LOW_DECAY, lieLowBlocked } from '../systems/heat';
 import { safehouseBlocked, safehouseDecay } from '../systems/safehouse';
-import { canCollectHidden, canDestroyJunctionBox, canSabotage, onCooldown } from '../systems/materials';
-import { boardTier, owns } from '../systems/market';
+import { canCollectHidden, canDestroyJunctionBox, canDisableDrone, canSabotage, onCooldown } from '../systems/materials';
+import { boardTier, droneToolTier, owns } from '../systems/market';
 import { consequenceFor, HURT_UNTIL_DAY_FLAG } from '../systems/consequences';
 import { MATERIALS_BY_ID } from '../content/materials';
 import { BLUEPRINTS_BY_ID } from '../content/blueprints';
@@ -186,6 +187,11 @@ export function Overworld() {
   /** The junction box close enough to crack open right now, if any — same
    * "spending Heat is a decision, not a walk" reasoning a camera gets. */
   const [nearbyJunctionBox, setNearbyJunctionBox] = useState<JunctionBoxNode | null>(null);
+  /** The drone close enough to take a shot at right now, if any. Unlike a
+   * camera or junction box it's also moving and might spot the player back
+   * — this is the one prompt on the map for something that isn't just
+   * waiting there. */
+  const [nearbyDrone, setNearbyDrone] = useState<{ id: string; x: number; y: number } | null>(null);
   /**
    * Held in state, not derived: a scene's own effects change the chapter part
    * way through, which would otherwise unmount the scene mid-read.
@@ -292,6 +298,7 @@ export function Overworld() {
   const nearbyCameraRef = useRef<CameraNode | null>(null);
   const nearbyHackRef = useRef<StreetHackNode | null>(null);
   const nearbyJunctionBoxRef = useRef<JunctionBoxNode | null>(null);
+  const nearbyDroneRef = useRef<{ id: string; x: number; y: number } | null>(null);
   /** Mirrors `active` for the frame loop, same reason `saveRef`/`tierRef` do
    * — a closure created once by `useEffect` can't read fresh state directly. */
   const activeRef = useRef<Scene | null>(null);
@@ -323,6 +330,16 @@ export function Overworld() {
    * cleared the instant they step outside it, so this measures continuous
    * exposure, not a running total. */
   const patrolLingerRef = useRef<Map<string, number>>(new Map());
+
+  /** Same "always walking, only the active subset drawn or checked" shape
+   * as `patrolStateRef` — a drone that comes online at `hunted` is already
+   * mid-route, not spawning fresh. No chase/linger state: a drone that
+   * spots the player logs it and keeps flying its route, it doesn't peel
+   * off after them. */
+  const droneStateRef = useRef<Map<string, PatrolState>>(
+    new Map(DRONE_ROUTES.map((r) => [r.id, { leg: 0, t: 0, dir: 1 as const }])),
+  );
+  const droneCooldownRef = useRef<Map<string, number>>(new Map());
 
   enterRef.current = enter;
   blockedRef.current = Boolean(open) || cyberdeckOpen;
@@ -549,6 +566,58 @@ export function Overworld() {
       }
 
       /*
+       * Drones — FLACK Phase Two. Every route keeps flying regardless of
+       * tier, same "always moving, only the active subset checked" shape as
+       * the ground patrols; only spotting differs, since a drone that
+       * clocks the player logs it and keeps flying rather than giving
+       * chase. Independently, whichever drone is currently closest and
+       * within `DRONE_TAKEDOWN_RADIUS` becomes the one the take-down prompt
+       * offers — a drone already knocked down for the day (`onCooldown`)
+       * isn't drawn or checked at all, same as a cracked junction box.
+       */
+      const droneTune = droneTuning(tierRef.current);
+      const activeDrones = new Set(activeDroneRoutes(tierRef.current).map((r) => r.id));
+      const droneDraw: { x: number; y: number; radius: number; takeable: boolean }[] = [];
+      let closestDrone: { id: string; x: number; y: number } | null = null;
+      let closestDroneDist = DRONE_TAKEDOWN_RADIUS;
+      for (const route of DRONE_ROUTES) {
+        const prev = droneStateRef.current.get(route.id)!;
+        const next = stepPatrol(route, prev, droneTune.speed * dt);
+        droneStateRef.current.set(route.id, next);
+        if (!activeDrones.has(route.id)) continue;
+        if (onCooldown(saveRef.current, route.id, DRONE_TAKEDOWN_BY_TOOL_TIER[1].respawnDays)) continue;
+
+        const p = patrolPosition(route, next);
+        const dist = Math.hypot(p.x - pos.current.x, p.y - pos.current.y);
+        const inRange = dist < DRONE_TAKEDOWN_RADIUS;
+        droneDraw.push({ x: p.x, y: p.y, radius: droneTune.detectionRadius, takeable: inRange });
+        if (inRange && dist < closestDroneDist) {
+          closestDroneDist = dist;
+          closestDrone = { id: route.id, x: p.x, y: p.y };
+        }
+
+        if (dist < droneTune.detectionRadius) {
+          const lastHit = droneCooldownRef.current.get(route.id) ?? -Infinity;
+          if (now - lastHit > droneTune.cooldownMs) {
+            droneCooldownRef.current.set(route.id, now);
+            const heatOnSpot = droneTune.heatOnSpot * (sprinting ? SPRINT_HEAT_MULTIPLIER : 1);
+            dispatch({
+              type: 'ADD_HEAT',
+              eventId: `drone_spotted_${route.id}`,
+              delta: heatOnSpot,
+              logToHistory: false,
+            });
+            setSpotted(sprinting ? 'Running got you noticed — that’s double the Heat.' : 'A drone banks toward you, then away.');
+            window.setTimeout(() => setSpotted((m) => (m === null ? m : null)), 1800);
+          }
+        }
+      }
+      if (closestDrone?.id !== nearbyDroneRef.current?.id) {
+        nearbyDroneRef.current = closestDrone;
+        setNearbyDrone(closestDrone);
+      }
+
+      /*
        * Patrols. Every route keeps walking regardless of tier; only the
        * active subset is drawn or checked against the player, and each has
        * its own cooldown so standing in one van's radius can't machine-gun
@@ -682,6 +751,7 @@ export function Overworld() {
         cameraDraw,
         hackDraw,
         junctionBoxDraw,
+        droneDraw,
         moving,
         now,
         boardTierRef.current,
@@ -862,6 +932,23 @@ export function Overworld() {
         >
           Junction box · Heat +{JUNCTION_BOX_RISK[nearbyJunctionBox.tier].heatCost} ·{' '}
           {BLUEPRINTS_BY_ID[nearbyJunctionBox.blueprintItemId]?.name ?? 'build plan'}
+        </button>
+      )}
+
+      {/* Last in the priority order, same as a junction box — except this
+          one might not still be there by the time the player reads the
+          button, since it's the only point object on the map that moves. */}
+      {!nearby && !nearbyCamera && !nearbyHack && !nearbyJunctionBox && nearbyDrone && !open && (
+        <button
+          className="overworld__prompt overworld__prompt--drone"
+          disabled={!canDisableDrone(save, nearbyDrone.id)}
+          onClick={() => dispatch({ type: 'DISABLE_DRONE', droneId: nearbyDrone.id })}
+        >
+          {droneToolTier(save) > 0
+            ? `Take it down · Heat +${DRONE_TAKEDOWN_BY_TOOL_TIER[droneToolTier(save) as 1 | 2 | 3].heatCost} · ${
+                MATERIALS_BY_ID[DRONE_TAKEDOWN_BY_TOOL_TIER[droneToolTier(save) as 1 | 2 | 3].itemId]?.name ?? ''
+              }`
+            : 'FLACK Drone · Needs a Slingshot'}
         </button>
       )}
 

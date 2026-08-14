@@ -9,7 +9,8 @@ import {
   type SabotageActionId,
 } from '../world/collectibles';
 import { JUNCTION_BOX_NODES, JUNCTION_BOX_RISK } from '../world/junctionboxes';
-import { addCash, addShdw, deckTier, grantItem, owns, quantityOf, removeItem } from './market';
+import { DRONE_TAKEDOWN_BY_TOOL_TIER } from '../world/drones';
+import { addCash, addShdw, deckTier, droneToolTier, grantItem, owns, quantityOf, removeItem } from './market';
 import { applyHeat } from './heat';
 
 /**
@@ -139,6 +140,39 @@ export function destroyJunctionBox(save: SaveState, nodeId: string): SaveState {
     }),
   };
   return markCollected(withHeat, nodeId, risk.respawnDays);
+}
+
+/** Whether a drone can be taken down right now — some tool built (any tier
+ * will do; which one just decides the outcome), and this particular drone
+ * isn't already down from a previous hit. */
+export function canDisableDrone(save: SaveState, droneId: string): boolean {
+  const tier = droneToolTier(save);
+  if (tier < 1) return false;
+  const result = DRONE_TAKEDOWN_BY_TOOL_TIER[tier as 1 | 2 | 3];
+  return !onCooldown(save, droneId, result.respawnDays);
+}
+
+/**
+ * Bring one down. The outcome is entirely a function of the best tool
+ * already built (`droneToolTier`) — no menu, because the choice already
+ * happened at the workbench: a slingshot costs Heat and pays little, an EMP
+ * gun costs nothing and pays the most, per `DRONE_TAKEDOWN_BY_TOOL_TIER`.
+ */
+export function disableDrone(save: SaveState, droneId: string): SaveState {
+  if (!canDisableDrone(save, droneId)) return save;
+  const tier = droneToolTier(save) as 1 | 2 | 3;
+  const result = DRONE_TAKEDOWN_BY_TOOL_TIER[tier];
+
+  const withItem = grantItem(save, result.itemId, result.quantity, 'theft');
+  const withHeat = {
+    ...withItem,
+    heat: applyHeat(withItem.heat, {
+      eventId: `drone_takedown_${droneId}`,
+      delta: result.heatCost,
+      logToHistory: result.heatCost > 0,
+    }),
+  };
+  return markCollected(withHeat, droneId, result.respawnDays);
 }
 
 export function sellMaterial(save: SaveState, itemId: string): SaveState {

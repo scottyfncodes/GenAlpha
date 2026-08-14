@@ -206,6 +206,35 @@ export const ITEMS: GoodsItem[] = [
     category: 'gear',
     effect: 'The actual door, not the box bolted to the outside of it. Building systems start here.',
   },
+  /*
+   * The drone line — FLACK's Phase Two, the thing the opening headline was
+   * already warning about before it mattered. Same trade-up shape as the
+   * board and deck lines (`craft_net_gun`/`craft_emp_gun`, content/
+   * materials.ts, each consuming the tier below): the tool in your hands is
+   * what decides whether a drone overhead is a threat or an inventory line,
+   * per `systems/materials.ts` `disableDrone`.
+   */
+  {
+    itemId: 'slingshot',
+    name: 'Slingshot',
+    basePrice: 90,
+    category: 'gear',
+    effect: 'A dead drone falls out of the sky for about four seconds before it reboots. Long enough, if you’re fast.',
+  },
+  {
+    itemId: 'net_gun',
+    name: 'Net Gun',
+    basePrice: 260,
+    category: 'gear',
+    effect: 'Fouls the rotors clean rather than cracking the housing. Whatever’s inside comes out in one piece.',
+  },
+  {
+    itemId: 'emp_gun',
+    name: 'EMP Gun',
+    basePrice: 520,
+    category: 'gear',
+    effect: 'It doesn’t fall. It just stops, mid-air, and drops straight down fried. No warning to send home.',
+  },
 ];
 
 export const ITEMS_BY_ID: Record<string, GoodsItem> = Object.fromEntries(
@@ -225,6 +254,10 @@ export const INTEL_TIP = 'intel_tip';
  * `boardTier`/`deckTier` read these to find the highest tier currently owned. */
 export const BOARD_TIERS = ['board_1', 'board_2', 'board_3', 'board_4', 'board_5'] as const;
 export const DECK_TIERS = ['cyberdeck_1', 'cyberdeck_2', 'cyberdeck_3', 'cyberdeck_4', 'cyberdeck_5'] as const;
+/** Ordered low to high, same shape as `BOARD_TIERS`/`DECK_TIERS` — the tier
+ * a player can reach determines how a drone encounter goes, not which
+ * button they press (`systems/market.ts` `droneToolTier`, `world/drones.ts`). */
+export const DRONE_TOOL_TIERS = ['slingshot', 'net_gun', 'emp_gun'] as const;
 
 /** Physical tools — the first layer a hack needs, before the deck's own
  * tier gets a say. See `systems/streethacks.ts` `HACK_KIND_TOOL`. */

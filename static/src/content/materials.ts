@@ -284,4 +284,47 @@ export const RECIPES: Recipe[] = [
     description: 'Everything the last four builds were practice for.',
     blueprintItemId: 'bp_cyberdeck_5',
   },
+  /*
+   * The drone line — three tiers, same trade-up shape as the board and
+   * deck (`craft_net_gun` consumes the slingshot, `craft_emp_gun` consumes
+   * the net gun), so a player only ever holds the one tool that matters.
+   * `world/drones.ts` reads whichever tier that leaves the same way
+   * `boardTier`/`deckTier` already do.
+   */
+  {
+    id: 'craft_slingshot',
+    label: 'Slingshot',
+    inputs: [
+      { itemId: 'trucks', quantity: 1 },
+      { itemId: 'bushings', quantity: 1 },
+    ],
+    outputItemId: 'slingshot',
+    description: 'A fork off a bent truck and a length of bushing rubber. Enough to knock something out of the air, briefly.',
+    blueprintItemId: 'bp_slingshot',
+  },
+  {
+    id: 'craft_net_gun',
+    label: 'Net Gun',
+    inputs: [
+      { itemId: 'slingshot', quantity: 1 },
+      { itemId: 'motor_kit', quantity: 1 },
+      { itemId: 'battery_pack', quantity: 1 },
+    ],
+    outputItemId: 'net_gun',
+    description: 'The sling gets a motor and something to actually throw. Whatever it hits stays hit.',
+    blueprintItemId: 'bp_net_gun',
+  },
+  {
+    id: 'craft_emp_gun',
+    label: 'EMP Gun',
+    inputs: [
+      { itemId: 'net_gun', quantity: 1 },
+      { itemId: 'graphics_card', quantity: 1 },
+      { itemId: 'cracked_chipset', quantity: 2 },
+      { itemId: 'battery_pack', quantity: 1 },
+    ],
+    outputItemId: 'emp_gun',
+    description: 'A capacitor bank and enough board to aim the discharge. It doesn’t hit the drone. It hits everything the drone is.',
+    blueprintItemId: 'bp_emp_gun',
+  },
 ];

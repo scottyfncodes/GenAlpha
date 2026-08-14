@@ -108,6 +108,27 @@ export const BLUEPRINTS: Blueprint[] = [
     tier: 5,
     description: 'Everything the last four decks were practice for, drawn out whole.',
   },
+  {
+    itemId: 'bp_slingshot',
+    name: 'Slingshot — build plan',
+    recipeId: 'craft_slingshot',
+    tier: 1,
+    description: 'A kid’s drawing of a fork and a band, except the angles are all measured.',
+  },
+  {
+    itemId: 'bp_net_gun',
+    name: 'Net Gun — build plan',
+    recipeId: 'craft_net_gun',
+    tier: 2,
+    description: 'The sling’s diagram with a motor bolted onto the margin, in different handwriting.',
+  },
+  {
+    itemId: 'bp_emp_gun',
+    name: 'EMP Gun — build plan',
+    recipeId: 'craft_emp_gun',
+    tier: 3,
+    description: 'A capacitor curve somebody plotted by hand, and a warning underlined twice.',
+  },
 ];
 
 export const BLUEPRINTS_BY_ID: Record<string, Blueprint> = Object.fromEntries(

@@ -11,6 +11,7 @@ import {
   BURNER_HEAT_RELIEF,
   BURNER_PHONE,
   DECK_TIERS,
+  DRONE_TOOL_TIERS,
   ITEMS,
   ITEMS_BY_ID,
   MARKET_EVENTS,
@@ -197,6 +198,12 @@ export function boardTier(save: SaveState): number {
  * actually in reach. */
 export function deckTier(save: SaveState): number {
   return highestTierOwned(save, DECK_TIERS);
+}
+
+/** No tool (0) up to the EMP Gun (3) — what a drone encounter turns into,
+ * not just how loudly it goes (`world/drones.ts`). */
+export function droneToolTier(save: SaveState): number {
+  return highestTierOwned(save, DRONE_TOOL_TIERS);
 }
 
 /** Adds to inventory, merging with an existing stack. Also the reward path. */
