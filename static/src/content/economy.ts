@@ -235,6 +235,37 @@ export const ITEMS: GoodsItem[] = [
     category: 'gear',
     effect: 'It doesn’t fall. It just stops, mid-air, and drops straight down fried. No warning to send home.',
   },
+  /*
+   * The player's own drone — a second, opposite use of the same idea Phase
+   * Two runs on. `world/playerdrone.ts` covers what it does: a recon flight
+   * for free intel (Heat relief, no risk to the airframe) or a one-way
+   * kamikaze run at a piece of Helio's own infrastructure (the best payout
+   * in the salvage economy, and the drone doesn't come back either way —
+   * that's what kamikaze means). Same trade-up shape as every other line:
+   * each tier consumes the one below it (`craft_recon_drone`/
+   * `craft_strike_drone`, content/materials.ts).
+   */
+  {
+    itemId: 'scout_drone',
+    name: 'Scout Drone',
+    basePrice: 140,
+    category: 'gear',
+    effect: 'Barely holds together in open air. Flies where you point it, once, if you’re careful.',
+  },
+  {
+    itemId: 'recon_drone',
+    name: 'Recon Drone',
+    basePrice: 340,
+    category: 'gear',
+    effect: 'A real airframe. Takes a hit and keeps going, which the scout never could.',
+  },
+  {
+    itemId: 'strike_drone',
+    name: 'Strike Drone',
+    basePrice: 680,
+    category: 'gear',
+    effect: 'Armoured enough to actually reach a defended target instead of just a quiet one.',
+  },
 ];
 
 export const ITEMS_BY_ID: Record<string, GoodsItem> = Object.fromEntries(
@@ -258,6 +289,10 @@ export const DECK_TIERS = ['cyberdeck_1', 'cyberdeck_2', 'cyberdeck_3', 'cyberde
  * a player can reach determines how a drone encounter goes, not which
  * button they press (`systems/market.ts` `droneToolTier`, `world/drones.ts`). */
 export const DRONE_TOOL_TIERS = ['slingshot', 'net_gun', 'emp_gun'] as const;
+/** Ordered low to high, same shape again — which airframe a player has
+ * built decides how the flight minigame plays, not which mission it can
+ * attempt (`world/playerdrone.ts`, `systems/market.ts` `playerDroneTier`). */
+export const PLAYER_DRONE_TIERS = ['scout_drone', 'recon_drone', 'strike_drone'] as const;
 
 /** Physical tools — the first layer a hack needs, before the deck's own
  * tier gets a say. See `systems/streethacks.ts` `HACK_KIND_TOOL`. */

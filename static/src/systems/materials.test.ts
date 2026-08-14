@@ -1,5 +1,18 @@
 import { describe, expect, it } from 'vitest';
-import { canCraft, canDestroyJunctionBox, canDisableDrone, canSabotage, collectHidden, craft, destroyJunctionBox, disableDrone } from './materials';
+import {
+  canCraft,
+  canDestroyJunctionBox,
+  canDisableDrone,
+  canFlyRecon,
+  canKamikaze,
+  canSabotage,
+  collectHidden,
+  craft,
+  destroyJunctionBox,
+  disableDrone,
+  flyRecon,
+  kamikazeStrike,
+} from './materials';
 import { createNewSave } from '../state/defaults';
 import { CAMERA_NODES } from '../world/collectibles';
 import { JUNCTION_BOX_NODES } from '../world/junctionboxes';
@@ -144,5 +157,89 @@ describe('drone takedowns', () => {
     const afterSlingshot = disableDrone(slingshot, 'drone_diagonal', true);
     const afterEmp = disableDrone(empGun, 'drone_diagonal', true);
     expect(afterEmp.heat.current - empGun.heat.current).toBeLessThan(afterSlingshot.heat.current - slingshot.heat.current);
+  });
+});
+
+describe('recon flights', () => {
+  it('refuses without any drone built', () => {
+    const save = createNewSave('Wren');
+    expect(canFlyRecon(save)).toBe(false);
+  });
+
+  it('a clean flight relieves Heat and never touches the inventory', () => {
+    const save = createNewSave('Wren');
+    save.heat = { ...save.heat, current: 30 };
+    save.economy.inventory = [{ itemId: 'scout_drone', quantity: 1, acquiredVia: 'crafted' }];
+    expect(canFlyRecon(save)).toBe(true);
+    const after = flyRecon(save, true);
+    expect(after.heat.current).toBeLessThan(save.heat.current);
+    expect(after.economy.inventory).toEqual(save.economy.inventory);
+  });
+
+  it('a scrubbed flight costs Heat instead, and still keeps the drone', () => {
+    const save = createNewSave('Wren');
+    save.economy.inventory = [{ itemId: 'scout_drone', quantity: 1, acquiredVia: 'crafted' }];
+    const after = flyRecon(save, false);
+    expect(after.heat.current).toBeGreaterThan(save.heat.current);
+    expect(after.economy.inventory).toEqual(save.economy.inventory);
+  });
+
+  it('a better airframe relieves more Heat on a clean flight', () => {
+    const scout = createNewSave('Wren');
+    scout.heat = { ...scout.heat, current: 40 };
+    scout.economy.inventory = [{ itemId: 'scout_drone', quantity: 1, acquiredVia: 'crafted' }];
+    const strike = createNewSave('Wren');
+    strike.heat = { ...strike.heat, current: 40 };
+    strike.economy.inventory = [{ itemId: 'strike_drone', quantity: 1, acquiredVia: 'crafted' }];
+    const afterScout = flyRecon(scout, true);
+    const afterStrike = flyRecon(strike, true);
+    expect(strike.heat.current - afterStrike.heat.current).toBeGreaterThan(scout.heat.current - afterScout.heat.current);
+  });
+});
+
+describe('kamikaze strikes', () => {
+  const camera = CAMERA_NODES[0];
+  const junction = JUNCTION_BOX_NODES[0];
+
+  it('refuses without any drone built', () => {
+    const save = createNewSave('Wren');
+    expect(canKamikaze(save, { kind: 'camera', id: camera.id })).toBe(false);
+  });
+
+  it('a landed hit on a camera pays double its featured part, at zero Heat, and consumes the drone', () => {
+    const save = createNewSave('Wren');
+    save.economy.inventory = [{ itemId: 'scout_drone', quantity: 1, acquiredVia: 'crafted' }];
+    const after = kamikazeStrike(save, { kind: 'camera', id: camera.id }, true);
+    expect(after.economy.inventory.find((i) => i.itemId === camera.itemId)?.quantity).toBe(2);
+    expect(after.economy.inventory.find((i) => i.itemId === 'scout_drone')).toBeUndefined();
+    expect(after.heat.current).toBe(save.heat.current);
+    expect(canKamikaze(after, { kind: 'camera', id: camera.id })).toBe(false);
+  });
+
+  it('a landed hit on a junction box pays its blueprint and consumes the drone', () => {
+    const save = createNewSave('Wren');
+    save.economy.inventory = [{ itemId: 'recon_drone', quantity: 1, acquiredVia: 'crafted' }];
+    const after = kamikazeStrike(save, { kind: 'junction', id: junction.id }, true);
+    expect(after.economy.inventory.find((i) => i.itemId === junction.blueprintItemId)?.quantity).toBe(1);
+    expect(after.economy.inventory.find((i) => i.itemId === 'recon_drone')).toBeUndefined();
+  });
+
+  it('a crash pays out nothing, costs Heat, consumes the drone anyway, and leaves the target standing', () => {
+    const save = createNewSave('Wren');
+    save.economy.inventory = [{ itemId: 'strike_drone', quantity: 1, acquiredVia: 'crafted' }];
+    const after = kamikazeStrike(save, { kind: 'camera', id: camera.id }, false);
+    expect(after.economy.inventory.find((i) => i.itemId === camera.itemId)).toBeUndefined();
+    expect(after.economy.inventory.find((i) => i.itemId === 'strike_drone')).toBeUndefined();
+    expect(after.heat.current).toBeGreaterThan(save.heat.current);
+    // The drone's gone (that's the point of "kamikaze"), but the *target*
+    // itself never went on cooldown — rebuild a drone and it's still there.
+    const rearmed = { ...after, economy: { ...after.economy, inventory: [{ itemId: 'strike_drone', quantity: 1, acquiredVia: 'crafted' as const }] } };
+    expect(canKamikaze(rearmed, { kind: 'camera', id: camera.id })).toBe(true);
+  });
+
+  it('is a no-op on an unknown target id', () => {
+    const save = createNewSave('Wren');
+    save.economy.inventory = [{ itemId: 'scout_drone', quantity: 1, acquiredVia: 'crafted' }];
+    expect(kamikazeStrike(save, { kind: 'camera', id: 'not_a_real_node' }, true)).toEqual(save);
   });
 });

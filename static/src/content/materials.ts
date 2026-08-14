@@ -285,11 +285,11 @@ export const RECIPES: Recipe[] = [
     blueprintItemId: 'bp_cyberdeck_5',
   },
   /*
-   * The drone line — three tiers, same trade-up shape as the board and
-   * deck (`craft_net_gun` consumes the slingshot, `craft_emp_gun` consumes
-   * the net gun), so a player only ever holds the one tool that matters.
-   * `world/drones.ts` reads whichever tier that leaves the same way
-   * `boardTier`/`deckTier` already do.
+   * The anti-drone tool line — three tiers, same trade-up shape as the
+   * board and deck (`craft_net_gun` consumes the slingshot, `craft_emp_gun`
+   * consumes the net gun), so a player only ever holds the one tool that
+   * matters. `world/drones.ts` reads whichever tier that leaves the same
+   * way `boardTier`/`deckTier` already do.
    */
   {
     id: 'craft_slingshot',
@@ -326,5 +326,48 @@ export const RECIPES: Recipe[] = [
     outputItemId: 'emp_gun',
     description: 'A capacitor bank and enough board to aim the discharge. It doesn’t hit the drone. It hits everything the drone is.',
     blueprintItemId: 'bp_emp_gun',
+  },
+  /*
+   * The player's own drone line — same trade-up shape again. Flown, not
+   * carried: `world/playerdrone.ts` is what actually uses one, this just
+   * builds it.
+   */
+  {
+    id: 'craft_scout_drone',
+    label: 'Scout Drone',
+    inputs: [
+      { itemId: 'hard_drive', quantity: 1 },
+      { itemId: 'motor_kit', quantity: 1 },
+      { itemId: 'battery_pack', quantity: 1 },
+    ],
+    outputItemId: 'scout_drone',
+    description: 'Four motors off the salvage pile and a hard drive standing in for a flight controller. It flies. That’s the whole review.',
+    blueprintItemId: 'bp_scout_drone',
+  },
+  {
+    id: 'craft_recon_drone',
+    label: 'Recon Drone',
+    inputs: [
+      { itemId: 'scout_drone', quantity: 1 },
+      { itemId: 'logic_board', quantity: 1 },
+      { itemId: 'graphics_card', quantity: 1 },
+      { itemId: 'battery_pack', quantity: 1 },
+    ],
+    outputItemId: 'recon_drone',
+    description: 'A real logic board instead of a spare hard drive, and enough current behind it to take a hit and keep flying.',
+    blueprintItemId: 'bp_recon_drone',
+  },
+  {
+    id: 'craft_strike_drone',
+    label: 'Strike Drone',
+    inputs: [
+      { itemId: 'recon_drone', quantity: 1 },
+      { itemId: 'air_gapped_drive', quantity: 1 },
+      { itemId: 'graphics_card', quantity: 1 },
+      { itemId: 'cracked_chipset', quantity: 2 },
+    ],
+    outputItemId: 'strike_drone',
+    description: 'Armour plate cut from the same stock as everything else in this town, bolted on until the thing can survive reaching a defended target.',
+    blueprintItemId: 'bp_strike_drone',
   },
 ];

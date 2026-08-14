@@ -13,6 +13,7 @@ import {
   DECK_TIERS,
   DRONE_TOOL_TIERS,
   ITEMS,
+  PLAYER_DRONE_TIERS,
   ITEMS_BY_ID,
   MARKET_EVENTS,
   SHDW,
@@ -204,6 +205,14 @@ export function deckTier(save: SaveState): number {
  * not just how loudly it goes (`world/drones.ts`). */
 export function droneToolTier(save: SaveState): number {
   return highestTierOwned(save, DRONE_TOOL_TIERS);
+}
+
+/** No drone (0) up to the Strike Drone (3) — the player's own airframe,
+ * not the tool used against FLACK's. Decides how forgiving a flight is,
+ * not whether a recon or kamikaze run can be attempted at all
+ * (`world/playerdrone.ts`). */
+export function playerDroneTier(save: SaveState): number {
+  return highestTierOwned(save, PLAYER_DRONE_TIERS);
 }
 
 /** Adds to inventory, merging with an existing stack. Also the reward path. */

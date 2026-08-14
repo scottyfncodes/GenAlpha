@@ -20,7 +20,17 @@ import { applyEffects } from '../systems/effects';
 import { buy, buyShdw, sell, sellShdw, tickMarket, useConsumable } from '../systems/market';
 import { tickSafehouses } from '../systems/safehouse';
 import { drain } from '../systems/heist';
-import { collectHidden, craft, destroyJunctionBox, disableDrone, sabotageCamera, sellMaterial } from '../systems/materials';
+import {
+  collectHidden,
+  craft,
+  destroyJunctionBox,
+  disableDrone,
+  flyRecon,
+  kamikazeStrike,
+  sabotageCamera,
+  sellMaterial,
+  type KamikazeTarget,
+} from '../systems/materials';
 import { applyCatch } from '../systems/consequences';
 import { resolveStreetHack, type HackLevel } from '../systems/streethacks';
 import type { SabotageActionId } from '../world/collectibles';
@@ -60,6 +70,8 @@ type Action =
   | { type: 'SABOTAGE_CAMERA'; nodeId: string; actionId: SabotageActionId }
   | { type: 'DESTROY_JUNCTION_BOX'; nodeId: string }
   | { type: 'DISABLE_DRONE'; droneId: string; hit: boolean }
+  | { type: 'FLY_RECON'; hit: boolean }
+  | { type: 'KAMIKAZE_STRIKE'; target: KamikazeTarget; hit: boolean }
   | { type: 'SELL_MATERIAL'; itemId: string }
   | { type: 'CRAFT_ITEM'; recipeId: string }
   | { type: 'CAUGHT'; tier: ThresholdTier }
@@ -176,6 +188,12 @@ function reducer(state: SaveState | null, action: Action): SaveState | null {
 
     case 'DISABLE_DRONE':
       return disableDrone(state, action.droneId, action.hit);
+
+    case 'FLY_RECON':
+      return flyRecon(state, action.hit);
+
+    case 'KAMIKAZE_STRIKE':
+      return kamikazeStrike(state, action.target, action.hit);
 
     case 'SELL_MATERIAL':
       return sellMaterial(state, action.itemId);

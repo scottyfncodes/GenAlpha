@@ -22,8 +22,17 @@ import { useGame, useSave } from '../state/GameContext';
 import type { ThresholdTier } from '../state/schema';
 import { LIE_LOW_DECAY, lieLowBlocked } from '../systems/heat';
 import { safehouseBlocked, safehouseDecay } from '../systems/safehouse';
-import { canCollectHidden, canDestroyJunctionBox, canDisableDrone, canSabotage, onCooldown } from '../systems/materials';
-import { boardTier, droneToolTier, owns } from '../systems/market';
+import {
+  canCollectHidden,
+  canDestroyJunctionBox,
+  canDisableDrone,
+  canFlyRecon,
+  canKamikaze,
+  canSabotage,
+  onCooldown,
+  type KamikazeTarget,
+} from '../systems/materials';
+import { boardTier, droneToolTier, owns, playerDroneTier } from '../systems/market';
 import { consequenceFor, HURT_UNTIL_DAY_FLAG } from '../systems/consequences';
 import { MATERIALS_BY_ID } from '../content/materials';
 import { BLUEPRINTS_BY_ID } from '../content/blueprints';
@@ -39,6 +48,8 @@ import { canHackStreetNode, HACK_KIND_TOOL } from '../systems/streethacks';
 import { drawTown } from './draw';
 import { Market } from '../ui/Market';
 import { DroneShoot } from '../ui/minigames/DroneShoot';
+import { DroneFlight } from '../ui/minigames/DroneFlight';
+import { RECON_FAIL_HEAT_PENALTY, type PlayerDroneTier } from '../world/playerdrone';
 import { DRONE_SHOOT_MISS_HEAT_PENALTY } from '../systems/droneshoot';
 import { play } from '../systems/audio';
 import './overworld.css';
@@ -198,6 +209,14 @@ export function Overworld() {
    * instant the take-down prompt is tapped, cleared on either an actual
    * resolution or a free walk-away. */
   const [droneShootTarget, setDroneShootTarget] = useState<string | null>(null);
+  /** The small "Recon flight / Kamikaze strike" panel — the player's own
+   * drone, as opposed to the FLACK ones above. */
+  const [droneMenuOpen, setDroneMenuOpen] = useState(false);
+  /** The flight currently in progress, if any — which mode, and for a
+   * kamikaze run, which node it's aimed at. */
+  const [droneFlight, setDroneFlight] = useState<
+    { mode: 'recon'; targetLabel: string } | { mode: 'kamikaze'; target: KamikazeTarget; targetLabel: string } | null
+  >(null);
   /**
    * Held in state, not derived: a scene's own effects change the chapter part
    * way through, which would otherwise unmount the scene mid-read.
@@ -348,7 +367,7 @@ export function Overworld() {
   const droneCooldownRef = useRef<Map<string, number>>(new Map());
 
   enterRef.current = enter;
-  blockedRef.current = Boolean(open) || cyberdeckOpen || Boolean(droneShootTarget);
+  blockedRef.current = Boolean(open) || cyberdeckOpen || Boolean(droneShootTarget) || Boolean(droneFlight);
 
   // Movement + render loop.
   useEffect(() => {
@@ -972,6 +991,74 @@ export function Overworld() {
         />
       )}
 
+      {/*
+        The player's own drone — a toggle rather than a nearby-object prompt,
+        since a recon flight needs no target at all and a kamikaze run just
+        reads whichever nearby node (camera or junction box) the overworld's
+        own detection already found this frame. Only shown once a drone
+        exists to fly; an empty menu offering nothing isn't worth a button.
+      */}
+      {playerDroneTier(save) > 0 && !open && !cyberdeckOpen && !droneShootTarget && (
+        <div className="overworld__dronemenu">
+          <button className="overworld__dronetoggle" onClick={() => setDroneMenuOpen((v) => !v)}>
+            {droneMenuOpen ? 'Close drone' : 'Drone'}
+          </button>
+          {droneMenuOpen && (
+            <div className="overworld__dronepanel">
+              <button
+                className="overworld__prompt overworld__prompt--drone"
+                disabled={!canFlyRecon(save)}
+                onClick={() => {
+                  setDroneMenuOpen(false);
+                  setDroneFlight({ mode: 'recon', targetLabel: 'Bellhaven sweep' });
+                }}
+              >
+                Recon flight · Hit: Heat relief · Miss: Heat +{RECON_FAIL_HEAT_PENALTY}
+              </button>
+              {(() => {
+                const target: KamikazeTarget | null = nearbyCamera
+                  ? { kind: 'camera', id: nearbyCamera.id }
+                  : nearbyJunctionBox
+                    ? { kind: 'junction', id: nearbyJunctionBox.id }
+                    : null;
+                const targetLabel = nearbyCamera
+                  ? 'FLACK Camera Housing'
+                  : nearbyJunctionBox
+                    ? (BLUEPRINTS_BY_ID[nearbyJunctionBox.blueprintItemId]?.name ?? 'Junction box')
+                    : '';
+                return (
+                  <button
+                    className="overworld__prompt overworld__prompt--drone"
+                    disabled={!target || !canKamikaze(save, target)}
+                    onClick={() => {
+                      if (!target) return;
+                      setDroneMenuOpen(false);
+                      setDroneFlight({ mode: 'kamikaze', target, targetLabel });
+                    }}
+                  >
+                    {target ? `Kamikaze strike · ${targetLabel} · one-way` : 'Kamikaze strike · needs a camera or junction box in reach'}
+                  </button>
+                );
+              })()}
+            </div>
+          )}
+        </div>
+      )}
+
+      {droneFlight && (
+        <DroneFlight
+          mode={droneFlight.mode}
+          droneTier={Math.min(3, Math.max(1, playerDroneTier(save))) as PlayerDroneTier}
+          targetLabel={droneFlight.targetLabel}
+          onResolve={(hit) => {
+            if (droneFlight.mode === 'recon') dispatch({ type: 'FLY_RECON', hit });
+            else dispatch({ type: 'KAMIKAZE_STRIKE', target: droneFlight.target, hit });
+            setDroneFlight(null);
+          }}
+          onClose={() => setDroneFlight(null)}
+        />
+      )}
+
       {active && <SceneView scene={active} onClose={leave} />}
 
       {open && !active && (
@@ -1014,7 +1101,7 @@ export function Overworld() {
           (`blockedRef` zeroes touch input under the same two conditions),
           so leaving it on screen was just a control sitting on top of a
           location card with no function, not a real toggle underneath it. */}
-      {!open && !cyberdeckOpen && !droneShootTarget && (
+      {!open && !cyberdeckOpen && !droneShootTarget && !droneFlight && (
         <Joystick onChange={(dx, dy) => (touch.current = { dx, dy })} />
       )}
 

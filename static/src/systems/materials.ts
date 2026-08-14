@@ -1,6 +1,6 @@
 import type { SaveState } from '../state/schema';
 import { MATERIALS_BY_ID, RECIPES } from '../content/materials';
-import { BOLT_CUTTERS } from '../content/economy';
+import { BOLT_CUTTERS, PLAYER_DRONE_TIERS } from '../content/economy';
 import {
   CAMERA_NODES,
   HIDDEN_PICKUPS,
@@ -11,7 +11,25 @@ import {
 import { JUNCTION_BOX_NODES, JUNCTION_BOX_RISK } from '../world/junctionboxes';
 import { DRONE_TAKEDOWN_BY_TOOL_TIER } from '../world/drones';
 import { DRONE_SHOOT_MISS_COOLDOWN_DAYS, DRONE_SHOOT_MISS_HEAT_PENALTY } from './droneshoot';
-import { addCash, addShdw, deckTier, droneToolTier, grantItem, owns, quantityOf, removeItem } from './market';
+import {
+  KAMIKAZE_FAIL_HEAT_PENALTY,
+  KAMIKAZE_HEAT_COST,
+  KAMIKAZE_RESPAWN_DAYS,
+  RECON_FAIL_HEAT_PENALTY,
+  RECON_SUCCESS_HEAT_RELIEF,
+  type PlayerDroneTier,
+} from '../world/playerdrone';
+import {
+  addCash,
+  addShdw,
+  deckTier,
+  droneToolTier,
+  grantItem,
+  owns,
+  playerDroneTier,
+  quantityOf,
+  removeItem,
+} from './market';
 import { applyHeat } from './heat';
 
 /**
@@ -191,6 +209,98 @@ export function disableDrone(save: SaveState, droneId: string, hit: boolean): Sa
     }),
   };
   return markCollected(withHeat, droneId, result.respawnDays);
+}
+
+/** Whichever drone tier the player currently holds — there's only ever one,
+ * same "trade up, don't stack" shape as a board or a deck. */
+function ownedDroneItemId(save: SaveState): string | undefined {
+  return [...PLAYER_DRONE_TIERS].reverse().find((itemId) => owns(save, itemId));
+}
+
+/** A recon flight needs an airframe built. Nothing else — no cooldown, no
+ * target — because the minigame itself (`ui/minigames/DroneFlight.tsx`) is
+ * the actual gate: a player can only fly as often as they're willing to
+ * play it, and a scrubbed flight already costs Heat. */
+export function canFlyRecon(save: SaveState): boolean {
+  return playerDroneTier(save) >= 1;
+}
+
+/**
+ * `hit` is the flight minigame's own outcome — a clean run pays Heat
+ * relief scaled by which airframe made it up there, a scrubbed one costs a
+ * flat penalty instead. The drone always comes home; this is the one drone
+ * action that never touches the inventory.
+ */
+export function flyRecon(save: SaveState, hit: boolean): SaveState {
+  if (!canFlyRecon(save)) return save;
+  const tier = playerDroneTier(save) as PlayerDroneTier;
+  const delta = hit ? -RECON_SUCCESS_HEAT_RELIEF[tier] : RECON_FAIL_HEAT_PENALTY;
+  return {
+    ...save,
+    heat: applyHeat(save.heat, {
+      eventId: hit ? 'recon_flight_clean' : 'recon_flight_scrubbed',
+      delta,
+      logToHistory: true,
+    }),
+  };
+}
+
+/** A camera or a junction box, already in reach — the same two nearby
+ * targets `SABOTAGE_CAMERA`/`DESTROY_JUNCTION_BOX` already offer, just
+ * reached a second way. */
+export type KamikazeTarget = { kind: 'camera'; id: string } | { kind: 'junction'; id: string };
+
+/** An airframe built, and the target not already down (whether from a
+ * previous kamikaze run or an ordinary sabotage/destroy — the cooldown log
+ * is shared, so it isn't a separate rule to remember). */
+export function canKamikaze(save: SaveState, target: KamikazeTarget): boolean {
+  if (playerDroneTier(save) < 1) return false;
+  return !onCooldown(save, target.id, KAMIKAZE_RESPAWN_DAYS);
+}
+
+/**
+ * Fly it in. `hit` is the flight minigame's outcome. Either way the drone
+ * is gone — a kamikaze run doesn't come home — but only a landed hit takes
+ * the target down: a camera pays its featured part at double quantity, a
+ * junction box pays its blueprint, both at zero Heat cost and a much
+ * longer respawn than an ordinary hit reaches. A crash pays nothing, costs
+ * real Heat, and leaves the target standing for the next attempt.
+ */
+export function kamikazeStrike(save: SaveState, target: KamikazeTarget, hit: boolean): SaveState {
+  if (!canKamikaze(save, target)) return save;
+
+  // Confirmed before anything is spent — an unknown target shouldn't cost
+  // a real drone, the same "no-op on a bad id" contract every other
+  // destroy/sabotage function here holds to.
+  const camera = target.kind === 'camera' ? CAMERA_NODES.find((n) => n.id === target.id) : undefined;
+  const junction = target.kind === 'junction' ? JUNCTION_BOX_NODES.find((n) => n.id === target.id) : undefined;
+  if (!camera && !junction) return save;
+
+  const droneItemId = ownedDroneItemId(save);
+  let s = droneItemId ? removeItem(save, droneItemId) : save;
+
+  if (!hit) {
+    return {
+      ...s,
+      heat: applyHeat(s.heat, {
+        eventId: `kamikaze_missed_${target.id}`,
+        delta: KAMIKAZE_FAIL_HEAT_PENALTY,
+        logToHistory: true,
+      }),
+    };
+  }
+
+  s = camera ? grantItem(s, camera.itemId, 2, 'theft') : grantItem(s, junction!.blueprintItemId, 1, 'theft');
+
+  const withHeat = {
+    ...s,
+    heat: applyHeat(s.heat, {
+      eventId: `kamikaze_${target.id}`,
+      delta: KAMIKAZE_HEAT_COST,
+      logToHistory: false,
+    }),
+  };
+  return markCollected(withHeat, target.id, KAMIKAZE_RESPAWN_DAYS);
 }
 
 export function sellMaterial(save: SaveState, itemId: string): SaveState {

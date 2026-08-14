@@ -52,9 +52,13 @@ export const JUNCTION_BOX_NODES: JunctionBoxNode[] = [
   // Tier 5 — the far edge of the map, the last thing worth the trip.
   { id: 'junction_11', x: 1200, y: 180, blueprintItemId: 'bp_board_5', tier: 5 },
   { id: 'junction_12', x: 1220, y: 600, blueprintItemId: 'bp_cyberdeck_5', tier: 5 },
-  // The drone line — same tier logic as the board/deck lines, just three
-  // stops instead of five.
+  // The anti-drone tool line — same tier logic as the board/deck lines,
+  // just three stops instead of five.
   { id: 'junction_13', x: 300, y: 570, blueprintItemId: 'bp_slingshot', tier: 1 },
   { id: 'junction_14', x: 740, y: 490, blueprintItemId: 'bp_net_gun', tier: 2 },
   { id: 'junction_15', x: 1000, y: 560, blueprintItemId: 'bp_emp_gun', tier: 3 },
+  // The player's own drone line.
+  { id: 'junction_16', x: 500, y: 650, blueprintItemId: 'bp_scout_drone', tier: 1 },
+  { id: 'junction_17', x: 950, y: 600, blueprintItemId: 'bp_recon_drone', tier: 2 },
+  { id: 'junction_18', x: 1220, y: 720, blueprintItemId: 'bp_strike_drone', tier: 3 },
 ];

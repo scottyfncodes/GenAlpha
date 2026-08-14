@@ -129,6 +129,27 @@ export const BLUEPRINTS: Blueprint[] = [
     tier: 3,
     description: 'A capacitor curve somebody plotted by hand, and a warning underlined twice.',
   },
+  {
+    itemId: 'bp_scout_drone',
+    name: 'Scout Drone — build plan',
+    recipeId: 'craft_scout_drone',
+    tier: 1,
+    description: 'Four rotor mounts and a note that says “balance it before you trust it.”',
+  },
+  {
+    itemId: 'bp_recon_drone',
+    name: 'Recon Drone — build plan',
+    recipeId: 'craft_recon_drone',
+    tier: 2,
+    description: 'The scout’s own diagram with a second pass through it, harder lines this time.',
+  },
+  {
+    itemId: 'bp_strike_drone',
+    name: 'Strike Drone — build plan',
+    recipeId: 'craft_strike_drone',
+    tier: 3,
+    description: 'An armour pattern traced off something that used to be a housing.',
+  },
 ];
 
 export const BLUEPRINTS_BY_ID: Record<string, Blueprint> = Object.fromEntries(
