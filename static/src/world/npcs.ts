@@ -15,7 +15,7 @@
  */
 import { mulberry32, seedFrom } from '../systems/rng';
 
-export type NpcKind = 'person' | 'dog' | 'bird';
+export type NpcKind = 'person' | 'dog' | 'cat' | 'bird';
 
 export interface Npc {
   id: string;
@@ -72,6 +72,18 @@ export const NPCS: Npc[] = [
 
   // The Treehouse strip, quiet but not empty — open ground just south of it.
   { id: 'npc_11', kind: 'person', x: 1180, y: 150, direction: 135, wanderRadius: 18, periodMs: 7200 },
+
+  // Cats — smaller wander radii than a dog's, and generally somewhere
+  // quieter than the middle of a street, the way an actual cat picks its
+  // ground.
+  { id: 'npc_cat_1', kind: 'cat', x: 634, y: 190, direction: 180, wanderRadius: 10, periodMs: 5200 },
+  { id: 'npc_cat_2', kind: 'cat', x: 555, y: 495, direction: 90, wanderRadius: 9, periodMs: 4600 },
+  { id: 'npc_cat_3', kind: 'cat', x: 164, y: 250, direction: 0, wanderRadius: 11, periodMs: 5800 },
+  { id: 'npc_cat_4', kind: 'cat', x: 240, y: 480, direction: 180, wanderRadius: 10, periodMs: 5000 },
+
+  // A couple more birds, over open sky where nothing at ground level cares.
+  { id: 'npc_bird_3', kind: 'bird', x: 1150, y: 90, direction: 220, wanderRadius: 65, periodMs: 5600 },
+  { id: 'npc_bird_4', kind: 'bird', x: 950, y: 250, direction: 100, wanderRadius: 55, periodMs: 4800 },
 ];
 
 /** Same seeded-noise technique `draw.ts`'s own `noise()` uses. */

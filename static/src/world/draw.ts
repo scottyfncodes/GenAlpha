@@ -156,6 +156,7 @@ const PALETTE = {
   // between the player and the vans.
   dogBody: '#8a6a4a',
   birdBody: '#2a2f3a',
+  catEye: '#e8dcc0',
   junctionBody: '#3a3a2a',
   junctionDark: '#1e1e14',
   junctionStripe: '#e0c020',
@@ -1628,6 +1629,10 @@ function limb(ctx: CanvasRenderingContext2D, x1: number, y1: number, x2: number,
  * shirt — picked once per npc id, never reshuffled. */
 const NPC_SHIRTS = ['#7a8a9c', '#9c7a6a', '#6a9c7e', '#c2a15c', '#8a6a9c', '#5c8fae'];
 
+/** Same idea as `NPC_SHIRTS` — a small fixed set of coats so the town's
+ * cats don't all read as one cat copy-pasted around. */
+const CAT_COATS = ['#4a4038', '#8a7460', '#2a2620', '#a89468'];
+
 /**
  * Ambient life, dispatched by kind — cheap on purpose, the same sprite
  * budget every obstacle on this canvas keeps to. None of these are the
@@ -1640,6 +1645,8 @@ function drawNpc(ctx: CanvasRenderingContext2D, x: number, y: number, kind: NpcK
       return drawPedestrian(ctx, x, y, id);
     case 'dog':
       return drawDog(ctx, x, y);
+    case 'cat':
+      return drawCat(ctx, x, y, facing, id);
     case 'bird':
       return drawBird(ctx, x, y, facing);
   }
@@ -1690,6 +1697,36 @@ function drawDog(ctx: CanvasRenderingContext2D, x: number, y: number) {
   ctx.fillStyle = PALETTE.outline;
   ctx.fillRect(cx - 5, cy + 2, 2, 3);
   ctx.fillRect(cx + 3, cy + 2, 2, 3);
+}
+
+/** A cat — smaller and slighter than the dog, with a tail held up rather
+ * than trailing low, and two pointed ear-tips instead of a floppy one,
+ * so the two read as different animals rather than the same block at
+ * different sizes. `coat` varies per npc id the same way a pedestrian's
+ * shirt does. */
+function drawCat(ctx: CanvasRenderingContext2D, x: number, y: number, facing: 1 | -1, id: string) {
+  const cx = px(x);
+  const cy = px(y);
+  const coat = CAT_COATS[Math.floor(noise(`coat:${id}`)() * CAT_COATS.length)];
+
+  ctx.fillStyle = 'rgba(0,0,0,0.2)';
+  ctx.fillRect(cx - 4, cy + 2, 8, 2);
+
+  ctx.fillStyle = PALETTE.outline;
+  ctx.fillRect(cx - 5, cy - 2, 9, 5);
+  ctx.fillRect(cx + 3 * facing, cy - 4, 3, 3);
+  ctx.fillStyle = coat;
+  ctx.fillRect(cx - 4, cy - 1, 7, 3);
+  ctx.fillRect(cx + 3 * facing, cy - 3, 3, 2);
+
+  ctx.fillStyle = PALETTE.outline;
+  ctx.fillRect(cx + 3 * facing, cy - 5, 1, 1);
+  ctx.fillRect(cx + 5 * facing, cy - 5, 1, 1);
+
+  // Held up, not trailing — the tail is the one thing at this scale that
+  // reads "cat" before anything else does.
+  ctx.fillStyle = coat;
+  ctx.fillRect(cx - 6 * facing, cy - 5, 2, 4);
 }
 
 /** A bird overhead — a body dash and two wing flicks angled off whichever
