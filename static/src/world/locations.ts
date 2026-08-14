@@ -38,6 +38,16 @@ export interface OverworldLocation {
    */
   canLieLow?: boolean;
   /**
+   * The one place blueprints and builds actually live. `Salvage` (the
+   * phone's Files app) still sells salvage for SHDW from anywhere — parts
+   * are parts — but the Build screen only ever opens from this location's
+   * own card, the same way the market table only opens from `marketFlag`.
+   * There's exactly one location with this set (the Garage); a flag rather
+   * than an id check so nothing has to import `GARAGE_LOCATION_ID` just to
+   * ask "am I looking at the build screen's own location right now."
+   */
+  garage?: boolean;
+  /**
    * Location isn't on the map until this flag is set. The safehouse doesn't
    * exist as a place until the crew makes it one — showing it early would be a
    * quest marker for a scene that hasn't happened, which the Story Bible's
@@ -93,6 +103,12 @@ export const MAP_HEIGHT = 800;
  * relief on arrival checks this specific location and nothing else. */
 export const HOME_LOCATION_ID = 'home';
 
+/** Named rather than read off `garage: true` everywhere — `Overworld.tsx`'s
+ * front-door spawn point and the two places outside `locations.ts` that
+ * need this specific id rather than just "wherever the garage flag is"
+ * both read this constant. */
+export const GARAGE_LOCATION_ID = 'garage';
+
 export const LOCATIONS: OverworldLocation[] = [
   {
     id: HOME_LOCATION_ID,
@@ -113,6 +129,27 @@ export const LOCATIONS: OverworldLocation[] = [
       watched: 'Mom’s on the phone in the other room. She stops talking when you come in.',
       flagged: 'The porch light is on, which it never is. Somebody put it on for you.',
       hunted: 'There’s a car parked across the street that has been there since Sunday.',
+    },
+  },
+  {
+    /*
+     * Tucked south of the house, past the hedge, close enough to read as
+     * part of the same lot rather than a separate stop across town. This
+     * is the one place `garage: true` — see that flag's own doc comment —
+     * so Build only ever opens from standing right here.
+     */
+    id: GARAGE_LOCATION_ID,
+    label: 'The Garage',
+    language: 'A',
+    render: 'garage',
+    x: 102, y: 284, w: 58, h: 50,
+    color: '#7c8a9c',
+    blurb: 'Pegboard, a workbench nobody else uses, and every blueprint you’ve ever cracked a junction box open for.',
+    garage: true,
+    ambient: {
+      watched: 'The bulb over the bench flickers when the fridge kicks on next door. Same as always.',
+      flagged: 'You checked the roll door twice before you came out here. It was already locked both times.',
+      hunted: 'You keep the radio off in here now. Easier to hear the street.',
     },
   },
   {

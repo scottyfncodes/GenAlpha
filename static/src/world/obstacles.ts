@@ -47,8 +47,10 @@ export interface Obstacle {
 
 export const OBSTACLES: Obstacle[] = [
   // The residential quarter — hedges and bushes framing the little
-  // neighbourhood of home / Ellen's / Casey's.
-  { id: 'filler_1', x: 16, y: 296, w: 96, h: 32, kind: 'hedge' },
+  // neighbourhood of home / Ellen's / Casey's. Trimmed 12px off its east
+  // end from its original width (96 -> 84) to clear the Garage's west wall
+  // (world/locations.ts, x102-160) with a couple of px of daylight.
+  { id: 'filler_1', x: 16, y: 296, w: 84, h: 32, kind: 'hedge' },
   { id: 'filler_2', x: 168, y: 296, w: 16, h: 24, kind: 'bush' },
   { id: 'filler_3', x: 16, y: 448, w: 100, h: 24, kind: 'hedge' },
   { id: 'filler_4', x: 168, y: 400, w: 16, h: 24, kind: 'bush' },

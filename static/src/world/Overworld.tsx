@@ -51,6 +51,7 @@ import { STREET_HACK_INTERACT_RADIUS, STREET_HACK_NODES, type StreetHackNode } f
 import { canHackStreetNode, HACK_KIND_TOOL } from '../systems/streethacks';
 import { drawTown } from './draw';
 import { Market } from '../ui/Market';
+import { Garage } from '../ui/Garage';
 import { DroneShoot } from '../ui/minigames/DroneShoot';
 import { DroneFlight } from '../ui/minigames/DroneFlight';
 import { RECON_FAIL_HEAT_PENALTY, type PlayerDroneTier } from '../world/playerdrone';
@@ -113,6 +114,14 @@ const JUNCTION_BOX_INTERACT_RADIUS = 26;
  * past them.
  */
 const HOME_BOUNDS = { x: [44, 148] as const, y: [234, 276] as const };
+/**
+ * Where the player lands the moment confinement lifts — just outside
+ * home's own front door (locations.ts: x32-160,y184-280), offset west of
+ * the door's own drawn centre (x96) so the spawn point clears the Garage's
+ * interact padding (x92-170 once its own 10px pad is added) rather than
+ * landing arguably "at" both locations at once.
+ */
+const FRONT_DOOR_SPAWN = { x: 70, y: 284 };
 /** How far past its own detection radius a hunting van keeps chasing —
  * wider than the circle that started the chase, so breaking line of sight
  * for a moment doesn't shake it instantly. */
@@ -229,6 +238,7 @@ export function Overworld() {
    */
   const [active, setActive] = useState<Scene | null>(null);
   const [market, setMarket] = useState(false);
+  const [garageOpen, setGarageOpen] = useState(false);
   /** A brief line when a patrol clocks you — Heat that's shown, not hidden. */
   const [spotted, setSpotted] = useState<string | null>(null);
   /** The consequence text when a catch lands inside the alert window —
@@ -317,11 +327,22 @@ export function Overworld() {
     setOpen(null);
     setActive(null);
     setMarket(false);
+    setGarageOpen(false);
   };
 
   // Spawn on the saved location rather than a hardcoded corner, so a reload
   // doesn't put the player across town from where the story left them.
   const pos = useRef(spawnFor(save.player.currentLocation));
+  /**
+   * Seeded from the save's own state at mount, not hardcoded `true` — a
+   * save that's already past the opening beat has to start this `false`,
+   * or the very first frame after a Continue would read as confinement
+   * lifting *right now* and teleport the player to the front door on every
+   * load. Only a save that's still mid-confinement on mount can ever see
+   * this flip during the session, which is the one moment the front-door
+   * spawn below is supposed to fire.
+   */
+  const wasConfinedRef = useRef(save.player.currentChapter === 'act1_glitch_01');
   const keys = useRef<Set<string>>(new Set());
   const touch = useRef({ dx: 0, dy: 0 });
   const nearbyRef = useRef<OverworldLocation | null>(null);
@@ -489,6 +510,11 @@ export function Overworld() {
        * feet — never pokes above the roofline into open air.
        */
       const confinedToHome = saveRef.current.player.currentChapter === 'act1_glitch_01' && !activeRef.current;
+      // The instant confinement lifts (the opening scene just closed), the
+      // player steps out at the front door rather than wherever inside
+      // `HOME_BOUNDS` they happened to be standing when it ended.
+      if (wasConfinedRef.current && !confinedToHome) pos.current = { ...FRONT_DOOR_SPAWN };
+      wasConfinedRef.current = confinedToHome;
       const xBounds = confinedToHome ? HOME_BOUNDS.x : ([8, MAP_WIDTH - 8] as const);
       const yBounds = confinedToHome ? HOME_BOUNDS.y : ([8, MAP_HEIGHT - 8] as const);
 
@@ -1249,6 +1275,13 @@ export function Overworld() {
               The Wednesday table · ${save.economy.cashOnHand}
             </button>
           )}
+          {/* Same shape as the market button above — the one place Build
+              ever opens from, per the build note. */}
+          {open.garage && (
+            <button className="overworld__market" onClick={() => setGarageOpen(true)}>
+              Blueprints &amp; Build
+            </button>
+          )}
           {/*
             Module 02's player action, with the cost on the button and the
             reason showing when it isn't available. Lying low costs a day,
@@ -1260,6 +1293,7 @@ export function Overworld() {
       )}
 
       {market && <Market onClose={() => setMarket(false)} />}
+      {garageOpen && <Garage onClose={() => setGarageOpen(false)} />}
 
       {/* Hidden rather than just covered — it already does nothing here
           (`blockedRef` zeroes touch input under the same two conditions),
