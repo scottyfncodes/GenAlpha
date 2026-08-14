@@ -135,7 +135,7 @@ const B1_OPEN: Scene = {
     street: {
       id: 'street',
       lines: [
-        { text: 'Bellhaven in the morning: sprinklers, garage doors, somebody’s dog losing its mind about nothing. You take the long way, because the long way has the corner, and the corner has Ellen.' },
+        { text: 'Bellhaven in the morning: sprinklers, garage doors, somebody’s dog losing its mind about nothing. You take the long way, because Ellen’s house is on the way.' },
         { text: 'The pole on the corner has a second box under the first one. You’ve walked past it a hundred times and never once looked up.' },
       ],
       next: 'nova',

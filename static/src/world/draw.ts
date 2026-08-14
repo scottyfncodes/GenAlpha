@@ -1616,12 +1616,56 @@ function drawCamera(ctx: CanvasRenderingContext2D, loc: OverworldLocation, isHer
 
   if (isHere) drawSoftGlow(ctx, x + size / 2, y + size / 2, size / 2, 3, 4);
 
+  drawCameraPost(ctx, x + size / 2, y + size);
   ctx.fillStyle = PALETTE.camera;
   ctx.fillRect(x, y, size, size);
   ctx.strokeStyle = PALETTE.cameraDark;
   ctx.lineWidth = 1;
   ctx.strokeRect(x - 0.5, y - 0.5, size + 1, size + 1);
+  drawCameraDetail(ctx, x, y, size);
   drawRevolvingLens(ctx, x + size / 2, y - 3, now);
+}
+
+/** The pole a camera box actually sits on — per the build note, "a post
+ * with a lens on it", which the box alone never quite read as without
+ * something under it to be posted on. A short conduit stub bridges the two
+ * so the wiring reads as running down the pole, not floating between them. */
+function drawCameraPost(ctx: CanvasRenderingContext2D, cx: number, boxBottomY: number) {
+  const postH = 9;
+  ctx.fillStyle = PALETTE.cameraDark;
+  ctx.fillRect(px(cx - 1), boxBottomY - 2, 2, postH);
+  ctx.fillRect(px(cx - 3), boxBottomY + postH - 3, 6, 2); // base flare
+  ctx.strokeStyle = PALETTE.cameraDark;
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(px(cx + 1), boxBottomY - 1);
+  ctx.lineTo(px(cx + 3), boxBottomY + 2);
+  ctx.stroke();
+}
+
+/** Panel seam and corner rivets — the same "this is a manufactured object,
+ * not a flat sprite" texture `drawCameraPost` gives the pole, applied to
+ * the housing itself. Kept to single pixels at this scale (a 16px box has
+ * no room for more) so it reads as detail rather than clutter. */
+function drawCameraDetail(ctx: CanvasRenderingContext2D, x: number, y: number, size: number) {
+  ctx.strokeStyle = PALETTE.cameraDark;
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(x + 1, y + size * 0.6);
+  ctx.lineTo(x + size - 1, y + size * 0.6);
+  ctx.stroke();
+
+  ctx.fillStyle = PALETTE.cameraDark;
+  ctx.globalAlpha = 0.7;
+  for (const [bx, by] of [
+    [x + 1.5, y + 1.5],
+    [x + size - 2.5, y + 1.5],
+    [x + 1.5, y + size - 2.5],
+    [x + size - 2.5, y + size - 2.5],
+  ]) {
+    ctx.fillRect(px(bx), px(by), 1, 1);
+  }
+  ctx.globalAlpha = 1;
 }
 
 /**
@@ -1647,12 +1691,14 @@ function drawSabotageCamera(
 
   if (dismantlable) drawPulseGlow(ctx, x + size / 2, y + size / 2, size / 2, now);
 
+  drawCameraPost(ctx, x + size / 2, y + size);
   ctx.globalAlpha = damaged ? 0.6 : 1;
   ctx.fillStyle = PALETTE.camera;
   ctx.fillRect(x, y, size, size);
   ctx.strokeStyle = PALETTE.cameraDark;
   ctx.lineWidth = 1;
   ctx.strokeRect(x - 0.5, y - 0.5, size + 1, size + 1);
+  if (!damaged) drawCameraDetail(ctx, x, y, size);
   ctx.globalAlpha = 1;
 
   if (damaged) drawSabotageDamage(ctx, x, y, size, now);
@@ -1743,6 +1789,34 @@ function drawJunctionBox(
   }
   ctx.globalAlpha = node.damaged ? 0.6 : 1;
 
+  // A centre seam, like a hinged double-door cabinet, plus a rivet at each
+  // corner and a couple of grille slats above the handle — the same
+  // "manufactured object, not a flat sprite" texture the camera post gets,
+  // scaled to a squat 14px cabinet instead of a slim housing.
+  ctx.strokeStyle = PALETTE.junctionDark;
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(x + size / 2, y + 6);
+  ctx.lineTo(x + size / 2, y + size - 2);
+  ctx.stroke();
+  for (let gy = y + size - 6; gy < y + size - 2; gy += 2) {
+    ctx.beginPath();
+    ctx.moveTo(x + 2, gy);
+    ctx.lineTo(x + size - 2, gy);
+    ctx.stroke();
+  }
+  ctx.fillStyle = PALETTE.junctionDark;
+  ctx.globalAlpha = (node.damaged ? 0.6 : 1) * 0.7;
+  for (const [bx, by] of [
+    [x + 1.5, y + 1.5],
+    [x + size - 2.5, y + 1.5],
+    [x + 1.5, y + size - 2.5],
+    [x + size - 2.5, y + size - 2.5],
+  ]) {
+    ctx.fillRect(px(bx), px(by), 1, 1);
+  }
+
+  ctx.globalAlpha = node.damaged ? 0.6 : 1;
   ctx.fillStyle = PALETTE.junctionDark;
   ctx.fillRect(x + size / 2 - 1, y + size - 6, 2, 4);
   ctx.globalAlpha = 1;

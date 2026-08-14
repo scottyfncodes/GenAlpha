@@ -522,6 +522,10 @@ export function Overworld() {
        * approach.
        */
       const visible = visibleLocations(flagsRef.current);
+      // Town Square (and anything else marked `walkable`) isn't a
+      // building — it's paving the town got built around, so it never
+      // joins the blockers list below the way an actual structure does.
+      const solidLocations = visible.filter((l) => !l.walkable);
       // How far the town's own baseline surveillance has crept up over the
       // course of the story so far — see world/escalation.ts. Filters both
       // collision and drawing below, so a stage-gated fence segment isn't
@@ -531,7 +535,7 @@ export function Overworld() {
       // A bush hiding a salvage find is walkable, full stop — that's the only
       // tell it ever gives, so it can't also be a wall.
       const solidObstacles = activeObstacles.filter((o) => !HIDDEN_PICKUP_OBSTACLE_IDS.has(o.id));
-      const blockers: { x: number; y: number; w: number; h: number }[] = [...visible, ...solidObstacles];
+      const blockers: { x: number; y: number; w: number; h: number }[] = [...solidLocations, ...solidObstacles];
       const solid = blockers.filter((l) => !overlapsBuilding(pos.current.x, pos.current.y, l));
 
       // A skull-cracked consequence leaves this behind for a day — a cost

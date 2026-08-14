@@ -84,6 +84,17 @@ export interface OverworldLocation {
     | 'pizza'
     | 'arcade'
     | 'treehouse';
+  /**
+   * Every location blocks movement by default, the way a building's own
+   * walls would (Overworld.tsx's collision). Set true for the handful that
+   * aren't actually a structure — Town Square is paving the town got built
+   * around, not four walls, so there's nothing stopping a player from
+   * cutting straight across the plaza the way there would be for an actual
+   * building. `locationAt`'s own interact-range check is unaffected either
+   * way — this only ever changes whether the player can stand inside the
+   * rect, not whether the location itself is reachable.
+   */
+  walkable?: boolean;
 }
 
 /*
@@ -212,6 +223,7 @@ export const LOCATIONS: OverworldLocation[] = [
     render: 'plaza',
     x: 520, y: 344, w: 176, h: 120,
     color: '#9fb6cf',
+    walkable: true,
     blurb: 'A council banner about the safety grant. Everyone in the photo is smiling.',
     trustAmbient: [
       {
