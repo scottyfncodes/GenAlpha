@@ -44,7 +44,7 @@ export const JUNCTION_BOX_NODES: JunctionBoxNode[] = [
   { id: 'junction_6', x: 760, y: 320, blueprintItemId: 'bp_cyberdeck_2', tier: 2 },
   // Tier 3 — the Annex's working edge.
   { id: 'junction_7', x: 900, y: 330, blueprintItemId: 'bp_board_3', tier: 3 },
-  { id: 'junction_8', x: 870, y: 450, blueprintItemId: 'bp_cyberdeck_3', tier: 3 },
+  { id: 'junction_8', x: 870, y: 462, blueprintItemId: 'bp_cyberdeck_3', tier: 3 },
   // Tier 4 — deeper into the Annex, where the story keeps warning it's
   // watched.
   { id: 'junction_9', x: 1080, y: 325, blueprintItemId: 'bp_board_4', tier: 4 },

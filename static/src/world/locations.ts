@@ -232,11 +232,20 @@ export const LOCATIONS: OverworldLocation[] = [
    * warm up exactly as the protagonist stops being alone in them.
    */
   {
+    /*
+     * The Annex splits into two readable halves now (draw.ts's DISTRICTS):
+     * Tech Row up top (this and Fenwick Lot — commerce, repair, the market
+     * table), Industrial below (this used to sit here; see repair_shop's
+     * own comment for why the two swapped spots). Nothing about deja_jobsite
+     * is geography-locked in the story — no scene or line of dialogue
+     * places it relative to Fenwick or the Repair Shop by direction — so
+     * the swap is paint, not a story fix.
+     */
     id: 'deja_jobsite',
     label: 'Utility Yard',
     language: 'B',
     render: 'warehouse',
-    x: 840, y: 184, w: 136, h: 100,
+    x: 840, y: 344, w: 136, h: 100,
     color: '#f0a03c',
     blurb: 'Spools of cable, a locked gate that isn’t locked, and a light left on over the shed.',
     ambient: {
@@ -264,11 +273,18 @@ export const LOCATIONS: OverworldLocation[] = [
     },
   },
   {
+    /*
+     * Moved up to Tech Row, alongside Fenwick Lot, out of the Industrial
+     * half where it used to sit with deja_jobsite and the Annex Fence — a
+     * phone-repair shop reads as commerce/tech, not warehouse infrastructure,
+     * so the two swapped spots (deja_jobsite took this one) rather than
+     * the district staying a single undifferentiated block.
+     */
     id: 'repair_shop',
     label: 'Repair Shop',
     language: 'B',
     render: 'garage',
-    x: 840, y: 344, w: 128, h: 92,
+    x: 840, y: 184, w: 128, h: 92,
     color: '#d8843a',
     blurb: 'Phones in a shoebox, a soldering iron, a handwritten sign: WE FIX IT OR IT’S FREE.',
     ambient: {

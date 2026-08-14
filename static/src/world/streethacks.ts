@@ -39,14 +39,14 @@ export const STREET_HACK_NODES: StreetHackNode[] = [
   { id: 'atm_annex', x: 1200, y: 420, kind: 'atm', variant: 'trace', tier: 3, skinId: 'atm', label: 'ATM — Annex Fence Line', respawnDays: 6 },
   { id: 'atm_north', x: 1220, y: 140, kind: 'atm', variant: 'cipher', tier: 3, skinId: 'atm', label: 'ATM — North Lot', respawnDays: 6 },
   { id: 'phone_bandstand', x: 420, y: 490, kind: 'phone', variant: 'trace', tier: 1, skinId: 'resistance', label: 'Payphone — the bandstand', respawnDays: 4 },
-  { id: 'phone_utility', x: 900, y: 120, kind: 'phone', variant: 'trace', tier: 2, skinId: 'resistance', label: 'Junction phone — Utility Yard', respawnDays: 5 },
+  { id: 'phone_utility', x: 935, y: 488, kind: 'phone', variant: 'trace', tier: 2, skinId: 'resistance', label: 'Junction phone — Utility Yard', respawnDays: 5 },
   { id: 'phone_corner', x: 742, y: 120, kind: 'phone', variant: 'cipher', tier: 2, skinId: 'resistance', label: 'Payphone — the school corner', respawnDays: 5 },
   // Building systems — the deck's fourth unlock, higher tiers and better
   // pay than a corner machine: this is the inside of a building, not the
   // street-level box bolted to the front of it.
   { id: 'building_school', x: 600, y: 280, kind: 'building', variant: 'trace', tier: 3, skinId: 'infrastructure', label: 'Panel — School boiler room', respawnDays: 6 },
   { id: 'building_deja', x: 950, y: 300, kind: 'building', variant: 'cipher', tier: 3, skinId: 'infrastructure', label: 'Panel — Utility Yard junction', respawnDays: 6 },
-  { id: 'building_annex_fence', x: 1100, y: 470, kind: 'building', variant: 'trace', tier: 4, skinId: 'datacenter', label: 'Panel — Annex Fence server rack', respawnDays: 7 },
+  { id: 'building_annex_fence', x: 1100, y: 492, kind: 'building', variant: 'trace', tier: 4, skinId: 'datacenter', label: 'Panel — Annex Fence server rack', respawnDays: 7 },
 ];
 
 /** How close counts as close enough to open one — same radius the cameras use. */

@@ -114,7 +114,7 @@ export const OBSTACLES: Obstacle[] = [
   { id: 'filler_27', x: 230, y: 630, w: 18, h: 12, kind: 'car' },
   { id: 'filler_28', x: 700, y: 630, w: 18, h: 12, kind: 'car' },
   { id: 'filler_29', x: 800, y: 400, w: 16, h: 16, kind: 'bin' },
-  { id: 'filler_30', x: 1150, y: 460, w: 16, h: 16, kind: 'bin' },
+  { id: 'filler_30', x: 1195, y: 460, w: 16, h: 16, kind: 'bin' },
 
   // More trees and hedges, mostly planted alongside the new background
   // buildings so the fill-in blocks read as planted streets rather than
@@ -167,7 +167,9 @@ export const OBSTACLES: Obstacle[] = [
    * `world/escalation.ts`); set back from both the road at y460-482 and
    * the little cluster of ambient pedestrians/pets that already wander the
    * square's own south side, so it never gets in the way of reaching the
-   * location itself, only of cutting across the lot behind it.
+   * location itself, only of cutting across the lot behind it. Trimmed to
+   * end at x600 so it stops clear of `deco_16`'s own footprint (600-690)
+   * rather than running through it.
    */
-  { id: 'filler_58', x: 540, y: 508, w: 100, h: 16, kind: 'fence', minStage: 2 },
+  { id: 'filler_58', x: 540, y: 508, w: 60, h: 16, kind: 'fence', minStage: 2 },
 ];

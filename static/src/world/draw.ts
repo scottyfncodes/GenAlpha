@@ -53,6 +53,13 @@ const PALETTE = {
   groundParkAlt: '#405245',
   groundAnnex: '#4a4038',
   groundAnnexAlt: '#524539',
+  // The Annex's own north half, split off as its own tint once Repair Shop
+  // and Fenwick Lot became a distinct Tech Row rather than sharing the
+  // Annex's single rust-brown industrial tone — a cooler teal-grey,
+  // deliberately apart from Civic's own blue, reading as circuitry rather
+  // than city-hall respectability.
+  groundTech: '#354a4a',
+  groundTechAlt: '#3d5555',
   road: '#333c4c',
   roadLine: '#6b7488',
   roofA: '#2f3a4d',
@@ -730,10 +737,14 @@ const DISTRICTS: { x: number; y: number; w: number; h: number; base: string; alt
   { x: 340, y: 0, w: 500, h: 296, base: PALETTE.groundCivic, alt: PALETTE.groundCivicAlt },
   // The park around Town Square, dead centre of the map on purpose.
   { x: 460, y: 296, w: 320, h: 184, base: PALETTE.groundPark, alt: PALETTE.groundParkAlt },
-  // The Annex — Deja's yard, Fenwick Lot, the Repair Shop, the fenced
-  // building itself. Bellhaven's industrial (and, per the Repair Shop's
-  // and Fenwick Lot's own market/blueprint economy, its tech) district.
-  { x: 780, y: 164, w: 500, h: 316, base: PALETTE.groundAnnex, alt: PALETTE.groundAnnexAlt },
+  // The Annex splits into two readable halves rather than one undifferentiated
+  // block — Tech Row up top (Fenwick Lot's market table, the Repair Shop)
+  // gets its own cooler teal against Industrial below (Deja's yard, the
+  // Annex Fence itself) keeping the rust-brown the whole district used to
+  // share. The boundary sits in the H-road gap between them (y296-322),
+  // left untinted on purpose — the street itself belongs to neither side.
+  { x: 780, y: 164, w: 500, h: 132, base: PALETTE.groundTech, alt: PALETTE.groundTechAlt },
+  { x: 780, y: 322, w: 500, h: 158, base: PALETTE.groundAnnex, alt: PALETTE.groundAnnexAlt },
 ];
 
 function drawGround(ctx: CanvasRenderingContext2D) {
