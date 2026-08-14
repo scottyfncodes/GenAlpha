@@ -214,6 +214,18 @@ export interface CollectedNode {
    * existed) — those fall back to their node's own fixed `respawnDays`.
    */
   respawnDays?: number;
+  /**
+   * Whether this node has already been confirmed relocated — see
+   * `world/relocate.ts`. A sabotaged camera/junction box/street hack stays
+   * put (visibly damaged) through its whole cooldown, and only actually
+   * moves to a new spot once that cooldown's up *and* the old spot has
+   * scrolled off screen at least once; this flag is what makes that a
+   * one-way transition rather than something that flickers back on every
+   * time the player happens to walk back past the original location.
+   * Absent/false for anything not yet past that point, or for a node type
+   * this log tracks that never relocates (a hidden bush).
+   */
+  relocated?: boolean;
 }
 
 export interface WorldState {

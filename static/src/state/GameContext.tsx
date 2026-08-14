@@ -27,6 +27,7 @@ import {
   disableDrone,
   flyRecon,
   kamikazeStrike,
+  markRelocated,
   sabotageCamera,
   sellMaterial,
   type KamikazeTarget,
@@ -67,6 +68,7 @@ type Action =
   | { type: 'APPLY_EFFECTS'; effects: Effect[] }
   | { type: 'TICK_PLAYTIME'; seconds: number }
   | { type: 'COLLECT_HIDDEN'; obstacleId: string }
+  | { type: 'RELOCATE_NODE'; nodeId: string }
   | { type: 'SABOTAGE_CAMERA'; nodeId: string; actionId: SabotageActionId }
   | { type: 'DESTROY_JUNCTION_BOX'; nodeId: string }
   | { type: 'DISABLE_DRONE'; droneId: string; hit: boolean }
@@ -179,6 +181,12 @@ function reducer(state: SaveState | null, action: Action): SaveState | null {
      * can't perform, same "return the save unchanged" contract as buy/sell. */
     case 'COLLECT_HIDDEN':
       return collectHidden(state, action.obstacleId);
+
+    /** A sabotaged node's old spot has been confirmed off screen since its
+     * cooldown expired — from here on it renders at its relocated spot
+     * instead. See world/relocate.ts and systems/materials.ts markRelocated. */
+    case 'RELOCATE_NODE':
+      return markRelocated(state, action.nodeId);
 
     case 'SABOTAGE_CAMERA':
       return sabotageCamera(state, action.nodeId, action.actionId);

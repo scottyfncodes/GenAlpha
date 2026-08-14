@@ -41,6 +41,18 @@ const PALETTE = {
   sun: '#d99a6c',
   ground: '#3d4759',
   groundAlt: '#434e61',
+  // Subtle per-district ground tints (see DISTRICTS/drawGround) — each a
+  // close relative of the default ground/groundAlt pair rather than a
+  // clashing hue, so a neighbourhood reads as "its own patch of pavement"
+  // at a glance without the map looking painted in blocks.
+  groundResidential: '#3f4a52',
+  groundResidentialAlt: '#46525c',
+  groundCivic: '#39445a',
+  groundCivicAlt: '#404b63',
+  groundPark: '#3a4a3f',
+  groundParkAlt: '#405245',
+  groundAnnex: '#4a4038',
+  groundAnnexAlt: '#524539',
   road: '#333c4c',
   roadLine: '#6b7488',
   roofA: '#2f3a4d',
@@ -195,9 +207,9 @@ export function drawTown(
   sparklingObstacleIds: Set<string>,
   npcs: { x: number; y: number; kind: NpcKind; facing: 1 | -1; id: string }[],
   patrols: { x: number; y: number; radius: number }[],
-  cameraNodes: { x: number; y: number; dismantlable: boolean }[],
-  hackNodes: { x: number; y: number; kind: 'atm' | 'phone' | 'building'; hackable: boolean }[],
-  junctionBoxNodes: { x: number; y: number; tier: 1 | 2 | 3 | 4 | 5; crackable: boolean }[],
+  cameraNodes: { x: number; y: number; dismantlable: boolean; damaged: boolean }[],
+  hackNodes: { x: number; y: number; kind: 'atm' | 'phone' | 'building'; hackable: boolean; damaged: boolean }[],
+  junctionBoxNodes: { x: number; y: number; tier: 1 | 2 | 3 | 4 | 5; crackable: boolean; damaged: boolean }[],
   drones: { x: number; y: number; radius: number; takeable: boolean }[],
   cops: { x: number; y: number; radius: number }[],
   moving: boolean,
@@ -237,7 +249,7 @@ export function drawTown(
     drawObstacle(ctx, obstacle);
     if (sparklingObstacleIds.has(obstacle.id)) drawSparkle(ctx, obstacle, now);
   }
-  for (const loc of locations) drawLocation(ctx, loc, here?.id === loc.id, tier);
+  for (const loc of locations) drawLocation(ctx, loc, here?.id === loc.id, tier, now);
 
   // Ambient people and animals — decorative only, drawn after locations so
   // a building still occludes them, and well before the player so nothing
@@ -248,16 +260,16 @@ export function drawTown(
   // renders as, so it reads as the same kind of object. `dismantlable` is
   // just whether the player is close enough to act on it right now; a camera
   // on cooldown after a dismantle isn't in this list at all.
-  for (const c of cameraNodes) drawSabotageCamera(ctx, c, c.dismantlable);
+  for (const c of cameraNodes) drawSabotageCamera(ctx, c, c.dismantlable, c.damaged, now);
 
   // ATMs and phone lines — a street hack is visible whether or not the
   // player owns the rig to actually crack it, same as a locked door is
   // still a door; the prompt itself is what says no.
-  for (const h of hackNodes) drawStreetHack(ctx, h);
+  for (const h of hackNodes) drawStreetHack(ctx, h, now);
 
   // Junction boxes — always visible, on cooldown or not, same "locked door
   // is still a door" rule everything else on this list follows.
-  for (const j of junctionBoxNodes) drawJunctionBox(ctx, j);
+  for (const j of junctionBoxNodes) drawJunctionBox(ctx, j, now);
 
   // Detection rings under the vans, so a van sitting still doesn't visually
   // "arrive" on top of its own danger zone.
@@ -698,6 +710,32 @@ function drawSky(ctx: CanvasRenderingContext2D, vw: number, vh: number) {
  * as texture rather than as a pattern, and it is what stops a large flat area
  * looking like a missing asset.
  */
+/**
+ * Named zones — Bellhaven read as one undifferentiated grey grid before
+ * this, the same checkerboard from one map edge to the other whether the
+ * player was outside a house or outside a warehouse. A real town's own
+ * ground changes underfoot: a residential street, a civic block, a park
+ * around its own centre, an industrial yard — so each zone gets a subtly
+ * different pair of ground tones (`PALETTE.groundResidential` etc), laid
+ * down after the default checker so only the zone's own footprint is
+ * touched. Nothing here moves a single building, obstacle, or route —
+ * this is paint, not geometry. Boundaries were chosen to land on the
+ * street grid (`H_ROADS`/`V_ROADS`) wherever possible, so a zone change
+ * reads as "the other side of the street" rather than a seam mid-block.
+ */
+const DISTRICTS: { x: number; y: number; w: number; h: number; base: string; alt: string }[] = [
+  // The residential quarter — home, Ellen's, Casey's, the garage.
+  { x: 0, y: 164, w: 340, h: 296, base: PALETTE.groundResidential, alt: PALETTE.groundResidentialAlt },
+  // Downtown/civic — the school, the library, Sal's.
+  { x: 340, y: 0, w: 500, h: 296, base: PALETTE.groundCivic, alt: PALETTE.groundCivicAlt },
+  // The park around Town Square, dead centre of the map on purpose.
+  { x: 460, y: 296, w: 320, h: 184, base: PALETTE.groundPark, alt: PALETTE.groundParkAlt },
+  // The Annex — Deja's yard, Fenwick Lot, the Repair Shop, the fenced
+  // building itself. Bellhaven's industrial (and, per the Repair Shop's
+  // and Fenwick Lot's own market/blueprint economy, its tech) district.
+  { x: 780, y: 164, w: 500, h: 316, base: PALETTE.groundAnnex, alt: PALETTE.groundAnnexAlt },
+];
+
 function drawGround(ctx: CanvasRenderingContext2D) {
   ctx.fillStyle = PALETTE.ground;
   ctx.fillRect(0, 0, MAP_WIDTH, MAP_HEIGHT);
@@ -706,6 +744,25 @@ function drawGround(ctx: CanvasRenderingContext2D) {
   for (let y = 0; y < MAP_HEIGHT; y += 8) {
     for (let x = ((y / 8) % 2) * 8; x < MAP_WIDTH; x += 16) {
       ctx.fillRect(x, y, 8, 8);
+    }
+  }
+
+  for (const d of DISTRICTS) {
+    ctx.fillStyle = d.base;
+    ctx.fillRect(d.x, d.y, d.w, d.h);
+    ctx.fillStyle = d.alt;
+    // Same global checker parity (`(y/8)%2`) the default pass above uses,
+    // clipped to just this district's own rect, so the pattern's seams
+    // stay continuous crossing from one zone's ground into the next
+    // rather than visibly resetting at the boundary.
+    const startY = Math.floor(d.y / 8) * 8;
+    for (let y = startY; y < d.y + d.h; y += 8) {
+      const rowStartX = ((y / 8) % 2) * 8;
+      const startX = Math.floor((d.x - rowStartX) / 16) * 16 + rowStartX;
+      for (let x = startX; x < d.x + d.w; x += 16) {
+        if (x + 8 <= d.x || x >= d.x + d.w) continue;
+        ctx.fillRect(Math.max(x, d.x), y, Math.min(x + 8, d.x + d.w) - Math.max(x, d.x), 8);
+      }
     }
   }
 }
@@ -851,12 +908,12 @@ function drawGlow(ctx: CanvasRenderingContext2D, loc: OverworldLocation) {
  * silhouette instead of needing bespoke tracing per building type, and it
  * reads as "this place is lit up" rather than "this place is selected".
  */
-function drawLocation(ctx: CanvasRenderingContext2D, loc: OverworldLocation, isHere: boolean, tier: ThresholdTier) {
+function drawLocation(ctx: CanvasRenderingContext2D, loc: OverworldLocation, isHere: boolean, tier: ThresholdTier, now: number) {
   if (isHere && loc.render !== 'camera') drawHereGlow(ctx, loc);
 
   switch (loc.render) {
     case 'camera':
-      drawCamera(ctx, loc, isHere);
+      drawCamera(ctx, loc, isHere, now);
       return;
     case 'house':
       drawHouse(ctx, loc, tier);
@@ -907,6 +964,80 @@ function drawSoftGlow(ctx: CanvasRenderingContext2D, cx: number, cy: number, bas
   for (let ring = rings; ring > 0; ring--) {
     ctx.beginPath();
     ctx.arc(cx, cy, baseR + ring * step, 0, Math.PI * 2);
+    ctx.fill();
+  }
+}
+
+/**
+ * The "tap me" tell for a camera, junction box, or street hack that's
+ * actually in reach right now — a single ring breathing in and out rather
+ * than `drawSoftGlow`'s fixed static rings, since this one's job changed:
+ * it used to just mark "close enough" while the prompt opened on its own,
+ * and now it's the only sign the object is waiting on an actual tap
+ * (Overworld.tsx no longer opens the action prompt on proximity alone).
+ * A glow that visibly pulses reads as "touch this" in a way a static ring
+ * never quite did.
+ */
+function drawPulseGlow(ctx: CanvasRenderingContext2D, cx: number, cy: number, baseR: number, now: number) {
+  const phase = (Math.sin(now / 420) + 1) / 2; // 0..1, ~1.5s breathing cycle
+  const r = baseR + 3 + phase * 4;
+  ctx.fillStyle = `rgba(236, 226, 208, ${0.1 + phase * 0.08})`;
+  ctx.beginPath();
+  ctx.arc(cx, cy, r, 0, Math.PI * 2);
+  ctx.fill();
+}
+
+/**
+ * The revolving lens on top of an active FLACK camera — the dome stays put,
+ * only the little bright lens inside sweeps, the same "shell fixed, gaze
+ * moving" language `ui/TitleEye.tsx` uses for the title screen's own camera.
+ * Never drawn once a camera's sabotaged (`drawSabotageDamage` takes over
+ * instead) — a dead camera's lens has stopped moving, which is the whole
+ * point of it being dead.
+ */
+function drawRevolvingLens(ctx: CanvasRenderingContext2D, cx: number, cy: number, now: number) {
+  const r = 3.2;
+  ctx.fillStyle = PALETTE.cameraDark;
+  ctx.beginPath();
+  ctx.arc(cx, cy, r, 0, Math.PI * 2);
+  ctx.fill();
+
+  const angle = (now / 1300) % (Math.PI * 2);
+  const lx = cx + Math.cos(angle) * (r - 1.3);
+  const ly = cy + Math.sin(angle) * (r - 1.3) * 0.55; // flattened, so it reads as a lens tilting in a dome, not a ball spinning
+  ctx.fillStyle = '#bcd9ff';
+  ctx.beginPath();
+  ctx.arc(lx, ly, 1.1, 0, Math.PI * 2);
+  ctx.fill();
+}
+
+/**
+ * Frayed wire and an irregular spark — the tell that whatever this is sits
+ * on right now (`onCooldown`) is because the player already took it apart,
+ * not because it was never there. Shared by every sabotage-able point
+ * object (camera, junction box, street hack) rather than three copies, same
+ * "one shape, different paint" reasoning `drawStreetHack` already uses for
+ * its own three kinds.
+ */
+function drawSabotageDamage(ctx: CanvasRenderingContext2D, x: number, y: number, size: number, now: number) {
+  ctx.strokeStyle = PALETTE.junctionDark;
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(x + size * 0.28, y + size);
+  ctx.lineTo(x + size * 0.18, y + size + 3);
+  ctx.lineTo(x + size * 0.34, y + size + 5);
+  ctx.moveTo(x + size * 0.68, y + size);
+  ctx.lineTo(x + size * 0.8, y + size + 4);
+  ctx.stroke();
+
+  // Same irregular double-flicker every other "this is live" tell on this
+  // canvas uses (the title screen's REC dot, a camera's own status light) —
+  // a spark reads as electrical, not decorative, when it stutters like one.
+  const t = now % 1700;
+  if (t < 80 || (t > 260 && t < 320)) {
+    ctx.fillStyle = '#ffe37a';
+    ctx.beginPath();
+    ctx.arc(x + size * 0.72, y + size * 0.12, 1.5, 0, Math.PI * 2);
     ctx.fill();
   }
 }
@@ -1149,7 +1280,11 @@ function drawLibrary(ctx: CanvasRenderingContext2D, loc: OverworldLocation, tier
 
 /** Town Square: paving, not a wall — this is ground the town built around,
  * not a building. A bandstand at the centre (the ambient text's own
- * "cameras on the bandstand" line), a banner strung between posts, benches. */
+ * "cameras on the bandstand" line), a banner strung between posts, benches
+ * — and, at the four corners, the town's own dead-centre park: this is
+ * both halves of "city hall and park in the middle of town" at once, the
+ * civic authority (the banner, the bandstand) and the green space people
+ * actually use, in the one spot on the map every district borders. */
 function drawPlaza(ctx: CanvasRenderingContext2D, loc: OverworldLocation) {
   ctx.fillStyle = PALETTE.pavingDark;
   ctx.fillRect(loc.x, loc.y, loc.w, loc.h);
@@ -1158,6 +1293,15 @@ function drawPlaza(ctx: CanvasRenderingContext2D, loc: OverworldLocation) {
     for (let x = loc.x + (((y - loc.y) / 10) % 2) * 10; x < loc.x + loc.w; x += 20) {
       ctx.fillRect(x, y, 10, 10);
     }
+  }
+
+  for (const [cx, cy] of [
+    [loc.x + 14, loc.y + 14],
+    [loc.x + loc.w - 14, loc.y + 14],
+    [loc.x + 14, loc.y + loc.h - 14],
+    [loc.x + loc.w - 14, loc.y + loc.h - 14],
+  ]) {
+    drawTree(ctx, { id: `plaza:${loc.id}:${cx}:${cy}`, x: cx - 10, y: cy - 20, w: 20, h: 40, kind: 'tree' });
   }
 
   const bx = loc.x + loc.w / 2;
@@ -1454,7 +1598,7 @@ function drawTreehouse(ctx: CanvasRenderingContext2D, loc: OverworldLocation, ti
  * unchanged, still the full rect — stay generous even though the thing the
  * player actually sees is small.
  */
-function drawCamera(ctx: CanvasRenderingContext2D, loc: OverworldLocation, isHere: boolean) {
+function drawCamera(ctx: CanvasRenderingContext2D, loc: OverworldLocation, isHere: boolean, now: number) {
   const size = 16; // two of drawGround's 8px tiles, on each side
   const x = px(loc.x + loc.w / 2 - size / 2);
   const y = px(loc.y + loc.h / 2 - size / 2);
@@ -1466,6 +1610,7 @@ function drawCamera(ctx: CanvasRenderingContext2D, loc: OverworldLocation, isHer
   ctx.strokeStyle = PALETTE.cameraDark;
   ctx.lineWidth = 1;
   ctx.strokeRect(x - 0.5, y - 0.5, size + 1, size + 1);
+  drawRevolvingLens(ctx, x + size / 2, y - 3, now);
 }
 
 /**
@@ -1473,38 +1618,47 @@ function drawCamera(ctx: CanvasRenderingContext2D, loc: OverworldLocation, isHer
  * as `drawCamera` above, because it is the same kind of object; the only
  * difference is this one sits on a bare point rather than centred in a named
  * location's rect, so the two take slightly different inputs and it wasn't
- * worth forcing one shape to fit both. The highlight ring is the same
- * "you're close enough" tell a location gets, doubling here as the only
- * signal that dismantling is actually available right now.
+ * worth forcing one shape to fit both. A slow pulse instead of a static ring
+ * marks "close enough, tap it" now that the prompt itself no longer opens on
+ * proximity alone (Overworld.tsx) — the object has to actually read as
+ * something worth touching, not just circled.
  */
 function drawSabotageCamera(
   ctx: CanvasRenderingContext2D,
   node: { x: number; y: number },
   dismantlable: boolean,
+  damaged: boolean,
+  now: number,
 ) {
   const size = 16;
   const x = px(node.x - size / 2);
   const y = px(node.y - size / 2);
 
-  if (dismantlable) drawSoftGlow(ctx, x + size / 2, y + size / 2, size / 2, 3, 4);
+  if (dismantlable) drawPulseGlow(ctx, x + size / 2, y + size / 2, size / 2, now);
 
+  ctx.globalAlpha = damaged ? 0.6 : 1;
   ctx.fillStyle = PALETTE.camera;
   ctx.fillRect(x, y, size, size);
   ctx.strokeStyle = PALETTE.cameraDark;
   ctx.lineWidth = 1;
   ctx.strokeRect(x - 0.5, y - 0.5, size + 1, size + 1);
+  ctx.globalAlpha = 1;
+
+  if (damaged) drawSabotageDamage(ctx, x, y, size, now);
+  else drawRevolvingLens(ctx, x + size / 2, y - 3, now);
 }
 
 /**
  * A street hack — cash-register green for an ATM, sun-bleached tan for a
  * payphone, so the two read apart at a glance the same way a camera's blue
- * reads apart from either. Same footprint and the same "close enough to act
- * on it" ring as `drawSabotageCamera`, because it's the same kind of object
- * wearing different paint.
+ * reads apart from either. Same footprint and the same pulsing "close
+ * enough to act on it" tell as `drawSabotageCamera`, because it's the same
+ * kind of object wearing different paint.
  */
 function drawStreetHack(
   ctx: CanvasRenderingContext2D,
-  node: { x: number; y: number; kind: 'atm' | 'phone' | 'building'; hackable: boolean },
+  node: { x: number; y: number; kind: 'atm' | 'phone' | 'building'; hackable: boolean; damaged: boolean },
+  now: number,
 ) {
   const size = 14;
   const x = px(node.x - size / 2);
@@ -1514,8 +1668,9 @@ function drawStreetHack(
   const dark =
     node.kind === 'atm' ? PALETTE.atmDark : node.kind === 'building' ? PALETTE.panelDark : PALETTE.phoneDark;
 
-  if (node.hackable) drawSoftGlow(ctx, x + size / 2, y + size / 2, size / 2, 3, 4);
+  if (node.hackable) drawPulseGlow(ctx, x + size / 2, y + size / 2, size / 2, now);
 
+  ctx.globalAlpha = node.damaged ? 0.6 : 1;
   ctx.fillStyle = body;
   ctx.fillRect(x, y, size, size);
   ctx.strokeStyle = dark;
@@ -1535,6 +1690,9 @@ function drawStreetHack(
     ctx.fillRect(x + 3, y + size - 6, 3, 3);
     ctx.fillRect(x + size - 6, y + size - 6, 3, 3);
   }
+  ctx.globalAlpha = 1;
+
+  if (node.damaged) drawSabotageDamage(ctx, x, y, size, now);
 }
 
 /**
@@ -1547,14 +1705,16 @@ function drawStreetHack(
  */
 function drawJunctionBox(
   ctx: CanvasRenderingContext2D,
-  node: { x: number; y: number; tier: 1 | 2 | 3 | 4 | 5; crackable: boolean },
+  node: { x: number; y: number; tier: 1 | 2 | 3 | 4 | 5; crackable: boolean; damaged: boolean },
+  now: number,
 ) {
   const size = 14;
   const x = px(node.x - size / 2);
   const y = px(node.y - size / 2);
 
-  if (node.crackable) drawSoftGlow(ctx, x + size / 2, y + size / 2, size / 2, 3, 4);
+  if (node.crackable) drawPulseGlow(ctx, x + size / 2, y + size / 2, size / 2, now);
 
+  ctx.globalAlpha = node.damaged ? 0.6 : 1;
   ctx.fillStyle = PALETTE.junctionBody;
   ctx.fillRect(x, y, size, size);
   ctx.strokeStyle = PALETTE.junctionDark;
@@ -1562,14 +1722,21 @@ function drawJunctionBox(
   ctx.strokeRect(x - 0.5, y - 0.5, size + 1, size + 1);
 
   // A hazard-stripe lid, higher tiers a shade darker/duller — worn from more
-  // hands trying to get into it.
-  ctx.fillStyle = PALETTE.junctionStripe;
-  ctx.globalAlpha = 1 - (node.tier - 1) * 0.12;
-  ctx.fillRect(x + 2, y + 2, size - 4, 3);
-  ctx.globalAlpha = 1;
+  // hands trying to get into it. Skipped once cracked open — a box mid-
+  // cooldown reads as pried open, not just dimmer, so the stripe's gone
+  // until it's fixed.
+  if (!node.damaged) {
+    ctx.fillStyle = PALETTE.junctionStripe;
+    ctx.globalAlpha = 1 - (node.tier - 1) * 0.12;
+    ctx.fillRect(x + 2, y + 2, size - 4, 3);
+  }
+  ctx.globalAlpha = node.damaged ? 0.6 : 1;
 
   ctx.fillStyle = PALETTE.junctionDark;
   ctx.fillRect(x + size / 2 - 1, y + size - 6, 2, 4);
+  ctx.globalAlpha = 1;
+
+  if (node.damaged) drawSabotageDamage(ctx, x, y, size, now);
 }
 
 /**

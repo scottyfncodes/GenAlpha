@@ -15,6 +15,7 @@ import { activeDroneRoutes, droneTuning, DRONE_ROUTES, DRONE_TAKEDOWN_BY_TOOL_TI
 import { COP_ROUTES, activeCopRoutes, copTuning } from './copwalk';
 import { gravitate, underTreeCover, UNSEEN_COOLDOWN_MS, UNSEEN_RELIEF_PER_TICK, UNSEEN_TICK_MS } from '../systems/pursuit';
 import { escalationStage } from './escalation';
+import { relocatedPosition, isOnScreen } from './relocate';
 import {
   CAMERA_NODES,
   HIDDEN_PICKUPS,
@@ -101,6 +102,13 @@ const SCALE = 2; // pixel-art integer scale
 const CAMERA_INTERACT_RADIUS = 26;
 /** Same idea as `CAMERA_INTERACT_RADIUS`, for a junction box. */
 const JUNCTION_BOX_INTERACT_RADIUS = 26;
+/**
+ * How close a tap has to land to the currently-glowing camera/hack/junction
+ * node to count as tapping it, in world pixels — noticeably more forgiving
+ * than the object's own 14-16px sprite, since a fingertip on a phone screen
+ * is nowhere near as precise as a mouse cursor.
+ */
+const TAP_HIT_RADIUS = 22;
 /**
  * The walkable interior of `home` (locations.ts: x 32-160, y 184-280),
  * inset from `drawHouse`'s own wall rect (y 217-280) so the sprite's head —
@@ -215,6 +223,15 @@ export function Overworld() {
   /** The junction box close enough to crack open right now, if any — same
    * "spending Heat is a decision, not a walk" reasoning a camera gets. */
   const [nearbyJunctionBox, setNearbyJunctionBox] = useState<JunctionBoxNode | null>(null);
+  /**
+   * The id of whichever camera/hack/junction node the player has actually
+   * tapped, if any — a camera/hack/junction box no longer opens its action
+   * prompt just from standing near it (that's what `nearbyCamera` etc are
+   * for now: which glowing object is currently tappable). Cleared the
+   * instant the nearby node changes, so walking off and coming back to a
+   * different one always needs its own fresh tap.
+   */
+  const [tappedNodeId, setTappedNodeId] = useState<string | null>(null);
   /** The drone close enough to take a shot at right now, if any. Unlike a
    * camera or junction box it's also moving and might spot the player back
    * — this is the one prompt on the map for something that isn't just
@@ -351,6 +368,15 @@ export function Overworld() {
   const nearbyHackRef = useRef<StreetHackNode | null>(null);
   const nearbyJunctionBoxRef = useRef<JunctionBoxNode | null>(null);
   const nearbyDroneRef = useRef<{ id: string; x: number; y: number } | null>(null);
+  /**
+   * Whichever camera/hack/junction node is currently in range and tappable,
+   * with its live on-screen position — the canvas tap handler reads this
+   * directly rather than re-walking `CAMERA_NODES`/`STREET_HACK_NODES`/
+   * `JUNCTION_BOX_NODES` itself, so a tap always agrees with exactly what
+   * the frame loop just decided is glowing this frame (including a node
+   * that's respawned somewhere other than its own listed coordinates).
+   */
+  const tappableRef = useRef<{ kind: 'camera' | 'hack' | 'junction'; id: string; x: number; y: number } | null>(null);
   /** Mirrors `active` for the frame loop, same reason `saveRef`/`tierRef` do
    * — a closure created once by `useEffect` can't read fresh state directly. */
   const activeRef = useRef<Scene | null>(null);
@@ -574,6 +600,15 @@ export function Overworld() {
       }
       contactRef.current = stillTouching;
 
+      // The viewport in world space, same formula draw.ts's own drawTown
+      // uses internally — needed here too now, so a respawned node's "has
+      // the old spot actually scrolled off screen yet" check agrees with
+      // what the player can actually see.
+      const viewW = canvas.clientWidth / SCALE;
+      const viewH = canvas.clientHeight / SCALE;
+      const camX = clamp(pos.current.x - viewW / 2, 0, Math.max(0, MAP_WIDTH - viewW));
+      const camY = clamp(pos.current.y - viewH / 2, 0, Math.max(0, MAP_HEIGHT - viewH));
+
       /*
        * Cameras worth sabotaging. Deliberate rather than automatic — every
        * tier spends Heat, so this keeps the prompt-and-key pattern a location
@@ -582,25 +617,61 @@ export function Overworld() {
        * regardless of whether the deck can actually reach one yet
        * (`canSabotage` also requires deck tier 3+); a FLACK housing standing
        * on its pole is still standing whether or not the player's rig can
-       * read it. One just taken down stays gone until TraceBook's had time to
-       * replace it, regardless of which of the three actions did it.
+       * read it.
+       *
+       * One just taken down doesn't vanish — it stays right where it was,
+       * visibly gutted (`damaged: true`, see draw.ts's `drawSabotageDamage`),
+       * until TraceBook's had time to replace it. Once that timer's up *and*
+       * the original spot has scrolled off screen, it reappears working at
+       * one of its own sibling cameras' positions instead (`relocatedPosition`,
+       * world/relocate.ts) — never back on the exact spot it just got taken
+       * apart on.
        */
-      const cameraDraw: { x: number; y: number; dismantlable: boolean }[] = [];
+      const cameraDraw: { x: number; y: number; dismantlable: boolean; damaged: boolean }[] = [];
       let closestCamera: CameraNode | null = null;
+      let closestCameraPos: { x: number; y: number } | null = null;
       let closestCameraDist = CAMERA_INTERACT_RADIUS;
+      const usedCameraSlots = new Set<string>();
       for (const node of CAMERA_NODES) {
-        if (onCooldown(saveRef.current, node.id, node.respawnDays)) continue;
-        const dist = Math.hypot(node.x - pos.current.x, node.y - pos.current.y);
+        const record = saveRef.current.world.collectedNodes.find((c) => c.nodeId === node.id);
+        let effX = node.x;
+        let effY = node.y;
+        if (record) {
+          const days = record.respawnDays ?? node.respawnDays;
+          const expired = saveRef.current.world.day >= record.collectedOnDay + days;
+          if (!expired) {
+            cameraDraw.push({ x: node.x, y: node.y, dismantlable: false, damaged: true });
+            continue;
+          }
+          if (!record.relocated) {
+            // Expired, but not yet confirmed off screen since — stays
+            // damaged in place until it is, a one-way flip Overworld.tsx
+            // persists via RELOCATE_NODE rather than recomputing live every
+            // frame (see world/relocate.ts's own doc comment for why).
+            if (isOnScreen(node.x, node.y, camX, camY, viewW, viewH)) {
+              cameraDraw.push({ x: node.x, y: node.y, dismantlable: false, damaged: true });
+              continue;
+            }
+            dispatch({ type: 'RELOCATE_NODE', nodeId: node.id });
+          }
+          const respawnAt = relocatedPosition(node, CAMERA_NODES, record.collectedOnDay, usedCameraSlots);
+          usedCameraSlots.add(`${respawnAt.x},${respawnAt.y}`);
+          effX = respawnAt.x;
+          effY = respawnAt.y;
+        }
+        const dist = Math.hypot(effX - pos.current.x, effY - pos.current.y);
         const inRange = dist < CAMERA_INTERACT_RADIUS;
-        cameraDraw.push({ x: node.x, y: node.y, dismantlable: inRange });
+        cameraDraw.push({ x: effX, y: effY, dismantlable: inRange, damaged: false });
         if (inRange && dist < closestCameraDist) {
           closestCameraDist = dist;
           closestCamera = node;
+          closestCameraPos = { x: effX, y: effY };
         }
       }
       if (closestCamera?.id !== nearbyCameraRef.current?.id) {
         nearbyCameraRef.current = closestCamera;
         setNearbyCamera(closestCamera);
+        setTappedNodeId((id) => (closestCamera ? id : null));
       }
 
       /*
@@ -609,23 +680,50 @@ export function Overworld() {
        * whether the player owns a cyberdeck yet; a locked door is still a
        * door. Whether it's actually openable is a `canHackStreetNode` check
        * at the point of interaction, not a reason to hide it from the map.
+       * Same damaged-in-place-then-relocate shape as a camera, above.
        */
-      const hackDraw: { x: number; y: number; kind: StreetHackNode['kind']; hackable: boolean }[] = [];
+      const hackDraw: { x: number; y: number; kind: StreetHackNode['kind']; hackable: boolean; damaged: boolean }[] = [];
       let closestHack: StreetHackNode | null = null;
+      let closestHackPos: { x: number; y: number } | null = null;
       let closestHackDist = STREET_HACK_INTERACT_RADIUS;
+      const usedHackSlots = new Set<string>();
       for (const node of STREET_HACK_NODES) {
-        if (onCooldown(saveRef.current, node.id, node.respawnDays)) continue;
-        const dist = Math.hypot(node.x - pos.current.x, node.y - pos.current.y);
+        const record = saveRef.current.world.collectedNodes.find((c) => c.nodeId === node.id);
+        let effX = node.x;
+        let effY = node.y;
+        if (record) {
+          const days = record.respawnDays ?? node.respawnDays;
+          const expired = saveRef.current.world.day >= record.collectedOnDay + days;
+          if (!expired) {
+            hackDraw.push({ x: node.x, y: node.y, kind: node.kind, hackable: false, damaged: true });
+            continue;
+          }
+          if (!record.relocated) {
+            if (isOnScreen(node.x, node.y, camX, camY, viewW, viewH)) {
+              hackDraw.push({ x: node.x, y: node.y, kind: node.kind, hackable: false, damaged: true });
+              continue;
+            }
+            dispatch({ type: 'RELOCATE_NODE', nodeId: node.id });
+          }
+          const sameKind = STREET_HACK_NODES.filter((n) => n.kind === node.kind);
+          const respawnAt = relocatedPosition(node, sameKind, record.collectedOnDay, usedHackSlots);
+          usedHackSlots.add(`${respawnAt.x},${respawnAt.y}`);
+          effX = respawnAt.x;
+          effY = respawnAt.y;
+        }
+        const dist = Math.hypot(effX - pos.current.x, effY - pos.current.y);
         const inRange = dist < STREET_HACK_INTERACT_RADIUS;
-        hackDraw.push({ x: node.x, y: node.y, kind: node.kind, hackable: inRange });
+        hackDraw.push({ x: effX, y: effY, kind: node.kind, hackable: inRange, damaged: false });
         if (inRange && dist < closestHackDist) {
           closestHackDist = dist;
           closestHack = node;
+          closestHackPos = { x: effX, y: effY };
         }
       }
       if (closestHack?.id !== nearbyHackRef.current?.id) {
         nearbyHackRef.current = closestHack;
         setNearbyHack(closestHack);
+        setTappedNodeId((id) => (closestHack ? id : null));
         // Mirrored into GameContext so the HUD's cyberdeck button can blink
         // without Overworld having to reach up through App.tsx to do it.
         setNearbyHackNodeId(closestHack?.id ?? null);
@@ -634,25 +732,65 @@ export function Overworld() {
       /*
        * Junction boxes. Visible on cooldown rules alone, same as a camera or
        * a street hack — the box is there whether or not it's worth cracking
-       * open right now.
+       * open right now. Respawns within its own tier only (`relocatedPosition`
+       * scoped to same-tier siblings) — a Tier 1 box never quietly turns
+       * into a Tier 5 trip, or the other way around.
        */
-      const junctionBoxDraw: { x: number; y: number; tier: JunctionBoxNode['tier']; crackable: boolean }[] = [];
+      const junctionBoxDraw: { x: number; y: number; tier: JunctionBoxNode['tier']; crackable: boolean; damaged: boolean }[] = [];
       let closestJunctionBox: JunctionBoxNode | null = null;
+      let closestJunctionBoxPos: { x: number; y: number } | null = null;
       let closestJunctionBoxDist = JUNCTION_BOX_INTERACT_RADIUS;
+      const usedJunctionSlots = new Set<string>();
       for (const node of JUNCTION_BOX_NODES) {
-        if (onCooldown(saveRef.current, node.id, JUNCTION_BOX_RISK[node.tier].respawnDays)) continue;
-        const dist = Math.hypot(node.x - pos.current.x, node.y - pos.current.y);
+        const record = saveRef.current.world.collectedNodes.find((c) => c.nodeId === node.id);
+        let effX = node.x;
+        let effY = node.y;
+        if (record) {
+          const days = record.respawnDays ?? JUNCTION_BOX_RISK[node.tier].respawnDays;
+          const expired = saveRef.current.world.day >= record.collectedOnDay + days;
+          if (!expired) {
+            junctionBoxDraw.push({ x: node.x, y: node.y, tier: node.tier, crackable: false, damaged: true });
+            continue;
+          }
+          if (!record.relocated) {
+            if (isOnScreen(node.x, node.y, camX, camY, viewW, viewH)) {
+              junctionBoxDraw.push({ x: node.x, y: node.y, tier: node.tier, crackable: false, damaged: true });
+              continue;
+            }
+            dispatch({ type: 'RELOCATE_NODE', nodeId: node.id });
+          }
+          const sameTier = JUNCTION_BOX_NODES.filter((n) => n.tier === node.tier);
+          const respawnAt = relocatedPosition(node, sameTier, record.collectedOnDay, usedJunctionSlots);
+          usedJunctionSlots.add(`${respawnAt.x},${respawnAt.y}`);
+          effX = respawnAt.x;
+          effY = respawnAt.y;
+        }
+        const dist = Math.hypot(effX - pos.current.x, effY - pos.current.y);
         const inRange = dist < JUNCTION_BOX_INTERACT_RADIUS;
-        junctionBoxDraw.push({ x: node.x, y: node.y, tier: node.tier, crackable: inRange });
+        junctionBoxDraw.push({ x: effX, y: effY, tier: node.tier, crackable: inRange, damaged: false });
         if (inRange && dist < closestJunctionBoxDist) {
           closestJunctionBoxDist = dist;
           closestJunctionBox = node;
+          closestJunctionBoxPos = { x: effX, y: effY };
         }
       }
       if (closestJunctionBox?.id !== nearbyJunctionBoxRef.current?.id) {
         nearbyJunctionBoxRef.current = closestJunctionBox;
         setNearbyJunctionBox(closestJunctionBox);
+        setTappedNodeId((id) => (closestJunctionBox ? id : null));
       }
+
+      // One shared record of whatever's currently tappable, in the same
+      // camera > hack > junction priority order the prompt panels below
+      // already use — the canvas tap handler hit-tests against this rather
+      // than walking all three lists itself.
+      tappableRef.current = closestCamera
+        ? { kind: 'camera', id: closestCamera.id, x: closestCameraPos!.x, y: closestCameraPos!.y }
+        : closestHack
+          ? { kind: 'hack', id: closestHack.id, x: closestHackPos!.x, y: closestHackPos!.y }
+          : closestJunctionBox
+            ? { kind: 'junction', id: closestJunctionBox.id, x: closestJunctionBoxPos!.x, y: closestJunctionBoxPos!.y }
+            : null;
 
       // A location's own card up, and it's one of the ones you can
       // actually disappear into (home, the arcade, the treehouse, …) —
@@ -1021,7 +1159,33 @@ export function Overworld() {
 
   return (
     <div className="overworld">
-      <canvas ref={canvasRef} className="overworld__canvas" aria-label="Bellhaven, evening" />
+      <canvas
+        ref={canvasRef}
+        className="overworld__canvas"
+        aria-label="Bellhaven, evening"
+        onClick={(e) => {
+          // A camera, junction box or street hack's action prompt only
+          // opens once the player actually taps the glowing object itself
+          // — proximity alone just makes it glow now, it doesn't pop the
+          // prompt on its own. `tappableRef` is set once per frame to
+          // whichever node (if any) is currently in range, at its live
+          // on-screen position, so a tap always agrees with what the
+          // player can actually see glowing.
+          const canvas = canvasRef.current;
+          const target = tappableRef.current;
+          if (!canvas || !target || blockedRef.current) return;
+          const rect = canvas.getBoundingClientRect();
+          const viewW = canvas.clientWidth / SCALE;
+          const viewH = canvas.clientHeight / SCALE;
+          const camX = clamp(pos.current.x - viewW / 2, 0, Math.max(0, MAP_WIDTH - viewW));
+          const camY = clamp(pos.current.y - viewH / 2, 0, Math.max(0, MAP_HEIGHT - viewH));
+          const worldX = camX + (e.clientX - rect.left) / SCALE;
+          const worldY = camY + (e.clientY - rect.top) / SCALE;
+          if (Math.hypot(worldX - target.x, worldY - target.y) <= TAP_HIT_RADIUS) {
+            setTappedNodeId(target.id);
+          }
+        }}
+      />
 
       {spotted && (
         <p className="overworld__spotted" role="status">
@@ -1092,26 +1256,39 @@ export function Overworld() {
           (canSabotage's own gate) the camera is still right there, same
           "locked door is still a door" rule a street hack node follows —
           just one disabled prompt saying what it's waiting on instead of
-          three live ones. */}
+          three live ones.
+
+          Gated on `tappedNodeId` now rather than proximity alone — glowing
+          (draw.ts's `drawPulseGlow`) is what "close enough" looks like;
+          this panel, with the reason attached, only opens once the player
+          actually taps the housing. */}
       {!nearby && nearbyCamera && !open && (
-        <div className="overworld__sabotage">
-          {canSabotage(save, nearbyCamera) ? (
-            sabotageActionsFor(nearbyCamera).map((action) => (
-              <button
-                key={action.id}
-                className="overworld__prompt overworld__prompt--camera"
-                onClick={() => dispatch({ type: 'SABOTAGE_CAMERA', nodeId: nearbyCamera.id, actionId: action.id })}
-              >
-                {action.label} · Heat +{action.heatCost} · {action.quantity}×{' '}
-                {MATERIALS_BY_ID[action.itemId]?.name ?? action.itemId}
+        tappedNodeId === nearbyCamera.id ? (
+          <div className="overworld__sabotage">
+            <p className="overworld__why">
+              FLACK can’t watch a block it can’t see. Every housing you gut is one less angle TraceBook has on this
+              street — and parts TraceBook paid for, now yours.
+            </p>
+            {canSabotage(save, nearbyCamera) ? (
+              sabotageActionsFor(nearbyCamera).map((action) => (
+                <button
+                  key={action.id}
+                  className="overworld__prompt overworld__prompt--camera"
+                  onClick={() => dispatch({ type: 'SABOTAGE_CAMERA', nodeId: nearbyCamera.id, actionId: action.id })}
+                >
+                  {action.label} · Heat +{action.heatCost} · {action.quantity}×{' '}
+                  {MATERIALS_BY_ID[action.itemId]?.name ?? action.itemId}
+                </button>
+              ))
+            ) : (
+              <button className="overworld__prompt overworld__prompt--camera" disabled>
+                FLACK Camera Housing · {owns(save, 'bolt_cutters') ? 'Needs a Cracked Deck (rig tier 3)' : 'Needs Bolt Cutters'}
               </button>
-            ))
-          ) : (
-            <button className="overworld__prompt overworld__prompt--camera" disabled>
-              FLACK Camera Housing · {owns(save, 'bolt_cutters') ? 'Needs a Cracked Deck (rig tier 3)' : 'Needs Bolt Cutters'}
-            </button>
-          )}
-        </div>
+            )}
+          </div>
+        ) : (
+          <p className="overworld__taphint">Tap the camera for a closer look.</p>
+        )
       )}
 
       {/* Same slot again, one step further down the priority order: a
@@ -1122,32 +1299,49 @@ export function Overworld() {
           itself doesn't happen here anymore: this opens the cyberdeck, same
           as the HUD's own (blinking) button does — one door either way. */}
       {!nearby && !nearbyCamera && nearbyHack && !open && (
-        <button
-          className="overworld__prompt overworld__prompt--hack"
-          disabled={!canHackStreetNode(save, nearbyHack)}
-          onClick={() => setCyberdeckOpen(true)}
-        >
-          {nearbyHack.label} ·{' '}
-          {canHackStreetNode(save, nearbyHack)
-            ? 'Open cyberdeck'
-            : owns(save, HACK_KIND_TOOL[nearbyHack.kind])
-              ? 'Needs a better rig'
-              : `Needs ${toolArticleFor(HACK_KIND_TOOL[nearbyHack.kind])}`}
-        </button>
+        tappedNodeId === nearbyHack.id ? (
+          <div className="overworld__sabotage">
+            <p className="overworld__why">{hackReason(nearbyHack.kind)}</p>
+            <button
+              className="overworld__prompt overworld__prompt--hack"
+              disabled={!canHackStreetNode(save, nearbyHack)}
+              onClick={() => setCyberdeckOpen(true)}
+            >
+              {nearbyHack.label} ·{' '}
+              {canHackStreetNode(save, nearbyHack)
+                ? 'Open cyberdeck'
+                : owns(save, HACK_KIND_TOOL[nearbyHack.kind])
+                  ? 'Needs a better rig'
+                  : `Needs ${toolArticleFor(HACK_KIND_TOOL[nearbyHack.kind])}`}
+            </button>
+          </div>
+        ) : (
+          <p className="overworld__taphint">Tap {nearbyHack.label.toLowerCase()} for a closer look.</p>
+        )
       )}
 
       {/* Last in the priority order — a location, a camera, a street hack
           all win over this. One action, not three tiers: the choice already
           happened when the player decided this box was worth the walk. */}
       {!nearby && !nearbyCamera && !nearbyHack && nearbyJunctionBox && !open && (
-        <button
-          className="overworld__prompt overworld__prompt--junction"
-          disabled={!canDestroyJunctionBox(save, nearbyJunctionBox)}
-          onClick={() => dispatch({ type: 'DESTROY_JUNCTION_BOX', nodeId: nearbyJunctionBox.id })}
-        >
-          Junction box · Heat +{JUNCTION_BOX_RISK[nearbyJunctionBox.tier].heatCost} ·{' '}
-          {BLUEPRINTS_BY_ID[nearbyJunctionBox.blueprintItemId]?.name ?? 'build plan'}
-        </button>
+        tappedNodeId === nearbyJunctionBox.id ? (
+          <div className="overworld__sabotage">
+            <p className="overworld__why">
+              Every box you crack is a blueprint TraceBook never meant to let out — one more thing the resistance can
+              build without their permission.
+            </p>
+            <button
+              className="overworld__prompt overworld__prompt--junction"
+              disabled={!canDestroyJunctionBox(save, nearbyJunctionBox)}
+              onClick={() => dispatch({ type: 'DESTROY_JUNCTION_BOX', nodeId: nearbyJunctionBox.id })}
+            >
+              Junction box · Heat +{JUNCTION_BOX_RISK[nearbyJunctionBox.tier].heatCost} ·{' '}
+              {BLUEPRINTS_BY_ID[nearbyJunctionBox.blueprintItemId]?.name ?? 'build plan'}
+            </button>
+          </div>
+        ) : (
+          <p className="overworld__taphint">Tap the junction box for a closer look.</p>
+        )
       )}
 
       {/* Last in the priority order, same as a junction box — except this
@@ -1395,6 +1589,20 @@ function toolArticleFor(itemId: string): string {
 
 function clamp(n: number, min: number, max: number) {
   return Math.max(min, Math.min(max, n));
+}
+
+/** The reason line above a street hack's prompt — "get parts" is true of
+ * all three kinds, but never the actual point of risking Heat on one, so
+ * each kind gets its own honest answer to "why this, beyond materials". */
+function hackReason(kind: StreetHackNode['kind']): string {
+  switch (kind) {
+    case 'atm':
+      return 'TraceBook’s own machine, skimmed to fund everything else the crew needs — they built the meter, they can float the tab.';
+    case 'phone':
+      return 'A line TraceBook still taxes everyone else for “security.” Tapping it costs them exactly what they charge.';
+    case 'building':
+      return 'One more door into a wall TraceBook was sure was locked for good.';
+  }
 }
 
 /** A small footprint at the player's feet, not the full sprite — a building

@@ -73,6 +73,22 @@ export function markCollected(save: SaveState, nodeId: string, respawnDays?: num
   return { ...save, world: { ...save.world, collectedNodes } };
 }
 
+/**
+ * Flips a node's `relocated` flag on once Overworld.tsx has confirmed its
+ * old spot scrolled off screen after its cooldown expired — see
+ * `world/relocate.ts` for why this needs to be a persisted one-way flag
+ * rather than something recomputed live every frame. A no-op if the node
+ * has no cooldown record at all (nothing to relocate) or is already
+ * flagged; both keep this safe to dispatch every frame the condition holds
+ * until the state actually catches up.
+ */
+export function markRelocated(save: SaveState, nodeId: string): SaveState {
+  const record = save.world.collectedNodes.find((c) => c.nodeId === nodeId);
+  if (!record || record.relocated) return save;
+  const collectedNodes = save.world.collectedNodes.map((c) => (c.nodeId === nodeId ? { ...c, relocated: true } : c));
+  return { ...save, world: { ...save.world, collectedNodes } };
+}
+
 /** Whether a hidden bush still has something in it — never taken, or its
  * respawn window (measured in `world.day`, never wall-clock time) has passed. */
 export function canCollectHidden(save: SaveState, obstacleId: string): boolean {
