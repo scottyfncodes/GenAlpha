@@ -59,7 +59,7 @@ type Action =
   | { type: 'COLLECT_HIDDEN'; obstacleId: string }
   | { type: 'SABOTAGE_CAMERA'; nodeId: string; actionId: SabotageActionId }
   | { type: 'DESTROY_JUNCTION_BOX'; nodeId: string }
-  | { type: 'DISABLE_DRONE'; droneId: string }
+  | { type: 'DISABLE_DRONE'; droneId: string; hit: boolean }
   | { type: 'SELL_MATERIAL'; itemId: string }
   | { type: 'CRAFT_ITEM'; recipeId: string }
   | { type: 'CAUGHT'; tier: ThresholdTier }
@@ -175,7 +175,7 @@ function reducer(state: SaveState | null, action: Action): SaveState | null {
       return destroyJunctionBox(state, action.nodeId);
 
     case 'DISABLE_DRONE':
-      return disableDrone(state, action.droneId);
+      return disableDrone(state, action.droneId, action.hit);
 
     case 'SELL_MATERIAL':
       return sellMaterial(state, action.itemId);

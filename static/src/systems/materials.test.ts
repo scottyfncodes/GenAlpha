@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { canCraft, canDestroyJunctionBox, canSabotage, collectHidden, craft, destroyJunctionBox } from './materials';
+import { canCraft, canDestroyJunctionBox, canDisableDrone, canSabotage, collectHidden, craft, destroyJunctionBox, disableDrone } from './materials';
 import { createNewSave } from '../state/defaults';
 import { CAMERA_NODES } from '../world/collectibles';
 import { JUNCTION_BOX_NODES } from '../world/junctionboxes';
@@ -108,5 +108,41 @@ describe('junction boxes', () => {
   it('is a no-op on an unknown node id', () => {
     const save = createNewSave('Wren');
     expect(destroyJunctionBox(save, 'not_a_real_node')).toEqual(save);
+  });
+});
+
+describe('drone takedowns', () => {
+  it('refuses without any tool built', () => {
+    const save = createNewSave('Wren');
+    expect(canDisableDrone(save, 'drone_diagonal')).toBe(false);
+  });
+
+  it('a hit pays out the tool tier’s reward and goes on cooldown', () => {
+    const save = createNewSave('Wren');
+    save.economy.inventory = [{ itemId: 'slingshot', quantity: 1, acquiredVia: 'crafted' }];
+    expect(canDisableDrone(save, 'drone_diagonal')).toBe(true);
+    const after = disableDrone(save, 'drone_diagonal', true);
+    expect(after.economy.inventory.find((i) => i.itemId === 'battery_pack')?.quantity).toBe(1);
+    expect(after.heat.current).toBeGreaterThan(save.heat.current);
+    expect(canDisableDrone(after, 'drone_diagonal')).toBe(false);
+  });
+
+  it('a miss pays out nothing, costs more Heat than any hit tier, and still goes on cooldown', () => {
+    const save = createNewSave('Wren');
+    save.economy.inventory = [{ itemId: 'emp_gun', quantity: 1, acquiredVia: 'crafted' }];
+    const after = disableDrone(save, 'drone_diagonal', false);
+    expect(after.economy.inventory).toEqual(save.economy.inventory);
+    expect(after.heat.current - save.heat.current).toBeGreaterThan(2); // above the slingshot hit's own Heat cost
+    expect(canDisableDrone(after, 'drone_diagonal')).toBe(false);
+  });
+
+  it('a better tool pays out less Heat on a hit than a worse one', () => {
+    const slingshot = createNewSave('Wren');
+    slingshot.economy.inventory = [{ itemId: 'slingshot', quantity: 1, acquiredVia: 'crafted' }];
+    const empGun = createNewSave('Wren');
+    empGun.economy.inventory = [{ itemId: 'emp_gun', quantity: 1, acquiredVia: 'crafted' }];
+    const afterSlingshot = disableDrone(slingshot, 'drone_diagonal', true);
+    const afterEmp = disableDrone(empGun, 'drone_diagonal', true);
+    expect(afterEmp.heat.current - empGun.heat.current).toBeLessThan(afterSlingshot.heat.current - slingshot.heat.current);
   });
 });

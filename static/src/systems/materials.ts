@@ -10,6 +10,7 @@ import {
 } from '../world/collectibles';
 import { JUNCTION_BOX_NODES, JUNCTION_BOX_RISK } from '../world/junctionboxes';
 import { DRONE_TAKEDOWN_BY_TOOL_TIER } from '../world/drones';
+import { DRONE_SHOOT_MISS_COOLDOWN_DAYS, DRONE_SHOOT_MISS_HEAT_PENALTY } from './droneshoot';
 import { addCash, addShdw, deckTier, droneToolTier, grantItem, owns, quantityOf, removeItem } from './market';
 import { applyHeat } from './heat';
 
@@ -153,13 +154,30 @@ export function canDisableDrone(save: SaveState, droneId: string): boolean {
 }
 
 /**
- * Bring one down. The outcome is entirely a function of the best tool
- * already built (`droneToolTier`) — no menu, because the choice already
- * happened at the workbench: a slingshot costs Heat and pays little, an EMP
- * gun costs nothing and pays the most, per `DRONE_TAKEDOWN_BY_TOOL_TIER`.
+ * Bring one down — or don't. `hit` is the outcome of the shooting minigame
+ * (`ui/minigames/DroneShoot.tsx`, `systems/droneshoot.ts`), decided by the
+ * player's aim, not by which tool they're carrying. The tool only decides
+ * what a hit is worth: a slingshot pays little for a real Heat cost, an EMP
+ * gun pays the most for none at all (`DRONE_TAKEDOWN_BY_TOOL_TIER`). A miss
+ * costs more Heat than any hit tier does — the shot went loud and nothing
+ * came of it — and sends the drone off for a short, fixed cooldown rather
+ * than an immediate second try.
  */
-export function disableDrone(save: SaveState, droneId: string): SaveState {
+export function disableDrone(save: SaveState, droneId: string, hit: boolean): SaveState {
   if (!canDisableDrone(save, droneId)) return save;
+
+  if (!hit) {
+    const missed = {
+      ...save,
+      heat: applyHeat(save.heat, {
+        eventId: `drone_missed_${droneId}`,
+        delta: DRONE_SHOOT_MISS_HEAT_PENALTY,
+        logToHistory: true,
+      }),
+    };
+    return markCollected(missed, droneId, DRONE_SHOOT_MISS_COOLDOWN_DAYS);
+  }
+
   const tier = droneToolTier(save) as 1 | 2 | 3;
   const result = DRONE_TAKEDOWN_BY_TOOL_TIER[tier];
 

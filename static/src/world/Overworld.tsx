@@ -38,6 +38,8 @@ import { STREET_HACK_INTERACT_RADIUS, STREET_HACK_NODES, type StreetHackNode } f
 import { canHackStreetNode, HACK_KIND_TOOL } from '../systems/streethacks';
 import { drawTown } from './draw';
 import { Market } from '../ui/Market';
+import { DroneShoot } from '../ui/minigames/DroneShoot';
+import { DRONE_SHOOT_MISS_HEAT_PENALTY } from '../systems/droneshoot';
 import { play } from '../systems/audio';
 import './overworld.css';
 
@@ -192,6 +194,10 @@ export function Overworld() {
    * — this is the one prompt on the map for something that isn't just
    * waiting there. */
   const [nearbyDrone, setNearbyDrone] = useState<{ id: string; x: number; y: number } | null>(null);
+  /** The drone id currently in the shooting minigame, if any — set the
+   * instant the take-down prompt is tapped, cleared on either an actual
+   * resolution or a free walk-away. */
+  const [droneShootTarget, setDroneShootTarget] = useState<string | null>(null);
   /**
    * Held in state, not derived: a scene's own effects change the chapter part
    * way through, which would otherwise unmount the scene mid-read.
@@ -342,7 +348,7 @@ export function Overworld() {
   const droneCooldownRef = useRef<Map<string, number>>(new Map());
 
   enterRef.current = enter;
-  blockedRef.current = Boolean(open) || cyberdeckOpen;
+  blockedRef.current = Boolean(open) || cyberdeckOpen || Boolean(droneShootTarget);
 
   // Movement + render loop.
   useEffect(() => {
@@ -937,19 +943,33 @@ export function Overworld() {
 
       {/* Last in the priority order, same as a junction box — except this
           one might not still be there by the time the player reads the
-          button, since it's the only point object on the map that moves. */}
+          button, since it's the only point object on the map that moves.
+          The prompt opens the shot, it doesn't resolve it — Heat System
+          guardrail 2 still holds, there are just two prices to show now:
+          what a hit pays and what a miss costs. */}
       {!nearby && !nearbyCamera && !nearbyHack && !nearbyJunctionBox && nearbyDrone && !open && (
         <button
           className="overworld__prompt overworld__prompt--drone"
           disabled={!canDisableDrone(save, nearbyDrone.id)}
-          onClick={() => dispatch({ type: 'DISABLE_DRONE', droneId: nearbyDrone.id })}
+          onClick={() => setDroneShootTarget(nearbyDrone.id)}
         >
           {droneToolTier(save) > 0
-            ? `Take it down · Heat +${DRONE_TAKEDOWN_BY_TOOL_TIER[droneToolTier(save) as 1 | 2 | 3].heatCost} · ${
+            ? `Take a shot · Hit: ${
                 MATERIALS_BY_ID[DRONE_TAKEDOWN_BY_TOOL_TIER[droneToolTier(save) as 1 | 2 | 3].itemId]?.name ?? ''
-              }`
+              } · Miss: Heat +${DRONE_SHOOT_MISS_HEAT_PENALTY}`
             : 'FLACK Drone · Needs a Slingshot'}
         </button>
+      )}
+
+      {droneShootTarget && (
+        <DroneShoot
+          toolTier={Math.min(3, Math.max(1, droneToolTier(save))) as 1 | 2 | 3}
+          onResolve={(hit) => {
+            dispatch({ type: 'DISABLE_DRONE', droneId: droneShootTarget, hit });
+            setDroneShootTarget(null);
+          }}
+          onClose={() => setDroneShootTarget(null)}
+        />
       )}
 
       {active && <SceneView scene={active} onClose={leave} />}
@@ -994,7 +1014,7 @@ export function Overworld() {
           (`blockedRef` zeroes touch input under the same two conditions),
           so leaving it on screen was just a control sitting on top of a
           location card with no function, not a real toggle underneath it. */}
-      {!open && !cyberdeckOpen && (
+      {!open && !cyberdeckOpen && !droneShootTarget && (
         <Joystick onChange={(dx, dy) => (touch.current = { dx, dy })} />
       )}
 

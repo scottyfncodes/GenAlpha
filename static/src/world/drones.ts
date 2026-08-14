@@ -100,13 +100,14 @@ export interface DroneTakedownResult {
 }
 
 /**
- * What taking a drone down costs and pays out, purely a function of which
- * tool tier the player has built (`systems/market.ts` `droneToolTier`) —
- * the choice already happened at the workbench, same as `JUNCTION_BOX_RISK`
- * scaling off a box's tier rather than a menu of actions on the prompt.
- * A slingshot only stuns it — cheap parts, real Heat, back up fast. An EMP
- * gun kills it outright — the best haul, no Heat at all, and Helio needs a
- * week to replace it.
+ * What landing the shot pays out, purely a function of which tool tier the
+ * player has built (`systems/market.ts` `droneToolTier`) — the same
+ * "the choice already happened at the workbench" logic `JUNCTION_BOX_RISK`
+ * applies to a box's tier. The shot itself still has to connect
+ * (`systems/droneshoot.ts`); this is only the reward for actually landing
+ * it. A slingshot only stuns it — cheap parts, real Heat, back up fast. An
+ * EMP gun kills it outright — the best haul, no Heat at all, and Helio
+ * needs a week to replace it.
  */
 export const DRONE_TAKEDOWN_BY_TOOL_TIER: Record<1 | 2 | 3, DroneTakedownResult> = {
   1: { itemId: 'battery_pack', quantity: 1, heatCost: 2, respawnDays: 3 },
