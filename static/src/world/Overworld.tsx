@@ -82,6 +82,17 @@ const SCALE = 2; // pixel-art integer scale
 const CAMERA_INTERACT_RADIUS = 26;
 /** Same idea as `CAMERA_INTERACT_RADIUS`, for a junction box. */
 const JUNCTION_BOX_INTERACT_RADIUS = 26;
+/**
+ * The walkable interior of `home` (locations.ts: x 32-160, y 184-280),
+ * inset from `drawHouse`'s own wall rect (y 217-280) so the sprite's head —
+ * drawn `PLAYER_H` above its feet — never rises into the roof's airspace
+ * (roof bottom at y≈217), and never sinks low enough to sit on top of the
+ * door/colour band `drawHomeInteriorMask` (world/draw.ts) paints over.
+ * Matched to the same window band the mask cuts out, so wandering the
+ * bounds actually carries the player's head through both windows rather
+ * than past them.
+ */
+const HOME_BOUNDS = { x: [44, 148] as const, y: [234, 270] as const };
 /** How far past its own detection radius a hunting van keeps chasing —
  * wider than the circle that started the chase, so breaking line of sight
  * for a moment doesn't shake it instantly. */
@@ -281,6 +292,10 @@ export function Overworld() {
   const nearbyCameraRef = useRef<CameraNode | null>(null);
   const nearbyHackRef = useRef<StreetHackNode | null>(null);
   const nearbyJunctionBoxRef = useRef<JunctionBoxNode | null>(null);
+  /** Mirrors `active` for the frame loop, same reason `saveRef`/`tierRef` do
+   * — a closure created once by `useEffect` can't read fresh state directly. */
+  const activeRef = useRef<Scene | null>(null);
+  activeRef.current = active;
   /** Hidden pickups currently underfoot, so one fires once on approach rather
    * than every single frame the player happens to be standing on it. */
   const contactRef = useRef<Set<string>>(new Set());
@@ -380,11 +395,28 @@ export function Overworld() {
       const boardMultiplier = boardTierRef.current > 0 ? BOARD_SPEED[boardTierRef.current - 1] : 1;
       const base = boardTierRef.current > 0 ? SPEED * boardMultiplier : SPEED * (sprinting ? SPRINT_MULTIPLIER : 1);
       const speed = base * (hurt ? 0.6 : 1);
-      const nx = clamp(pos.current.x + (dx / len) * speed * dt, 8, MAP_WIDTH - 8);
-      if (!solid.some((l) => overlapsBuilding(nx, pos.current.y, l))) pos.current.x = nx;
 
-      const ny = clamp(pos.current.y + (dy / len) * speed * dt, 8, MAP_HEIGHT - 8);
-      if (!solid.some((l) => overlapsBuilding(pos.current.x, ny, l))) pos.current.y = ny;
+      /*
+       * Before the very first prompt is ever tapped, the player doesn't get
+       * to leave the house — the door isn't a door yet, it's a wall with a
+       * different colour on it. `confinedToHome` covers exactly the window
+       * from a new save's first frame to the moment `enter(nearby)` opens
+       * the opening scene: the whole beat plays out inside that one active
+       * scene afterward (chapter only advances once it closes), so there's
+       * no later point this could wrongly re-trigger at. `HOME_BOUNDS` sits
+       * inside the wall rect `world/draw.ts` `drawHouse` actually paints,
+       * with enough headroom that the sprite's head — drawn above its own
+       * feet — never pokes above the roofline into open air.
+       */
+      const confinedToHome = saveRef.current.player.currentChapter === 'act1_glitch_01' && !activeRef.current;
+      const xBounds = confinedToHome ? HOME_BOUNDS.x : ([8, MAP_WIDTH - 8] as const);
+      const yBounds = confinedToHome ? HOME_BOUNDS.y : ([8, MAP_HEIGHT - 8] as const);
+
+      const nx = clamp(pos.current.x + (dx / len) * speed * dt, xBounds[0], xBounds[1]);
+      if (confinedToHome || !solid.some((l) => overlapsBuilding(nx, pos.current.y, l))) pos.current.x = nx;
+
+      const ny = clamp(pos.current.y + (dy / len) * speed * dt, yBounds[0], yBounds[1]);
+      if (confinedToHome || !solid.some((l) => overlapsBuilding(pos.current.x, ny, l))) pos.current.y = ny;
 
       const here = locationAt(pos.current.x, pos.current.y, flagsRef.current);
       if (here?.id !== nearbyRef.current?.id) {
@@ -653,6 +685,7 @@ export function Overworld() {
         moving,
         now,
         boardTierRef.current,
+        confinedToHome,
       );
       raf = requestAnimationFrame(frame);
     };

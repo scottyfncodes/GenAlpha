@@ -1,4 +1,4 @@
-import { MAP_HEIGHT, MAP_WIDTH, visibleLocations, type OverworldLocation } from './locations';
+import { HOME_LOCATION_ID, MAP_HEIGHT, MAP_WIDTH, visibleLocations, type OverworldLocation } from './locations';
 import type { Obstacle } from './obstacles';
 import type { NpcKind } from './npcs';
 import type { ThresholdTier } from '../state/schema';
@@ -188,6 +188,7 @@ export function drawTown(
   moving: boolean,
   now: number,
   boardTier: number,
+  confinedToHome: boolean,
 ) {
   const vw = canvas.clientWidth;
   const vh = canvas.clientHeight;
@@ -249,6 +250,15 @@ export function drawTown(
   for (const patrol of patrols) drawPatrol(ctx, patrol);
 
   drawPlayer(ctx, player, facing, playerSize, moving, now, boardTier);
+
+  // The opening's own beat: before the first prompt is ever tapped, the
+  // player is inside the house, not standing on it — drawn over the
+  // sprite rather than under it, so only whatever's lined up behind an
+  // actual window shows through. See `drawHomeInteriorMask`.
+  if (confinedToHome) {
+    const home = locations.find((l) => l.id === HOME_LOCATION_ID);
+    if (home) drawHomeInteriorMask(ctx, home);
+  }
 
   ctx.restore();
 }
@@ -888,6 +898,31 @@ function drawHouse(ctx: CanvasRenderingContext2D, loc: OverworldLocation, tier: 
   ctx.fillRect(px(loc.x + loc.w * 0.68), px(winY), winSize, winSize);
 
   drawGlitchTear(ctx, loc, tier, roofH);
+}
+
+/**
+ * Redrawn over the player rather than under them: the wall, in five pieces
+ * that trace around the two window cutouts `drawHouse` already put there,
+ * so the only place the sprite (drawn just before this) still shows through
+ * is exactly where a window already was. Same geometry `drawHouse` computes
+ * — this has to match it exactly or the "windows" stop lining up with the
+ * ones already painted underneath.
+ */
+function drawHomeInteriorMask(ctx: CanvasRenderingContext2D, loc: OverworldLocation) {
+  const roofH = Math.round(loc.h * 0.34);
+  const bodyY = loc.y + roofH;
+  const bodyBottom = loc.y + loc.h;
+  const winY = px(bodyY + (loc.h - roofH) * 0.32);
+  const winSize = 10;
+  const win1X = px(loc.x + loc.w * 0.16);
+  const win2X = px(loc.x + loc.w * 0.68);
+
+  ctx.fillStyle = PALETTE.wallA;
+  ctx.fillRect(loc.x, bodyY, loc.w, winY - bodyY); // above the windows
+  ctx.fillRect(loc.x, winY + winSize, loc.w, bodyBottom - (winY + winSize)); // below
+  ctx.fillRect(loc.x, winY, win1X - loc.x, winSize); // left of window 1
+  ctx.fillRect(win1X + winSize, winY, win2X - (win1X + winSize), winSize); // between
+  ctx.fillRect(win2X + winSize, winY, loc.x + loc.w - (win2X + winSize), winSize); // right of window 2
 }
 
 /** The school: the plain flat-roofed civic box, plus the two things that
