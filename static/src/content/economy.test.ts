@@ -184,7 +184,7 @@ describe('the heist, played through', () => {
     const hub = HEIST_SCENES[1].nodes.hub;
     expect(owns(save, INTEL_TIP)).toBe(false);
     expect(visibleChoices(hub, save.player.flags, []).map((c) => c.text)).not.toContain(
-      'Ask Ines whether anyone’s selling on TraceBook.',
+      'Ask Ines whether anyone’s selling on SafeTrace.',
     );
   });
 

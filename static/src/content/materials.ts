@@ -221,7 +221,7 @@ export const RECIPES: Recipe[] = [
    * (systems/market.ts) is what actually gates which kind of target a hack
    * attempt can even reach (`systems/streethacks.ts` `HACK_KIND_MIN_TIER`),
    * not just how hard the puzzle plays. The Graphics Card and Air-Gapped
-   * Drive don't show up until tier 3+ on purpose — cracking TraceBook's own
+   * Drive don't show up until tier 3+ on purpose — cracking SafeTrace's own
    * network takes more than a hard drive and a chipset.
    */
   {
@@ -256,7 +256,7 @@ export const RECIPES: Recipe[] = [
       { itemId: 'graphics_card', quantity: 1 },
     ],
     outputItemId: 'cyberdeck_3',
-    description: 'Reads a FLACK housing now, not just a call box. TraceBook’s own network, from the outside — the graphics card is what actually breaks the encryption fast enough to matter.',
+    description: 'Reads a FLACK housing now, not just a call box. SafeTrace’s own network, from the outside — the graphics card is what actually breaks the encryption fast enough to matter.',
     blueprintItemId: 'bp_cyberdeck_3',
   },
   {

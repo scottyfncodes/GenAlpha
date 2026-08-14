@@ -211,7 +211,7 @@ const SLOW: Scene = {
     week: {
       id: 'week',
       lines: [
-        { text: 'Monday: a stock halt, and a phrase on a news ticker that says TraceBook is “reviewing its municipal partnerships.”' },
+        { text: 'Monday: a stock halt, and a phrase on a news ticker that says SafeTrace is “reviewing its municipal partnerships.”' },
         { text: 'Wednesday: Reyes announces she will not seek re-election, for family reasons, in a statement that is much better lawyered than Sorrell’s.' },
         { text: 'Thursday: a subpoena that Aaron finds before the newspapers do and does not post anywhere, because Aaron has never posted anything.' },
       ],

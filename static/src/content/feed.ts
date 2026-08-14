@@ -25,25 +25,25 @@ export const FEED_ENTRIES: FeedEntry[] = [
   {
     id: 'feed_phase_two_announced',
     minStage: 0,
-    headline: 'TraceBook: “Phase Two on track for summer.”',
+    headline: 'SafeTrace: “Phase Two on track for summer.”',
     body: 'A council notice, reposted twice already. Nobody who reads it can say what Phase Two actually is, which the notice describes as a feature, not an omission.',
   },
   {
     id: 'feed_safety_grant',
     minStage: 0,
-    headline: 'Town accepts TraceBook “Community Safety Grant”',
+    headline: 'Town accepts SafeTrace “Community Safety Grant”',
     body: 'Free cameras, the paperwork says, like a coupon. Nobody on the council asked, on the record, who owns the footage once they’re up.',
   },
   {
     id: 'feed_data_center_groundbreaking',
     minStage: 1,
-    headline: 'Groundbreaking held for TraceBook Regional Data Center',
+    headline: 'Groundbreaking held for SafeTrace Regional Data Center',
     body: 'The lot used to be the Kessler farm. The ceremony had a ribbon and a shovel and nobody from the Kessler family standing anywhere near either.',
   },
   {
     id: 'feed_new_patrol_routes',
     minStage: 1,
-    headline: 'TraceBook “Community Liaison” patrols now on regular routes',
+    headline: 'SafeTrace “Community Liaison” patrols now on regular routes',
     body: 'Same uniforms, same vans, just more of them, and a published route map nobody remembers asking for.',
   },
   {
@@ -61,13 +61,13 @@ export const FEED_ENTRIES: FeedEntry[] = [
   {
     id: 'feed_flack_phase_three',
     minStage: 3,
-    headline: 'FLACK Phase Three begins early, TraceBook says, “by popular demand”',
+    headline: 'FLACK Phase Three begins early, SafeTrace says, “by popular demand”',
     body: 'Nobody remembers being polled. The banner in the square already has the new logo on it, which took less time to print than the phase took to announce.',
   },
   {
     id: 'feed_safety_ad',
     minStage: 3,
-    headline: '“You’re Never Really Alone” — new TraceBook safety campaign',
+    headline: '“You’re Never Really Alone” — new SafeTrace safety campaign',
     body: 'The ad plays before every terminal login now. It’s the same actor from the groundbreaking ribbon-cutting. He looks a little more tired this time.',
   },
 ];

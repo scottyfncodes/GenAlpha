@@ -1,6 +1,6 @@
 /**
  * Where a sabotaged point object (camera, junction box, street hack) turns
- * back up once TraceBook's had time to replace it — never the exact spot it
+ * back up once SafeTrace's had time to replace it — never the exact spot it
  * got taken apart, and never a brand-new coordinate no connectivity pass
  * has ever checked either. It reappears at one of its own siblings'
  * positions instead: same category for a camera, same tier for a junction

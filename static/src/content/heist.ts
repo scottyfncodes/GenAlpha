@@ -11,7 +11,7 @@ import { INTEL_TIP } from './economy';
  * Module 03 leaves the identity of the villain wallets as an open question for
  * a content pass, because the named ones belong to Act 3's antagonists and the
  * synchronized wallet-drain is the climax of the whole game. So this is not
- * that. This is TraceBook's Bellhaven *operating* account — the contract float, a
+ * that. This is SafeTrace's Bellhaven *operating* account — the contract float, a
  * regional line item, run by nobody the story will ever put on screen. Small
  * enough to take without spending the ending.
  *
@@ -27,7 +27,7 @@ import { INTEL_TIP } from './economy';
 
 export const HELIO_OPS: HeistTarget = {
   walletId: 'helio_bellhaven_ops',
-  holder: 'TraceBook Civic Safety',
+  holder: 'SafeTrace Civic Safety',
   label: 'Bellhaven operating float',
   /**
    * Narratively scaled, per module 03 — it doesn't need to be realistic, it
@@ -203,7 +203,7 @@ const RECON: Scene = {
         { text: 'The safety grant banner has been up since March. Everyone in the photograph is still smiling.' },
         { speaker: 'Aaron', text: '2.4.' },
         { text: 'Aaron puts a phone on the bench between you. A council PDF, a contract schedule, and a third document that is neither.' },
-        { speaker: 'Aaron', text: 'Town pays 2.4. TraceBook spends 1.1 here. The rest goes somewhere and comes back as nothing.' },
+        { speaker: 'Aaron', text: 'Town pays 2.4. SafeTrace spends 1.1 here. The rest goes somewhere and comes back as nothing.' },
       ],
       next: 'account',
     },
@@ -286,7 +286,7 @@ const CASING: Scene = {
          */
         { text: 'Go at their contract address instead — see who answers.', goto: 'assistant_trace', hiddenIfFlag: 'heist_portal_tried' },
         {
-          text: 'Ask Ines whether anyone’s selling on TraceBook.',
+          text: 'Ask Ines whether anyone’s selling on SafeTrace.',
           goto: 'tip',
           requiresItem: INTEL_TIP,
           hiddenIfFlag: 'heist_clue_backup',
@@ -310,7 +310,7 @@ const CASING: Scene = {
     assistant_trace: {
       id: 'assistant_trace',
       lines: [
-        { text: 'TraceBook’s Bellhaven contract address is on page four of a public PDF, which is the safest place in the world to put something.' },
+        { text: 'SafeTrace’s Bellhaven contract address is on page four of a public PDF, which is the safest place in the world to put something.' },
       ],
       minigame: {
         kind: 'hacking',
@@ -351,7 +351,7 @@ const CASING: Scene = {
     tip: {
       id: 'tip',
       lines: [
-        { speaker: 'Ines', text: 'TraceBook. Yeah. Hang on.' },
+        { speaker: 'Ines', text: 'SafeTrace. Yeah. Hang on.' },
         { text: 'She does not look anything up. She just knows, the way she knows the price of a burner on a Wednesday.' },
         { speaker: 'Ines', text: 'Somebody photographed the recovery sheet. For convenience. It’s in a folder called ONBOARDING with four hundred other things.' },
         { text: 'She takes the tip money without counting it and goes back to her maths.' },

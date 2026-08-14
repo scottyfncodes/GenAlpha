@@ -132,7 +132,7 @@ export interface DroneTakedownResult {
  * applies to a box's tier. The shot itself still has to connect
  * (`systems/droneshoot.ts`); this is only the reward for actually landing
  * it. A slingshot only stuns it — cheap parts, real Heat, back up fast. An
- * EMP gun kills it outright — the best haul, no Heat at all, and TraceBook
+ * EMP gun kills it outright — the best haul, no Heat at all, and SafeTrace
  * needs a week to replace it.
  */
 export const DRONE_TAKEDOWN_BY_TOOL_TIER: Record<1 | 2 | 3, DroneTakedownResult> = {

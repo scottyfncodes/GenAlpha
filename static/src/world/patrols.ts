@@ -2,7 +2,7 @@ import type { ThresholdTier } from '../state/schema';
 import type { EscalationStage } from './escalation';
 
 /**
- * TraceBook's patrol vans (the contractor already named throughout the story —
+ * SafeTrace's patrol vans (the contractor already named throughout the story —
  * see `content/heist.ts`, and the "van idles at the end of the block" ambient
  * line already on `camera_pole_5th` at `hunted`). Ghosts on a fixed beat, in
  * the Pac-Man sense the build note asked for: each route is a closed loop or

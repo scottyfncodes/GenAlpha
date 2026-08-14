@@ -3,7 +3,7 @@ import type { PatrolRoute } from './patrols';
 import type { EscalationStage } from './escalation';
 
 /**
- * TraceBook officers on foot — the same contractor the vans and the "TraceBook
+ * SafeTrace officers on foot — the same contractor the vans and the "SafeTrace
  * officer" who walks you to a payphone (`systems/consequences.ts`
  * `CALL_PARENTS`) already belong to, just covering the ground a van can't:
  * the school perimeter, the square, the residential streets, the fence

@@ -93,7 +93,7 @@ const THREE_NAMES: Scene = {
     names: {
       id: 'names',
       lines: [
-        { text: 'Danny Sorrell, who founded TraceBook, and who by every account anyone can find believes in it completely.' },
+        { text: 'Danny Sorrell, who founded SafeTrace, and who by every account anyone can find believes in it completely.' },
         { text: 'Councilwoman Reyes, who has been on a stage in this town handing out quite good pens since March, and whose vote is the reason the coverage is total.' },
         { text: 'Merrow Capital, which is not a person, has no opinions, and has never met a child in its life.' },
       ],

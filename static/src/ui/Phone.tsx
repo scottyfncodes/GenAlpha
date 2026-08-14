@@ -110,7 +110,7 @@ function Feed({ onBack }: { onBack: () => void }) {
     <div className="feed lang-b">
       <header className="feed__head">
         <div>
-          <p className="feed__eyebrow">What TraceBook wants the town reading</p>
+          <p className="feed__eyebrow">What SafeTrace wants the town reading</p>
           <h2 className="feed__title">Feed</h2>
         </div>
         <button className="feed__back" onClick={onBack}>

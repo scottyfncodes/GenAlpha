@@ -78,7 +78,7 @@ export const BLUEPRINTS: Blueprint[] = [
     name: 'Cracked Deck — build plan',
     recipeId: 'craft_cyberdeck_3',
     tier: 3,
-    description: 'The part of TraceBook’s own network diagram somebody wasn’t supposed to still have.',
+    description: 'The part of SafeTrace’s own network diagram somebody wasn’t supposed to still have.',
   },
   {
     itemId: 'bp_board_4',

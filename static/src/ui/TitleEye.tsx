@@ -16,7 +16,7 @@ import './title-eye.css';
  * reads as startled; this is reading the room, not caught off guard by
  * it. A clean manufactured ellipse for the housing, not a hand-cut
  * wobble: everything else in Language B is something the resistance drew
- * or scrawled by hand, but a camera housing is TraceBook's own equipment
+ * or scrawled by hand, but a camera housing is SafeTrace's own equipment
  * — it's supposed to look machined.
  */
 export function TitleEye({ visible }: { visible: boolean }) {

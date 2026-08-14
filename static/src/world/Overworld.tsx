@@ -651,7 +651,7 @@ export function Overworld() {
        *
        * One just taken down doesn't vanish — it stays right where it was,
        * visibly gutted (`damaged: true`, see draw.ts's `drawSabotageDamage`),
-       * until TraceBook's had time to replace it. Once that timer's up *and*
+       * until SafeTrace's had time to replace it. Once that timer's up *and*
        * the original spot has scrolled off screen, it reappears working at
        * one of its own sibling cameras' positions instead (`relocatedPosition`,
        * world/relocate.ts) — never back on the exact spot it just got taken
@@ -1028,7 +1028,7 @@ export function Overworld() {
             delta: heatOnSpot,
             logToHistory: false,
           });
-          setSpotted(sprinting ? 'Running got you noticed — that’s double the Heat.' : 'A TraceBook van slows near you.');
+          setSpotted(sprinting ? 'Running got you noticed — that’s double the Heat.' : 'A SafeTrace van slows near you.');
           window.setTimeout(() => setSpotted((m) => (m === null ? m : null)), 1800);
         }
       }
@@ -1302,8 +1302,8 @@ export function Overworld() {
         tappedNodeId === nearbyCamera.id ? (
           <div className="overworld__sabotage">
             <p className="overworld__why">
-              FLACK can’t watch a block it can’t see. Every housing you gut is one less angle TraceBook has on this
-              street — and parts TraceBook paid for, now yours.
+              FLACK can’t watch a block it can’t see. Every housing you gut is one less angle SafeTrace has on this
+              street — and parts SafeTrace paid for, now yours.
             </p>
             {canSabotage(save, nearbyCamera) ? (
               sabotageActionsFor(nearbyCamera).map((action) => (
@@ -1363,7 +1363,7 @@ export function Overworld() {
         tappedNodeId === nearbyJunctionBox.id ? (
           <div className="overworld__sabotage">
             <p className="overworld__why">
-              Every box you crack is a blueprint TraceBook never meant to let out — one more thing the resistance can
+              Every box you crack is a blueprint SafeTrace never meant to let out — one more thing the resistance can
               build without their permission.
             </p>
             <button
@@ -1633,11 +1633,11 @@ function clamp(n: number, min: number, max: number) {
 function hackReason(kind: StreetHackNode['kind']): string {
   switch (kind) {
     case 'atm':
-      return 'TraceBook’s own machine, skimmed to fund everything else the crew needs — they built the meter, they can float the tab.';
+      return 'SafeTrace’s own machine, skimmed to fund everything else the crew needs — they built the meter, they can float the tab.';
     case 'phone':
-      return 'A line TraceBook still taxes everyone else for “security.” Tapping it costs them exactly what they charge.';
+      return 'A line SafeTrace still taxes everyone else for “security.” Tapping it costs them exactly what they charge.';
     case 'building':
-      return 'One more door into a wall TraceBook was sure was locked for good.';
+      return 'One more door into a wall SafeTrace was sure was locked for good.';
   }
 }
 
