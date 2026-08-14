@@ -45,6 +45,15 @@
   opacity: 0.55;
 }
 
+/* Nefarious eyelids — heavy, hooded, narrowing the lens down to a watching
+   slit rather than a wide-open stare. Solid and nearly opaque on purpose:
+   these have to actually read as covering the iris underneath, not just
+   tint it, or the "hooded" read collapses back into an open eye with some
+   dark shapes near it. */
+.title__eye-lid {
+  fill: rgba(12, 10, 9, 0.94);
+}
+
 /* The status light on the housing rim — same irregular double-flicker the
    title's own REC dot uses, so every "this is recording" tell on the
    screen reads as the same nervous tic. */
@@ -69,16 +78,16 @@
    the "eyeball" never visually leaves its lens. */
 .title__eye-gaze {
   animation: title-eye-look 11s ease-in-out infinite;
-  transform-origin: 150px 92px;
+  transform-origin: 150px 220px;
 }
 
 @keyframes title-eye-look {
   0%, 6% { transform: translate(0, 0); }
-  14%, 22% { transform: translate(-8px, 3px); }
-  30%, 38% { transform: translate(8px, -4px); }
-  46%, 54% { transform: translate(-5px, -5px); }
-  62%, 70% { transform: translate(6px, 5px); }
-  78%, 86% { transform: translate(-2px, 2px); }
+  14%, 22% { transform: translate(-11px, 4px); }
+  30%, 38% { transform: translate(10px, -5px); }
+  46%, 54% { transform: translate(-6px, -7px); }
+  62%, 70% { transform: translate(8px, 6px); }
+  78%, 86% { transform: translate(-3px, 2px); }
   94%, 100% { transform: translate(0, 0); }
 }
 
