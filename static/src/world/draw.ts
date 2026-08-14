@@ -72,6 +72,11 @@ const PALETTE = {
   patrolCab: '#100e0d',
   patrolLight: '#f0c07a',
   patrolRing: 'rgba(230, 64, 42, 0.22)',
+  // A cooler, bluer read than the van's red — on foot, but still Helio,
+  // still worth telling apart from an ordinary pedestrian at a glance.
+  copUniform: '#2e3a52',
+  copCap: '#171d29',
+  copRing: 'rgba(58, 110, 176, 0.22)',
   camera: '#3f7fe0',
   cameraDark: '#1f3d73',
   treeTrunk: '#3a2c22',
@@ -194,6 +199,7 @@ export function drawTown(
   hackNodes: { x: number; y: number; kind: 'atm' | 'phone' | 'building'; hackable: boolean }[],
   junctionBoxNodes: { x: number; y: number; tier: 1 | 2 | 3 | 4 | 5; crackable: boolean }[],
   drones: { x: number; y: number; radius: number; takeable: boolean }[],
+  cops: { x: number; y: number; radius: number }[],
   moving: boolean,
   now: number,
   boardTier: number,
@@ -257,6 +263,10 @@ export function drawTown(
   // "arrive" on top of its own danger zone.
   for (const patrol of patrols) drawPatrolRing(ctx, patrol);
   for (const patrol of patrols) drawPatrol(ctx, patrol);
+
+  // Officers on foot — same ring-first ground-level treatment as the vans.
+  for (const cop of cops) drawCopRing(ctx, cop);
+  for (const cop of cops) drawCop(ctx, cop.x, cop.y);
 
   // Drone shadows and rings at street level — the same "ring first so the
   // danger zone doesn't visually arrive with the object" rule the vans get.
@@ -555,6 +565,44 @@ function drawPatrol(ctx: CanvasRenderingContext2D, patrol: { x: number; y: numbe
   ctx.strokeStyle = PALETTE.outline;
   ctx.lineWidth = 1;
   ctx.strokeRect(x - 0.5, y - 0.5, w + 1, h + 1);
+}
+
+function drawCopRing(ctx: CanvasRenderingContext2D, cop: { x: number; y: number; radius: number }) {
+  ctx.fillStyle = PALETTE.copRing;
+  ctx.beginPath();
+  ctx.arc(cop.x, cop.y, cop.radius, 0, Math.PI * 2);
+  ctx.fill();
+}
+
+/** An officer on foot — a pedestrian's own silhouette (`drawPedestrian`),
+ * but in a fixed uniform colour rather than a randomised shirt, and with
+ * a cap brim on top: the one detail that reads "official" at this scale
+ * without needing a badge nobody could actually see. */
+function drawCop(ctx: CanvasRenderingContext2D, x: number, y: number) {
+  const cx = px(x);
+  const feetY = px(y);
+  const bodyW = 7;
+  const bodyH = 10;
+  const headR = 2.5;
+
+  ctx.fillStyle = 'rgba(0,0,0,0.22)';
+  ctx.fillRect(cx - 4, feetY, 8, 2);
+
+  ctx.fillStyle = PALETTE.outline;
+  ctx.fillRect(cx - bodyW / 2 - 1, feetY - bodyH - 1, bodyW + 2, bodyH + 2);
+  ctx.fillStyle = PALETTE.copUniform;
+  ctx.fillRect(cx - bodyW / 2, feetY - bodyH, bodyW, bodyH);
+
+  ctx.fillStyle = PALETTE.spriteSkin;
+  ctx.beginPath();
+  ctx.arc(cx, feetY - bodyH - headR, headR, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.strokeStyle = PALETTE.outline;
+  ctx.lineWidth = 1;
+  ctx.stroke();
+
+  ctx.fillStyle = PALETTE.copCap;
+  ctx.fillRect(cx - headR - 1, feetY - bodyH - headR * 2 - 1, headR * 2 + 2, 2);
 }
 
 /** How far above its own ground shadow a drone hovers — just enough that
@@ -929,6 +977,25 @@ function drawBuilding(ctx: CanvasRenderingContext2D, loc: OverworldLocation, tie
   else drawGlitchTear(ctx, loc, tier, roofH);
 }
 
+/**
+ * A house's window geometry, computed once so `drawHouse` and
+ * `drawHomeInteriorMask` can never drift against each other the way two
+ * independent copies of the same maths eventually do. Bigger than a civic
+ * building's windows ever get, and bigger again at `home` specifically —
+ * the one house whose insides the player actually needs to read while
+ * confined to it before the opening's first prompt.
+ */
+function houseWindowGeometry(loc: OverworldLocation) {
+  const roofH = Math.round(loc.h * 0.34);
+  const bodyY = loc.y + roofH;
+  const bodyH = loc.h - roofH;
+  const winSize = loc.id === HOME_LOCATION_ID ? 20 : 14;
+  const winY = px(bodyY + bodyH * 0.32);
+  const win1X = px(loc.x + loc.w * 0.16);
+  const win2X = px(loc.x + loc.w * 0.68);
+  return { roofH, bodyY, bodyH, winSize, winY, win1X, win2X };
+}
+
 /** A cottage: walls, a proper pitched roof (two triangular faces, not the
  * flat inset band every civic building gets), a chimney, a centred door
  * flanked by two hand-placed windows rather than a generated grid — small
@@ -978,12 +1045,11 @@ function drawHouse(ctx: CanvasRenderingContext2D, loc: OverworldLocation, tier: 
   ctx.fillRect(px(apexX - doorW / 2), loc.y + loc.h - doorH - 5, doorW, doorH);
 
   const rand = noise(`house:${loc.id}`);
-  const winY = bodyY + bodyH * 0.32;
-  const winSize = 10;
+  const win = houseWindowGeometry(loc);
   ctx.fillStyle = rand() < 0.7 ? PALETTE.windowLit : PALETTE.windowDark;
-  ctx.fillRect(px(loc.x + loc.w * 0.16), px(winY), winSize, winSize);
+  ctx.fillRect(win.win1X, win.winY, win.winSize, win.winSize);
   ctx.fillStyle = rand() < 0.7 ? PALETTE.windowLit : PALETTE.windowDark;
-  ctx.fillRect(px(loc.x + loc.w * 0.68), px(winY), winSize, winSize);
+  ctx.fillRect(win.win2X, win.winY, win.winSize, win.winSize);
 
   drawGlitchTear(ctx, loc, tier, roofH);
 }
@@ -997,13 +1063,8 @@ function drawHouse(ctx: CanvasRenderingContext2D, loc: OverworldLocation, tier: 
  * ones already painted underneath.
  */
 function drawHomeInteriorMask(ctx: CanvasRenderingContext2D, loc: OverworldLocation) {
-  const roofH = Math.round(loc.h * 0.34);
-  const bodyY = loc.y + roofH;
+  const { bodyY, winY, winSize, win1X, win2X } = houseWindowGeometry(loc);
   const bodyBottom = loc.y + loc.h;
-  const winY = px(bodyY + (loc.h - roofH) * 0.32);
-  const winSize = 10;
-  const win1X = px(loc.x + loc.w * 0.16);
-  const win2X = px(loc.x + loc.w * 0.68);
 
   ctx.fillStyle = PALETTE.wallA;
   ctx.fillRect(loc.x, bodyY, loc.w, winY - bodyY); // above the windows

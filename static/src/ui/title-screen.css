@@ -24,24 +24,6 @@
   padding: calc(var(--step) * 3);
 }
 
-/* LANGUAGE A: soft, cool, frictionless — an onboarding screen that means well. */
-.title--official,
-.title--rupture {
-  background: var(--a-bg);
-  color: var(--a-text);
-  font-family: var(--font-a);
-}
-
-.title--official .title__word,
-.title--rupture .title__word {
-  font-family: var(--font-a);
-  font-weight: 800;
-  letter-spacing: 0.32em;
-  color: var(--a-accent);
-  font-size: clamp(38px, 13vw, 92px);
-  margin: 0;
-}
-
 /* LANGUAGE B: cut by hand, printed badly, urgent — and darker at the edges
    than the official stage ever was, a vignette closing in rather than a
    flat card, so "claimed" reads as cornered, not just re-skinned. */
@@ -62,43 +44,6 @@
   color: var(--b-paper);
   text-shadow: 3px 3px 0 var(--b-red), -2px -1px 0 var(--b-spot); /* misregistration */
   transform: rotate(-1.2deg);
-}
-
-/*
- * The shiny veneer — a diagonal highlight that sweeps across the screen
- * once while Language A still holds, the way a product-launch slide or an
- * onboarding screen gets a gloss pass to read as new and safe. It runs once
- * on mount and stops; a looping shine would turn "polished" into "screen
- * saver". Under reduced motion it just sits at its mid-sweep position,
- * still legible as gloss rather than as motion.
- */
-.title__gloss {
-  position: absolute;
-  inset: -20% -40%;
-  z-index: 0;
-  background: linear-gradient(
-    115deg,
-    transparent 40%,
-    rgba(220, 230, 242, 0.16) 48%,
-    rgba(220, 230, 242, 0.28) 50%,
-    rgba(220, 230, 242, 0.16) 52%,
-    transparent 60%
-  );
-  transform: translateX(-35%);
-  animation: title-gloss-sweep 2.6s ease-out 1;
-  pointer-events: none;
-}
-
-@keyframes title-gloss-sweep {
-  0% { transform: translateX(-35%); }
-  60%, 100% { transform: translateX(35%); }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .title__gloss {
-    animation: none;
-    transform: translateX(0);
-  }
 }
 
 /* The surveillance underneath — a CCTV-grain scanline field, only once
@@ -182,17 +127,6 @@
   64% { opacity: 0.1; }
   67% { opacity: 1; }
 }
-
-.title__tag {
-  margin: 0;
-  max-width: 30ch;
-  font-family: var(--font-a);
-  font-size: 14px;
-  line-height: 1.5;
-  opacity: 0.85;
-}
-
-.title--official .title__tag { color: var(--a-muted); }
 
 .title__menu {
   display: flex;

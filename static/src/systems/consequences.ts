@@ -2,6 +2,7 @@ import type { SaveState, ThresholdTier } from '../state/schema';
 import { applyHeat, decayTo } from './heat';
 import { addCash, tickMarket } from './market';
 import { tickSafehouses } from './safehouse';
+import { HOME_LOCATION_ID } from '../world/locations';
 
 /**
  * What happens when a patrol actually catches you, rather than just clocking
@@ -102,6 +103,11 @@ export function applyCatch(save: SaveState, tier: ThresholdTier): SaveState {
   if (tier === 'hunted') {
     s = { ...s, player: { ...s.player, flags: { ...s.player.flags, [HUNTED_CATCH_FLAG]: true } } };
   }
+
+  // Whatever caught you delivers you home — every consequence above already
+  // implies it (a payphone call, a night in a chair, waking up with a
+  // headache); this just makes it true of the map too, not only the text.
+  s = { ...s, player: { ...s.player, currentLocation: HOME_LOCATION_ID } };
 
   if (consequence.daysLost > 0) {
     const day = s.world.day + consequence.daysLost;

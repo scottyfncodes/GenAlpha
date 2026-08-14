@@ -136,6 +136,25 @@
   pointer-events: none;
 }
 
+/* The reason under the nudge — why there's a wall where the door should
+   be, not just what to do about it. Smaller and quieter than the hint
+   below it: a footnote, not a second instruction. */
+.overworld__confinedhint {
+  position: absolute;
+  left: 50%;
+  bottom: calc(var(--step) * 32);
+  transform: translateX(-50%);
+  margin: 0;
+  max-width: 70vw;
+  text-align: center;
+  color: var(--b-paper);
+  opacity: 0.75;
+  font-family: var(--font-a);
+  font-size: 12px;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.6);
+  pointer-events: none;
+}
+
 /* A structure's plain name, sitting just above the prompt button whenever
    the button itself is showing a scene hook instead — a nameplate, not
    another button, so it's never mistaken for a second thing to press. */

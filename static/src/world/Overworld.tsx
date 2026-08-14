@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, type PointerEvent } from 'react';
 import {
+  HOME_LOCATION_ID,
   LOCATIONS,
   MAP_HEIGHT,
   MAP_WIDTH,
@@ -11,6 +12,8 @@ import { OBSTACLES } from './obstacles';
 import { NPCS, wanderPos } from './npcs';
 import { PATROL_ROUTES, activeRoutes, patrolTuning, type PatrolRoute } from './patrols';
 import { activeDroneRoutes, droneTuning, DRONE_ROUTES, DRONE_TAKEDOWN_BY_TOOL_TIER, DRONE_TAKEDOWN_RADIUS } from './drones';
+import { COP_ROUTES, activeCopRoutes, copTuning } from './copwalk';
+import { gravitate, UNSEEN_COOLDOWN_MS, UNSEEN_RELIEF_PER_TICK, UNSEEN_TICK_MS } from '../systems/pursuit';
 import {
   CAMERA_NODES,
   HIDDEN_PICKUPS,
@@ -102,11 +105,13 @@ const JUNCTION_BOX_INTERACT_RADIUS = 26;
  * drawn `PLAYER_H` above its feet — never rises into the roof's airspace
  * (roof bottom at y≈217), and never sinks low enough to sit on top of the
  * door/colour band `drawHomeInteriorMask` (world/draw.ts) paints over.
- * Matched to the same window band the mask cuts out, so wandering the
- * bounds actually carries the player's head through both windows rather
- * than past them.
+ * Matched to the same window band the mask cuts out (`houseWindowGeometry`,
+ * world/draw.ts — home's own windows run larger than an ordinary house's,
+ * on purpose, so there's more to actually see), so wandering the bounds
+ * actually carries the player's head through both windows rather than
+ * past them.
  */
-const HOME_BOUNDS = { x: [44, 148] as const, y: [234, 270] as const };
+const HOME_BOUNDS = { x: [44, 148] as const, y: [234, 276] as const };
 /** How far past its own detection radius a hunting van keeps chasing —
  * wider than the circle that started the chase, so breaking line of sight
  * for a moment doesn't shake it instantly. */
@@ -328,6 +333,12 @@ export function Overworld() {
    * — a closure created once by `useEffect` can't read fresh state directly. */
   const activeRef = useRef<Scene | null>(null);
   activeRef.current = active;
+  /** Mirrors `open` for the frame loop — whether the player currently has
+   * a location's own card up, and specifically whether that location is a
+   * `canLieLow` one, is what the gravity/unseen-cooldown logic below reads
+   * as "actually out of sight" rather than just standing in the street. */
+  const openRef = useRef<OverworldLocation | null>(null);
+  openRef.current = open;
   /** Hidden pickups currently underfoot, so one fires once on approach rather
    * than every single frame the player happens to be standing on it. */
   const contactRef = useRef<Set<string>>(new Set());
@@ -359,12 +370,32 @@ export function Overworld() {
   /** Same "always walking, only the active subset drawn or checked" shape
    * as `patrolStateRef` — a drone that comes online at `hunted` is already
    * mid-route, not spawning fresh. No chase/linger state: a drone that
-   * spots the player logs it and keeps flying its route, it doesn't peel
-   * off after them. */
+   * spots the player logs it and keeps flying its route rather than
+   * peeling off after them — it can still coincide with a Heat-tier alert
+   * window and count as a catch, same as a van or an officer would, just
+   * never by actively pursuing. */
   const droneStateRef = useRef<Map<string, PatrolState>>(
     new Map(DRONE_ROUTES.map((r) => [r.id, { leg: 0, t: 0, dir: 1 as const }])),
   );
   const droneCooldownRef = useRef<Map<string, number>>(new Map());
+
+  /** An officer on foot — same shape as the drone's own state, no chase or
+   * linger of its own; gravity (`systems/pursuit.ts`) is what brings one
+   * close enough to matter as Heat climbs. */
+  const copStateRef = useRef<Map<string, PatrolState>>(
+    new Map(COP_ROUTES.map((r) => [r.id, { leg: 0, t: 0, dir: 1 as const }])),
+  );
+  const copCooldownRef = useRef<Map<string, number>>(new Map());
+
+  /** The last moment any van, drone or officer actually had the player
+   * inside its own detection radius — reset every time one does, read
+   * after all three loops to see whether enough uninterrupted time (or a
+   * `canLieLow` roof) has passed to start easing Heat off on its own,
+   * on top of the ordinary day-based decay (`systems/pursuit.ts`
+   * `UNSEEN_COOLDOWN_MS`). Starts at `now` on mount rather than 0 so a
+   * fresh page load doesn't read as "already been hidden forever". */
+  const lastSpottedAtRef = useRef(performance.now());
+  const lastUnseenTickRef = useRef(performance.now());
 
   enterRef.current = enter;
   blockedRef.current = Boolean(open) || cyberdeckOpen || Boolean(droneShootTarget) || Boolean(droneFlight);
@@ -590,15 +621,25 @@ export function Overworld() {
         setNearbyJunctionBox(closestJunctionBox);
       }
 
+      // A location's own card up, and it's one of the ones you can
+      // actually disappear into (home, the arcade, the treehouse, …) —
+      // gravity stops pulling anything toward the player this frame, and
+      // the unseen-cooldown relief below fires immediately rather than
+      // waiting out `UNSEEN_COOLDOWN_MS` in the open.
+      const inSafeSpace = Boolean(openRef.current?.canLieLow);
+
       /*
        * Drones — FLACK Phase Two. Every route keeps flying regardless of
        * tier, same "always moving, only the active subset checked" shape as
        * the ground patrols; only spotting differs, since a drone that
        * clocks the player logs it and keeps flying rather than giving
-       * chase. Independently, whichever drone is currently closest and
-       * within `DRONE_TAKEDOWN_RADIUS` becomes the one the take-down prompt
-       * offers — a drone already knocked down for the day (`onCooldown`)
-       * isn't drawn or checked at all, same as a cracked junction box.
+       * chase of its own. It can still coincide with a Heat-tier alert
+       * window and count as a catch — same consequence, same trip home,
+       * just never by actively pursuing. Independently, whichever drone is
+       * currently closest and within `DRONE_TAKEDOWN_RADIUS` becomes the
+       * one the take-down prompt offers — a drone already knocked down for
+       * the day (`onCooldown`) isn't drawn or checked at all, same as a
+       * cracked junction box.
        */
       const droneTune = droneTuning(tierRef.current);
       const activeDrones = new Set(activeDroneRoutes(tierRef.current).map((r) => r.id));
@@ -612,7 +653,8 @@ export function Overworld() {
         if (!activeDrones.has(route.id)) continue;
         if (onCooldown(saveRef.current, route.id, DRONE_TAKEDOWN_BY_TOOL_TIER[1].respawnDays)) continue;
 
-        const p = patrolPosition(route, next);
+        const basePos = patrolPosition(route, next);
+        const p = inSafeSpace ? basePos : gravitate(basePos, pos.current, tierRef.current, dt);
         const dist = Math.hypot(p.x - pos.current.x, p.y - pos.current.y);
         const inRange = dist < DRONE_TAKEDOWN_RADIUS;
         droneDraw.push({ x: p.x, y: p.y, radius: droneTune.detectionRadius, takeable: inRange });
@@ -622,6 +664,23 @@ export function Overworld() {
         }
 
         if (dist < droneTune.detectionRadius) {
+          lastSpottedAtRef.current = now;
+
+          const inAlertWindow =
+            now < heatAlertUntilRef.current && heatAlertUntilRef.current !== consumedAlertRef.current;
+          if (inAlertWindow) {
+            consumedAlertRef.current = heatAlertUntilRef.current;
+            const tier = tierRef.current;
+            const consequence = consequenceFor(saveRef.current, tier);
+            if (consequence) {
+              dispatch({ type: 'CAUGHT', tier });
+              pos.current = spawnFor(HOME_LOCATION_ID);
+              setCaught(consequence.label);
+              window.setTimeout(() => setCaught((m) => (m === consequence.label ? null : m)), 4000);
+              continue;
+            }
+          }
+
           const lastHit = droneCooldownRef.current.get(route.id) ?? -Infinity;
           if (now - lastHit > droneTune.cooldownMs) {
             droneCooldownRef.current.set(route.id, now);
@@ -666,7 +725,9 @@ export function Overworld() {
         patrolStateRef.current.set(route.id, next);
         if (!active.has(route.id)) continue;
 
-        const routePos = patrolPosition(route, next);
+        const routePos = inSafeSpace
+          ? patrolPosition(route, next)
+          : gravitate(patrolPosition(route, next), pos.current, tierRef.current, dt);
         // Already chasing gets the wider give-up radius; starting one at all
         // still needs an actual sighting at the van's own detection range —
         // otherwise a van two and a half circles away would start driving at
@@ -705,6 +766,7 @@ export function Overworld() {
           patrolLingerRef.current.delete(route.id);
           continue;
         }
+        lastSpottedAtRef.current = now;
 
         let since = patrolLingerRef.current.get(route.id);
         if (since === undefined) {
@@ -733,6 +795,11 @@ export function Overworld() {
           const consequence = consequenceFor(saveRef.current, tier);
           if (consequence) {
             dispatch({ type: 'CAUGHT', tier });
+            // The save already sends `currentLocation` home
+            // (systems/consequences.ts `applyCatch`) — this is the same
+            // thing true of the live view, so the player doesn't stay
+            // standing in the spot they were caught until a reload catches up.
+            pos.current = spawnFor(HOME_LOCATION_ID);
             setCaught(consequence.label);
             window.setTimeout(() => setCaught((m) => (m === consequence.label ? null : m)), 4000);
             continue;
@@ -757,6 +824,78 @@ export function Overworld() {
         }
       }
 
+      /*
+       * Officers on foot. No chase or linger of their own — same simpler
+       * shape as a drone's, spot-on-cooldown plus an alert-window catch —
+       * gravity is what actually brings one into range as Heat climbs
+       * rather than an active pursuit AI standing in for it.
+       */
+      const copTune = copTuning(tierRef.current);
+      const activeCops = new Set(activeCopRoutes(tierRef.current).map((r) => r.id));
+      const copDraw: { x: number; y: number; radius: number }[] = [];
+      for (const route of COP_ROUTES) {
+        const prev = copStateRef.current.get(route.id)!;
+        const next = stepPatrol(route, prev, copTune.speed * dt);
+        copStateRef.current.set(route.id, next);
+        if (!activeCops.has(route.id)) continue;
+
+        const basePos = patrolPosition(route, next);
+        const p = inSafeSpace ? basePos : gravitate(basePos, pos.current, tierRef.current, dt);
+        copDraw.push({ x: p.x, y: p.y, radius: copTune.detectionRadius });
+
+        const dist = Math.hypot(p.x - pos.current.x, p.y - pos.current.y);
+        if (dist >= copTune.detectionRadius) continue;
+        lastSpottedAtRef.current = now;
+
+        const inAlertWindow =
+          now < heatAlertUntilRef.current && heatAlertUntilRef.current !== consumedAlertRef.current;
+        if (inAlertWindow) {
+          consumedAlertRef.current = heatAlertUntilRef.current;
+          const tier = tierRef.current;
+          const consequence = consequenceFor(saveRef.current, tier);
+          if (consequence) {
+            dispatch({ type: 'CAUGHT', tier });
+            pos.current = spawnFor(HOME_LOCATION_ID);
+            setCaught(consequence.label);
+            window.setTimeout(() => setCaught((m) => (m === consequence.label ? null : m)), 4000);
+            continue;
+          }
+        }
+
+        const lastHit = copCooldownRef.current.get(route.id) ?? -Infinity;
+        if (now - lastHit > copTune.cooldownMs) {
+          copCooldownRef.current.set(route.id, now);
+          const heatOnSpot = copTune.heatOnSpot * (sprinting ? SPRINT_HEAT_MULTIPLIER : 1);
+          dispatch({
+            type: 'ADD_HEAT',
+            eventId: `cop_spotted_${route.id}`,
+            delta: heatOnSpot,
+            logToHistory: false,
+          });
+          setSpotted(sprinting ? 'Running got you noticed — that’s double the Heat.' : 'An officer clocks you, then keeps walking.');
+          window.setTimeout(() => setSpotted((m) => (m === null ? m : null)), 1800);
+        }
+      }
+
+      /*
+       * The payoff for staying out of sight: once nothing has had the
+       * player inside its own detection radius for `UNSEEN_COOLDOWN_MS`
+       * — or immediately, standing in a `canLieLow` location's own card —
+       * Heat starts easing off on its own, on a slow tick, independent of
+       * the ordinary day-based decay. Guarded on there being any Heat left
+       * to ease, so this never fires a string of no-op dispatches at 0.
+       */
+      const unseenLongEnough = inSafeSpace || now - lastSpottedAtRef.current >= UNSEEN_COOLDOWN_MS;
+      if (unseenLongEnough && saveRef.current.heat.current > 0 && now - lastUnseenTickRef.current > UNSEEN_TICK_MS) {
+        lastUnseenTickRef.current = now;
+        dispatch({
+          type: 'ADD_HEAT',
+          eventId: 'unseen_cooldown',
+          delta: -UNSEEN_RELIEF_PER_TICK,
+          logToHistory: false,
+        });
+      }
+
       const npcDraw = NPCS.map((npc) => ({ ...wanderPos(npc, now), kind: npc.kind, id: npc.id }));
 
       drawTown(
@@ -777,6 +916,7 @@ export function Overworld() {
         hackDraw,
         junctionBoxDraw,
         droneDraw,
+        copDraw,
         moving,
         now,
         boardTierRef.current,
@@ -874,6 +1014,9 @@ export function Overworld() {
               closes out (the chapter `createNewSave` starts every save on),
               so this teaches the one interaction the whole game runs on and
               then gets out of the way for good. */}
+          {isFirstBeat && !active && (
+            <p className="overworld__confinedhint">Not heading out till the day actually starts.</p>
+          )}
           {isFirstBeat && <p className="overworld__firsthint">Tap to start</p>}
           {/* A structure's name, on its own, whenever a scene hook is about
               to replace it in the prompt below — every place says what it

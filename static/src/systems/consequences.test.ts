@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { applyCatch, consequenceFor, HURT_UNTIL_DAY_FLAG } from './consequences';
 import { createNewSave } from '../state/defaults';
+import { HOME_LOCATION_ID } from '../world/locations';
 
 const save = () => createNewSave('Wren');
 
@@ -51,6 +52,14 @@ describe('applyCatch', () => {
     };
     const after = applyCatch(caughtBefore, 'hunted');
     expect(after.player.flags[HURT_UNTIL_DAY_FLAG]).toBe(after.world.day + 1);
+  });
+
+  it('sends the player home, whatever they were caught doing and wherever they were', () => {
+    for (const tier of ['watched', 'flagged', 'hunted'] as const) {
+      const elsewhere = { ...save(), player: { ...save().player, currentLocation: 'town_square' } };
+      const after = applyCatch(elsewhere, tier);
+      expect(after.player.currentLocation).toBe(HOME_LOCATION_ID);
+    }
   });
 
   it('never hard-fails — every field stays inside its own valid range regardless of tier', () => {
