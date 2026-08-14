@@ -138,8 +138,29 @@ const B1_OPEN: Scene = {
         { text: 'Bellhaven in the morning: sprinklers, garage doors, somebody’s dog losing its mind about nothing. You take the long way, because Ellen’s house is on the way.' },
         { text: 'The pole on the corner has a second box under the first one. You’ve walked past it a hundred times and never once looked up.' },
       ],
-      next: 'nova',
+      effects: [{ kind: 'chapter', chapterId: 'act1_glitch_01a' }],
+      end: true,
     },
+  },
+};
+
+/*
+ * Split out of B1_OPEN so Ellen only shows up once the player actually
+ * walks to her house, instead of the corner-and-Ellen beat firing as one
+ * uninterrupted cutscene the moment the player leaves theirs. `street`
+ * above hands off to the `act1_glitch_01a` chapter and releases the
+ * player into free-roam; `locationId: 'nova_house'` means this scene
+ * simply doesn't offer itself until they're standing in front of it.
+ */
+const B1_NOVA: Scene = {
+  id: 'act1_01a_ellens_corner',
+  beat: 1,
+  locationId: 'nova_house',
+  hook: 'Ellen’s out front, filming.',
+  language: 'A',
+  requires: { chapter: 'act1_glitch_01a' },
+  start: 'nova',
+  nodes: {
     nova: {
       id: 'nova',
       lines: [
@@ -657,6 +678,7 @@ const B7_FIRST_CONTACT: Scene = {
 
 export const ACT1_SCENES: Scene[] = [
   B1_OPEN,
+  B1_NOVA,
   B1B_THE_IDEA,
   B2_SMALL_WRONGNESS,
   B2B_THE_HOUSE,
