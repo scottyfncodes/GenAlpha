@@ -1219,21 +1219,27 @@ export function Overworld() {
         // flow with a `gap` can't do that: each line's height pushes the
         // next one, on any screen.
         <div className="overworld__promptstack">
-          {/* The very first thing a new player sees is this bubble, and
-              nothing else on screen says "click here" — no tutorial, no
-              quest arrow, nothing. `isFirstBeat` is true only until Beat 1
-              closes out (the chapter `createNewSave` starts every save on),
-              so this teaches the one interaction the whole game runs on and
-              then gets out of the way for good. */}
+          {/* The very first thing a new player sees is this bubble — kept
+              to one line, not the four it used to stack ("not heading out
+              yet", "tap to start", the "Home" nameplate, and the button
+              itself), which read as noise on the one frame that most needs
+              to read clearly. The glowing button (`--first`, below) is
+              already the "tap me" tell on its own; the nameplate is
+              redundant when home is the only place the player can possibly
+              be right now. `isFirstBeat` is true only until Beat 1 closes
+              out (the chapter `createNewSave` starts every save on), so
+              this one footnote explains the confinement and then gets out
+              of the way for good. */}
           {isFirstBeat && !active && (
             <p className="overworld__confinedhint">Not heading out till the day actually starts.</p>
           )}
-          {isFirstBeat && <p className="overworld__firsthint">Tap to start</p>}
           {/* A structure's name, on its own, whenever a scene hook is about
               to replace it in the prompt below — every place says what it
               is on approach (a house, the arcade, Sal's Pizza) whether or
-              not there's also a story thread here right now. */}
-          {nearbyScene && nearbyScenes.length === 1 && (
+              not there's also a story thread here right now. Skipped on
+              the very first beat: home is the only place there is to be
+              yet, so naming it is a fourth line saying a third thing. */}
+          {!isFirstBeat && nearbyScene && nearbyScenes.length === 1 && (
             <p className="overworld__nameplate">{nearby.label}</p>
           )}
           <button

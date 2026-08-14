@@ -145,21 +145,10 @@
   animation: overworld-first-glow 1.8s ease-out infinite;
 }
 
-.overworld__firsthint {
-  margin: 0;
-  text-align: center;
-  color: var(--b-paper);
-  font-family: var(--font-a);
-  font-weight: 700;
-  font-size: 13px;
-  letter-spacing: 0.04em;
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.6);
-  pointer-events: none;
-}
-
-/* The reason under the nudge — why there's a wall where the door should
-   be, not just what to do about it. Smaller and quieter than the hint
-   below it: a footnote, not a second instruction. */
+/* Why there's a wall where the door should be, on the one frame every new
+   save opens on — quieter than the button below it (the actual "tap me",
+   already carrying its own glow), a footnote rather than a second
+   instruction. */
 .overworld__confinedhint {
   margin: 0;
   text-align: center;
