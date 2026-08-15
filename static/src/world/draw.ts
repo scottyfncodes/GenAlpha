@@ -10,6 +10,19 @@ import type { Obstacle } from './obstacles';
 import type { NpcKind } from './npcs';
 import type { ThresholdTier } from '../state/schema';
 import { mulberry32, seedFrom } from '../systems/rng';
+import { drawSpriteTile, ensureSpriteSheetLoading, spriteSheetReady } from './spritesheet';
+import {
+  BUSH_ORANGE,
+  BUSH_TEAL,
+  CAR_TILES,
+  CHARACTERS,
+  CHARACTER_DRAW_SIZE,
+  TREE_SMALL_ORANGE,
+  TREE_SMALL_TEAL,
+  TREE_TALL_ORANGE,
+  TREE_TALL_TEAL,
+  type Direction,
+} from './spriteIndex';
 
 /**
  * THE TOWN, DRAWN.
@@ -220,6 +233,8 @@ export function drawTown(
   boardTier: number,
   confinedToHome: boolean,
 ) {
+  ensureSpriteSheetLoading();
+
   const vw = canvas.clientWidth;
   const vh = canvas.clientHeight;
 
@@ -258,7 +273,7 @@ export function drawTown(
   // Ambient people and animals — decorative only, drawn after locations so
   // a building still occludes them, and well before the player so nothing
   // ambient can ever render on top of the one figure that matters.
-  for (const n of npcs) drawNpc(ctx, n.x, n.y, n.kind, n.facing, n.id);
+  for (const n of npcs) drawNpc(ctx, n.x, n.y, n.kind, n.facing, n.id, now);
 
   // Ordinary cameras, worth taking apart — the same small box the story pole
   // renders as, so it reads as the same kind of object. `dismantlable` is
@@ -356,9 +371,23 @@ function drawSparkle(ctx: CanvasRenderingContext2D, o: Obstacle, now: number) {
   ctx.globalAlpha = 1;
 }
 
-/** Trunk, then a canopy as two overlapping discs so it doesn't read as a
- * perfect ball. */
+/** A two-tile sprite stack (canopy over canopy+trunk) when the sheet's
+ * loaded; the old two-disc procedural tree while it isn't. Palette (teal
+ * vs. the pack's autumn orange) and height (tall vs. small) are both picked
+ * once per obstacle id, purely for variety — a whole street of identical
+ * trees reads as tiled wallpaper, a mix doesn't. */
 function drawTree(ctx: CanvasRenderingContext2D, o: Obstacle) {
+  if (spriteSheetReady()) {
+    const cx = o.x + o.w / 2;
+    const tall = noise(`tree-height:${o.id}`)() < 0.6;
+    const teal = noise(`tree-palette:${o.id}`)() < 0.75;
+    const set = tall ? (teal ? TREE_TALL_TEAL : TREE_TALL_ORANGE) : teal ? TREE_SMALL_TEAL : TREE_SMALL_ORANGE;
+    const halfH = o.h / 2;
+    drawSpriteTile(ctx, set.top, cx, o.y + halfH / 2, o.w, halfH);
+    drawSpriteTile(ctx, set.base, cx, o.y + halfH + halfH / 2, o.w, halfH);
+    return;
+  }
+
   const cx = o.x + o.w / 2;
   const trunkW = Math.max(4, o.w * 0.14);
   const trunkH = o.h * 0.32;
@@ -381,6 +410,14 @@ function drawTree(ctx: CanvasRenderingContext2D, o: Obstacle) {
 /** A cluster of overlapping blobs, seeded per-obstacle so it doesn't
  * reshuffle every frame but still varies from one bush to the next. */
 function drawBush(ctx: CanvasRenderingContext2D, o: Obstacle) {
+  if (spriteSheetReady()) {
+    const cx = o.x + o.w / 2;
+    const cy = o.y + o.h / 2;
+    const idx = noise(`bush-palette:${o.id}`)() < 0.7 ? BUSH_TEAL : BUSH_ORANGE;
+    drawSpriteTile(ctx, idx, cx, cy, o.w, o.h);
+    return;
+  }
+
   const rand = noise(`bush:${o.id}`);
   ctx.fillStyle = PALETTE.bush;
   for (let i = 0; i < 5; i++) {
@@ -520,6 +557,12 @@ function drawParkedCar(ctx: CanvasRenderingContext2D, o: Obstacle) {
 
   ctx.fillStyle = 'rgba(0,0,0,0.25)';
   ctx.fillRect(x - 1, y + o.h - 1, o.w + 2, 2);
+
+  if (spriteSheetReady()) {
+    const idx = CAR_TILES[Math.floor(noise(`car:${o.id}`)() * CAR_TILES.length)];
+    drawSpriteTile(ctx, idx, x + o.w / 2, y + o.h / 2, o.w, o.h);
+    return;
+  }
 
   ctx.fillStyle = PALETTE.parkedCarBody;
   ctx.fillRect(x, y, o.w, o.h);
@@ -2161,10 +2204,10 @@ const CAT_COATS = ['#4a4038', '#8a7460', '#2a2620', '#a89468'];
  * player: no cap, no backpack, no board, so the protagonist never gets lost
  * in a crowd of themselves.
  */
-function drawNpc(ctx: CanvasRenderingContext2D, x: number, y: number, kind: NpcKind, facing: 1 | -1, id: string) {
+function drawNpc(ctx: CanvasRenderingContext2D, x: number, y: number, kind: NpcKind, facing: 1 | -1, id: string, now: number) {
   switch (kind) {
     case 'person':
-      return drawPedestrian(ctx, x, y, id);
+      return drawPedestrian(ctx, x, y, id, facing, now);
     case 'dog':
       return drawDog(ctx, x, y);
     case 'cat':
@@ -2174,9 +2217,37 @@ function drawNpc(ctx: CanvasRenderingContext2D, x: number, y: number, kind: NpcK
   }
 }
 
-/** A plain townsperson: a torso block and a head, no limbs animated — small
- * enough on screen that a walk cycle would be wasted detail. */
-function drawPedestrian(ctx: CanvasRenderingContext2D, x: number, y: number, id: string) {
+/** Which of the pack's 6 character skins a given id wears — the same "small
+ * fixed wardrobe, picked once, never reshuffled" trick the old `NPC_SHIRTS`
+ * used, just indexing a skin instead of a color. */
+function characterSkinFor(id: string): number {
+  return Math.floor(noise(`skin:${id}`)() * CHARACTERS.length);
+}
+
+/** A 3-frame walk cycle when moving, held on the middle (most neutral)
+ * frame when standing still — same two-beat cadence `drawPlayer`'s old
+ * `stride` used, just indexing a frame instead of flipping a sign. */
+function walkFrame(now: number, moving: boolean): 0 | 1 | 2 {
+  if (!moving) return 1;
+  return (Math.floor(now / 150) % 3) as 0 | 1 | 2;
+}
+
+/** A plain townsperson, drawn from the sprite sheet once it's loaded — the
+ * old torso-and-head block otherwise. Ambient pedestrians only ever face
+ * left or right (`Npc.direction`/`wanderPos` don't track a vertical axis),
+ * so this always reads off the `left`/`right` columns, walking in place at
+ * a fixed animation rate rather than syncing to true movement speed —
+ * plenty for something this small and this far from the camera's focus. */
+function drawPedestrian(ctx: CanvasRenderingContext2D, x: number, y: number, id: string, facing: 1 | -1, now: number) {
+  if (spriteSheetReady()) {
+    const character = CHARACTERS[characterSkinFor(id)];
+    const frames = facing < 0 ? character.left : character.right;
+    const offset = noise(`walk-phase:${id}`)() * 900;
+    const frame = frames[Math.floor(((now + offset) / 260) % 3)];
+    drawSpriteTile(ctx, frame, px(x), px(y) - CHARACTER_DRAW_SIZE.h / 2, CHARACTER_DRAW_SIZE.w, CHARACTER_DRAW_SIZE.h);
+    return;
+  }
+
   const cx = px(x);
   const feetY = px(y);
   const bodyW = 6;
@@ -2263,14 +2334,20 @@ function drawBird(ctx: CanvasRenderingContext2D, x: number, y: number, facing: 1
   ctx.fillRect(cx + 2 * facing, cy - 2, 3, 1);
 }
 
+/** The last-nonzero `{x,y}` facing vector (`Overworld.tsx` never lets it
+ * settle back to zero) collapsed to one of the sprite sheet's 4 columns.
+ * Diagonal movement sets both axes at once; horizontal wins the tie, purely
+ * an arbitrary but consistent choice. */
+function facingDirection(facing: { x: number; y: number }): Direction {
+  if (Math.abs(facing.x) >= Math.abs(facing.y)) return facing.x < 0 ? 'left' : 'right';
+  return facing.y < 0 ? 'up' : 'down';
+}
+
 /**
- * The protagonist, redrawn as an actual stick figure — a head, a spine, two
- * arms and two legs, all lines rather than filled bars. `stride` splays the
- * limbs opposite each other and opposite the same-side leg (left leg wide
- * pairs with right arm wide), the same two-beat gait as before, just walking
- * a skeleton instead of sliding a block. Facing still reads off the hair,
- * same trick as always, so this is still one phase number and no sprite
- * sheet.
+ * The protagonist. A real character sprite once the sheet's loaded, walking
+ * a 3-frame cycle in whichever of the 4 sheet directions `facing` resolves
+ * to; the old hand-drawn stick figure while it isn't. The board and its
+ * shadow are drawn either way — Style Guide 07's build, not the sheet's.
  */
 function drawPlayer(
   ctx: CanvasRenderingContext2D,
@@ -2283,18 +2360,26 @@ function drawPlayer(
 ) {
   const cx = px(player.x);
   const feetY = px(player.y);
-  const headR = 3;
-  const headCy = feetY - size.h + headR;
-  const neckY = headCy + headR;
-  const hipY = feetY - 6;
-
-  const stride = moving ? (Math.floor(now / 220) % 2 === 0 ? 1 : -1) : 0;
 
   // A flat shadow, so the figure stands on the street instead of floating on it.
   ctx.fillStyle = 'rgba(0,0,0,0.28)';
   ctx.fillRect(cx - size.w / 2 - 1, feetY, size.w + 2, 2);
 
   drawBoard(ctx, cx, feetY, boardTier, now);
+
+  if (spriteSheetReady()) {
+    const direction = facingDirection(facing);
+    const frame = CHARACTERS[0][direction][walkFrame(now, moving)];
+    drawSpriteTile(ctx, frame, cx, feetY - CHARACTER_DRAW_SIZE.h / 2, CHARACTER_DRAW_SIZE.w, CHARACTER_DRAW_SIZE.h);
+    return;
+  }
+
+  const headR = 3;
+  const headCy = feetY - size.h + headR;
+  const neckY = headCy + headR;
+  const hipY = feetY - 6;
+
+  const stride = moving ? (Math.floor(now / 220) % 2 === 0 ? 1 : -1) : 0;
 
   // A backpack behind the spine — chunkier than a bare "holdover" bag on
   // purpose, with its own strap line, since a skater's backpack is half the
