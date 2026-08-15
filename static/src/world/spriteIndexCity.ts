@@ -30,3 +30,26 @@ export const ROOF_INDUSTRIAL: NineSlice = (() => {
   const flat = tileIndex(10, 1);
   return { tl: flat, t: flat, tr: flat, l: flat, fill: flat, r: flat, bl: flat, b: flat, br: flat };
 })();
+
+/** Plain asphalt — no lane markings. The pack has marked variants (single
+ * and double yellow lines, crosswalk stripes, turn arrows) but every one of
+ * those bakes in an orientation, and the road hierarchy's existing centre
+ * -line/crack/pedestrian-dot overlays (`drawRoads`) already encode tier and
+ * direction procedurally, tuned per tier. Doubling that up on the sprite
+ * would either conflict with it or need the tile picker to re-derive
+ * exactly what the overlay logic already knows — this tile is the ground
+ * `drawGroundGrid` blits under those overlays, nothing more. */
+export const ASPHALT_TILE = tileIndex(10, 19);
+
+/** A plain paver, no curb — `drawGroundGrid` uses this for `path`-tier
+ * cells (pedestrian paths were always "gravel, not asphalt" per the road
+ * hierarchy's own doc comment; this is that, now a real texture instead of
+ * a flat fill colour). */
+export const SIDEWALK_TILE = tileIndex(0, 19);
+
+/** The base ground tile everywhere that isn't a road or a path — a grey
+ * gravel swatch chosen to sit near `PALETTE.ground`'s cool blue-grey rather
+ * than read as grass; Style Guide 07's ground is pavement-toned even where
+ * nothing is built on it, and a bright green tile would fight that on
+ * every district's own tint overlay drawn on top of it. */
+export const GROUND_TILE = tileIndex(2, 24);

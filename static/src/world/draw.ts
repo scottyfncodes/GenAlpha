@@ -39,7 +39,7 @@ import {
   type NineSlice,
   type WallKit,
 } from './spriteIndex';
-import { ROOF_INDUSTRIAL, WALL_INDUSTRIAL } from './spriteIndexCity';
+import { ASPHALT_TILE, GROUND_TILE, ROOF_INDUSTRIAL, SIDEWALK_TILE, WALL_INDUSTRIAL } from './spriteIndexCity';
 
 /**
  * THE TOWN, DRAWN.
@@ -266,7 +266,7 @@ export function drawTown(
   ctx.scale(scale, scale);
   ctx.translate(px(-camX), px(-camY));
 
-  drawGround(ctx);
+  drawGround(ctx, camX, camY, vw, vh, scale);
   drawRoads(ctx);
   drawEdgeGeography(ctx);
 
@@ -816,7 +816,109 @@ const DISTRICT_GROUND_TINTS = DISTRICTS.map((d) => ({
   alt: mixHex(PALETTE.groundAlt, d.color, 0.18),
 }));
 
-function drawGround(ctx: CanvasRenderingContext2D) {
+/**
+ * The ground/road tile grid — the first piece of the map that's a real
+ * grid instead of floating-point rects with sprites patched onto them
+ * after the fact. `GRID_TILE` matches the sheet's own 16px so cells line
+ * up with the sprite pixels exactly; `surfaceGrid()` rasterizes the
+ * *existing* `ROAD_SEGMENTS`/`DIAGONAL_ROADS` onto it once, lazily, on
+ * first use rather than at module load (those are declared further down
+ * this file — a function body can reference a later `const` freely since
+ * nothing calls it until well after the whole module has finished
+ * evaluating, but an eager top-level initializer here couldn't).
+ * Locations, obstacles, and every route/coverage system downstream of
+ * them are untouched — this only decides what the ground *looks like*.
+ */
+const GRID_TILE = TILE;
+const GRID_COLS = Math.ceil(MAP_WIDTH / GRID_TILE);
+const GRID_ROWS = Math.ceil(MAP_HEIGHT / GRID_TILE);
+
+let surfaceGridCache: (RoadTier | null)[][] | null = null;
+
+function surfaceGrid(): (RoadTier | null)[][] {
+  if (surfaceGridCache) return surfaceGridCache;
+  const grid: (RoadTier | null)[][] = Array.from({ length: GRID_ROWS }, () => new Array<RoadTier | null>(GRID_COLS).fill(null));
+
+  for (const road of ROAD_SEGMENTS) {
+    const c0 = Math.max(0, Math.floor(road.x / GRID_TILE));
+    const c1 = Math.min(GRID_COLS - 1, Math.floor((road.x + road.w - 1) / GRID_TILE));
+    const r0 = Math.max(0, Math.floor(road.y / GRID_TILE));
+    const r1 = Math.min(GRID_ROWS - 1, Math.floor((road.y + road.h - 1) / GRID_TILE));
+    for (let r = r0; r <= r1; r++) {
+      for (let c = c0; c <= c1; c++) grid[r][c] = road.tier;
+    }
+  }
+
+  // The one rotated segment: an inverse-rotate point test per candidate
+  // cell rather than teaching the grid about angles anywhere else.
+  for (const { cx, cy, length, angleDeg } of DIAGONAL_ROADS) {
+    const half = length / 2;
+    const halfW = ROAD_WIDTH.local / 2;
+    const rad = (-angleDeg * Math.PI) / 180;
+    const cos = Math.cos(rad);
+    const sin = Math.sin(rad);
+    const reach = Math.ceil((half + halfW) / GRID_TILE) + 1;
+    const cCenter = Math.floor(cx / GRID_TILE);
+    const rCenter = Math.floor(cy / GRID_TILE);
+    for (let r = Math.max(0, rCenter - reach); r <= Math.min(GRID_ROWS - 1, rCenter + reach); r++) {
+      for (let c = Math.max(0, cCenter - reach); c <= Math.min(GRID_COLS - 1, cCenter + reach); c++) {
+        const dx = c * GRID_TILE + GRID_TILE / 2 - cx;
+        const dy = r * GRID_TILE + GRID_TILE / 2 - cy;
+        const lx = dx * cos - dy * sin;
+        const ly = dx * sin + dy * cos;
+        // Tagged 'secondary' — the tier `drawDiagonalRoad` already paints
+        // this segment with (`PALETTE.roadSecondary`); there's no separate
+        // tier field on a diagonal to read instead.
+        if (Math.abs(lx) <= half && Math.abs(ly) <= halfW) grid[r][c] = 'secondary';
+      }
+    }
+  }
+
+  surfaceGridCache = grid;
+  return grid;
+}
+
+/** Every road tier gets plain asphalt underneath — `drawRoads`' own
+ * centreline/crack/pedestrian-dot overlays already carry the tier
+ * distinction, tuned per tier; this only decides asphalt vs. paver vs.
+ * bare ground. `path` gets the paver tile (pedestrian paths were always
+ * "gravel, not asphalt" per the road hierarchy's own doc comment). */
+function groundTileFor(tier: RoadTier | null): number {
+  if (tier === 'path') return SIDEWALK_TILE;
+  if (tier) return ASPHALT_TILE;
+  return GROUND_TILE;
+}
+
+function drawGroundGrid(ctx: CanvasRenderingContext2D, camX: number, camY: number, vw: number, vh: number, scale: number) {
+  const grid = surfaceGrid();
+  const c0 = Math.max(0, Math.floor(camX / GRID_TILE));
+  const c1 = Math.min(GRID_COLS - 1, Math.ceil((camX + vw / scale) / GRID_TILE));
+  const r0 = Math.max(0, Math.floor(camY / GRID_TILE));
+  const r1 = Math.min(GRID_ROWS - 1, Math.ceil((camY + vh / scale) / GRID_TILE));
+  for (let r = r0; r <= r1; r++) {
+    for (let c = c0; c <= c1; c++) {
+      drawCityTileAt(ctx, groundTileFor(grid[r][c]), c * GRID_TILE, r * GRID_TILE);
+    }
+  }
+
+  // Each district's own accent colour, as a faint wash over the real
+  // texture now underneath it — same 12% strength `DISTRICT_GROUND_TINTS`
+  // blended into a flat fill before; a wash over a tile serves the same
+  // "this patch of pavement is its own neighbourhood" cue.
+  for (const d of DISTRICTS) {
+    ctx.fillStyle = d.color;
+    ctx.globalAlpha = 0.12;
+    ctx.fillRect(d.x, d.y, d.w, d.h);
+  }
+  ctx.globalAlpha = 1;
+}
+
+function drawGround(ctx: CanvasRenderingContext2D, camX: number, camY: number, vw: number, vh: number, scale: number) {
+  if (citySheetReady()) {
+    drawGroundGrid(ctx, camX, camY, vw, vh, scale);
+    return;
+  }
+
   ctx.fillStyle = PALETTE.ground;
   ctx.fillRect(0, 0, MAP_WIDTH, MAP_HEIGHT);
 
@@ -953,17 +1055,23 @@ const DIAGONAL_ROADS: { cx: number; cy: number; length: number; angleDeg: number
  * at `local` width and below a painted centreline reads as a shrunk major
  * road, not a different kind of street. */
 function drawRoads(ctx: CanvasRenderingContext2D) {
-  for (const road of ROAD_SEGMENTS) {
-    ctx.fillStyle =
-      road.tier === 'major' ? PALETTE.roadMajor
-      : road.tier === 'secondary' ? PALETTE.roadSecondary
-      : road.tier === 'alley' ? PALETTE.roadAlley
-      : road.tier === 'path' ? PALETTE.curb
-      : PALETTE.road;
-    ctx.fillRect(road.x, road.y, road.w, road.h);
-  }
+  // The surface itself is `drawGroundGrid`'s job once the sheet's loaded
+  // (`surfaceGrid()` rasterizes these same `ROAD_SEGMENTS`/`DIAGONAL_ROADS`
+  // onto the tile grid) — everything below is the overlay that was always
+  // layered on top of a flat fill and still is, just on top of asphalt now.
+  if (!citySheetReady()) {
+    for (const road of ROAD_SEGMENTS) {
+      ctx.fillStyle =
+        road.tier === 'major' ? PALETTE.roadMajor
+        : road.tier === 'secondary' ? PALETTE.roadSecondary
+        : road.tier === 'alley' ? PALETTE.roadAlley
+        : road.tier === 'path' ? PALETTE.curb
+        : PALETTE.road;
+      ctx.fillRect(road.x, road.y, road.w, road.h);
+    }
 
-  for (const { cx, cy, length, angleDeg } of DIAGONAL_ROADS) drawDiagonalRoad(ctx, cx, cy, length, angleDeg);
+    for (const { cx, cy, length, angleDeg } of DIAGONAL_ROADS) drawDiagonalRoad(ctx, cx, cy, length, angleDeg);
+  }
 
   ctx.globalAlpha = 0.5;
   for (const road of ROAD_SEGMENTS) {
