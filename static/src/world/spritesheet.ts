@@ -1,13 +1,15 @@
 /**
- * The real images this game loads. Two sheets now: Kenney's CC0 RPG Urban
+ * The real images this game loads. Three sheets now: Kenney's CC0 RPG Urban
  * Pack (458x305, 27 cols x 18 rows) for the cozy/suburban tiles everything
- * so far has used, and Kenney's CC0 Roguelike City Pack (628x475, 37 cols x
+ * so far has used, Kenney's CC0 Roguelike City Pack (628x475, 37 cols x
  * 28 rows) for the industrial grey concrete warehouse/garage needed and the
- * first pack simply doesn't have. Both 16x16 tiles, 1px spacing, 0px margin
- * — see `public/tiles/NOTICE.txt` and `NOTICE-city.txt`. `spriteIndex.ts`
- * and `spriteIndexCity.ts` name the specific tiles each sheet actually
- * draws; this module only knows how to get a sheet loaded and hand back a
- * source rect for a given tile index.
+ * first pack simply doesn't have, and Kenney's CC0 Roguelike Indoor pack
+ * (458x305, 27 cols x 18 rows — the same grid as the first sheet) for the
+ * furniture and floor tiles the small interior-backdrop canvases draw. All
+ * 16x16 tiles, 1px spacing, 0px margin — see `public/tiles/NOTICE.txt`.
+ * `spriteIndex.ts`, `spriteIndexCity.ts`, and `spriteIndexInterior.ts` name
+ * the specific tiles each sheet actually draws; this module only knows how
+ * to get a sheet loaded and hand back a source rect for a given tile index.
  *
  * `drawTown` runs synchronously, every frame, straight from the render loop
  * — there's no `await` point to hang a "wait for the image" on. So each
@@ -65,12 +67,14 @@ function createSheet(src: string, cols: number): SpriteSheet {
 
 const mainSheet = createSheet('./tiles/kenney-rpg-urban-pack.png', 27);
 const citySheet = createSheet('./tiles/kenney-roguelike-city-pack.png', 37);
+const interiorSheet = createSheet('./tiles/kenney-roguelike-interior-pack.png', 27);
 
 /** Call once, anywhere, before the first frame — safe to call more than
  * once, each sheet's load only actually kicks off the first time. */
 export function ensureSpriteSheetLoading(): void {
   mainSheet.ensureLoading();
   citySheet.ensureLoading();
+  interiorSheet.ensureLoading();
 }
 
 export function spriteSheetReady(): boolean {
@@ -112,4 +116,15 @@ export function citySheetReady(): boolean {
 
 export function drawCityTileAt(ctx: CanvasRenderingContext2D, index: number, x: number, y: number, size: number = TILE): void {
   citySheet.drawTileAt(ctx, index, x, y, size);
+}
+
+/** The Roguelike Indoor pack — furniture and floor tiles for the small
+ * interior-backdrop canvases (`InteriorBackdrop.tsx`), same shape as the
+ * city sheet's exports above. */
+export function interiorSheetReady(): boolean {
+  return interiorSheet.ready();
+}
+
+export function drawInteriorTileAt(ctx: CanvasRenderingContext2D, index: number, x: number, y: number, size: number = TILE): void {
+  interiorSheet.drawTileAt(ctx, index, x, y, size);
 }

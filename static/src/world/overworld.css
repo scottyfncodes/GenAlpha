@@ -294,6 +294,15 @@
   overflow: auto;
 }
 
+.overworld__interior {
+  display: block;
+  width: min(100%, 256px);
+  height: auto;
+  margin: 0 0 var(--step);
+  border-radius: 4px;
+  image-rendering: pixelated;
+}
+
 .overworld__scene h2 {
   margin: 0 0 var(--step);
   font-size: 20px;

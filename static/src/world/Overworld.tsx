@@ -51,6 +51,7 @@ import { SAFEHOUSE_ID } from '../content/safehouse';
 import { ALL_SCENES } from '../content/all';
 import { pendingScenes, scenesAt, type Scene } from '../systems/scenes';
 import { SceneView } from '../ui/SceneView';
+import { HomeInteriorBackdrop } from './InteriorBackdrop';
 import { STREET_HACK_INTERACT_RADIUS, STREET_HACK_NODES, type StreetHackNode } from './streethacks';
 import { canHackStreetNode, HACK_KIND_TOOL } from '../systems/streethacks';
 import { drawTown } from './draw';
@@ -1522,6 +1523,7 @@ export function Overworld() {
 
       {open && !active && (
         <div className={`overworld__scene ${open.language === 'B' ? 'lang-b' : 'lang-a'}`}>
+          {open.id === HOME_LOCATION_ID && <HomeInteriorBackdrop />}
           <h2>{open.label}</h2>
           <p>{ambientFor(open, save.heat.threshold_tier, save.world.townTrust)}</p>
           {/*
