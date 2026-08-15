@@ -39,33 +39,33 @@ export const JUNCTION_BOX_RISK: Record<JunctionBoxNode['tier'], { heatCost: numb
 };
 
 export const JUNCTION_BOX_NODES: JunctionBoxNode[] = [
-  // Tier 1 — spread through the residential/civic core, the earliest ground
-  // a player actually covers.
-  { id: 'junction_1', x: 176, y: 320, tier: 1 },
-  { id: 'junction_2', x: 460, y: 150, tier: 1 },
-  { id: 'junction_3', x: 380, y: 460, tier: 1 },
-  { id: 'junction_4', x: 230, y: 460, tier: 1 },
-  // Tier 2 — downtown, once there's a reason to be there.
-  { id: 'junction_5', x: 600, y: 305, tier: 2 },
-  { id: 'junction_6', x: 760, y: 320, tier: 2 },
-  // Tier 3 — the Annex's working edge.
-  { id: 'junction_7', x: 900, y: 330, tier: 3 },
-  { id: 'junction_8', x: 870, y: 462, tier: 3 },
-  // Tier 4 — deeper into the Annex, where the story keeps warning it's
-  // watched.
-  { id: 'junction_9', x: 1080, y: 325, tier: 4 },
-  { id: 'junction_10', x: 1100, y: 480, tier: 4 },
-  // Tier 5 — the far edge of the map, the last thing worth the trip, and
-  // the only pool the two top-line plans can come out of.
-  { id: 'junction_11', x: 1200, y: 180, tier: 5 },
-  { id: 'junction_12', x: 1220, y: 600, tier: 5 },
-  // The southern spread — same tier logic, placed so the low tiers stay
-  // reachable early and the high ones sit where the story already warns
-  // about being watched.
-  { id: 'junction_13', x: 300, y: 570, tier: 1 },
-  { id: 'junction_14', x: 740, y: 490, tier: 2 },
-  { id: 'junction_15', x: 1000, y: 560, tier: 3 },
-  { id: 'junction_16', x: 500, y: 650, tier: 1 },
-  { id: 'junction_17', x: 950, y: 600, tier: 2 },
-  { id: 'junction_18', x: 1220, y: 720, tier: 3 },
+  // Tier 1 — spread through the residential districts and the civic core,
+  // the earliest ground a player actually covers: Residential North, West
+  // End, Downtown, Transit Hub, South Residential, Riverside Park.
+  { id: 'junction_1', x: 150, y: 280, tier: 1 },
+  { id: 'junction_2', x: 150, y: 600, tier: 1 },
+  { id: 'junction_3', x: 659, y: 172, tier: 1 },
+  { id: 'junction_4', x: 240, y: 837, tier: 1 },
+  { id: 'junction_5', x: 650, y: 1000, tier: 1 },
+  { id: 'junction_6', x: 650, y: 450, tier: 1 },
+  // Tier 2 — West End's own working edge, the Commercial Strip, the
+  // Warehouse District's Row 1, and Riverside Park's own eastern half.
+  { id: 'junction_7', x: 370, y: 600, tier: 2 },
+  { id: 'junction_8', x: 1161, y: 1010, tier: 2 },
+  { id: 'junction_9', x: 1200, y: 250, tier: 2 },
+  { id: 'junction_10', x: 850, y: 600, tier: 2 },
+  // Tier 3 — Downtown's own eastern reach, the Warehouse District's far
+  // corner, South Residential, and Transit Hub's own south side.
+  { id: 'junction_11', x: 902, y: 284, tier: 3 },
+  { id: 'junction_12', x: 1450, y: 250, tier: 3 },
+  { id: 'junction_13', x: 893, y: 990, tier: 3 },
+  { id: 'junction_14', x: 305, y: 961, tier: 3 },
+  // Tier 4 — deeper into the Warehouse District and the Commercial Strip,
+  // where the story keeps warning it's watched.
+  { id: 'junction_15', x: 1250, y: 550, tier: 4 },
+  { id: 'junction_16', x: 1450, y: 850, tier: 4 },
+  // Tier 5 — the Warehouse District's own far edge, the last thing worth
+  // the trip, and the only pool the two top-line plans can come out of.
+  { id: 'junction_17', x: 1557, y: 160, tier: 5 },
+  { id: 'junction_18', x: 1550, y: 650, tier: 5 },
 ];

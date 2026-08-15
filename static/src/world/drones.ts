@@ -13,47 +13,48 @@ import type { EscalationStage } from './escalation';
  */
 export const DRONE_ROUTES: PatrolRoute[] = [
   {
-    // A long diagonal sweep across the civic core — the first one active,
-    // and the one most likely to cross paths with an ordinary walk.
+    // A long diagonal sweep across the civic core — Residential North down
+    // through the Downtown Crossroads — the first one active, and the one
+    // most likely to cross paths with an ordinary walk.
     id: 'drone_diagonal',
     loop: false,
     points: [
-      { x: 120, y: 120 },
-      { x: 700, y: 500 },
+      { x: 250, y: 180 },
+      { x: 850, y: 580 },
     ],
   },
   {
-    // A tight racetrack loop over the town square — the town's most
-    // watched public space, watched from above too now.
+    // A tight racetrack loop over Town Square — the town's most watched
+    // public space, watched from above too now.
     id: 'drone_square_loop',
     loop: true,
     points: [
-      { x: 460, y: 300 },
-      { x: 740, y: 300 },
-      { x: 740, y: 520 },
-      { x: 460, y: 520 },
+      { x: 520, y: 180 },
+      { x: 900, y: 180 },
+      { x: 900, y: 400 },
+      { x: 520, y: 400 },
     ],
   },
   {
-    // The Annex perimeter, from above — a second, wider ring around the
-    // ground patrol's own annex loop.
+    // The Warehouse District's own perimeter, from above — a second, wider
+    // ring around the ground patrol's own `warehouse_loop`.
     id: 'drone_annex_ring',
     loop: true,
     points: [
-      { x: 780, y: 120 },
-      { x: 1250, y: 120 },
-      { x: 1250, y: 520 },
-      { x: 780, y: 520 },
+      { x: 1150, y: 30 },
+      { x: 1580, y: 30 },
+      { x: 1580, y: 700 },
+      { x: 1150, y: 700 },
     ],
   },
   {
-    // A there-and-back over the residential streets on the far side of
-    // town, so the west edge isn't dead airspace once Phase Two is fully live.
+    // A there-and-back over West End and the river edge, so the west side
+    // of town isn't dead airspace once Phase Two is fully live.
     id: 'drone_west_sweep',
     loop: false,
     points: [
-      { x: 100, y: 600 },
-      { x: 500, y: 700 },
+      { x: 100, y: 750 },
+      { x: 520, y: 950 },
     ],
   },
 ];

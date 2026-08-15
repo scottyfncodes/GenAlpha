@@ -35,55 +35,47 @@ export interface Npc {
 }
 
 export const NPCS: Npc[] = [
-  // Just south of the town square — the square's own rectangle is solid
-  // like every other location (Overworld.tsx doesn't special-case a plaza),
-  // so "milling around it" means the street below it, not the paving.
-  { id: 'npc_1', kind: 'person', x: 600, y: 480, direction: 0, wanderRadius: 26, periodMs: 7000 },
-  { id: 'npc_2', kind: 'person', x: 660, y: 480, direction: 180, wanderRadius: 20, periodMs: 9000 },
-  { id: 'npc_dog_1', kind: 'dog', x: 630, y: 485, direction: 0, wanderRadius: 12, periodMs: 4000 },
+  // Downtown — the Crossroads and the school run, the busiest ambient life
+  // in town, matching the district's own "lots of people" character.
+  { id: 'npc_1', kind: 'person', x: 650, y: 350, direction: 0, wanderRadius: 26, periodMs: 7000 },
+  { id: 'npc_2', kind: 'person', x: 700, y: 350, direction: 0, wanderRadius: 20, periodMs: 9000 },
+  { id: 'npc_dog_1', kind: 'dog', x: 675, y: 355, direction: 0, wanderRadius: 12, periodMs: 4000 },
+  { id: 'npc_3', kind: 'person', x: 650, y: 175, direction: 0, wanderRadius: 24, periodMs: 8000 },
+  { id: 'npc_cat_1', kind: 'cat', x: 650, y: 340, direction: 0, wanderRadius: 10, periodMs: 5200 },
+  { id: 'npc_bird_1', kind: 'bird', x: 650, y: 90, direction: 220, wanderRadius: 60, periodMs: 5000 },
 
-  // School crossing — the open strip south of the school, north of the
-  // Town Square block.
-  { id: 'npc_3', kind: 'person', x: 600, y: 172, direction: 0, wanderRadius: 24, periodMs: 8000 },
-  { id: 'npc_bird_1', kind: 'bird', x: 650, y: 60, direction: 45, wanderRadius: 60, periodMs: 5000 },
+  // Warehouse District — Fenwick Lot's own frontage and the Rail Spur strip,
+  // sparser than Downtown, matching the district's quieter character.
+  { id: 'npc_4', kind: 'person', x: 1300, y: 260, direction: 0, wanderRadius: 14, periodMs: 6500 },
+  { id: 'npc_5', kind: 'person', x: 1400, y: 260, direction: 0, wanderRadius: 20, periodMs: 7500 },
+  { id: 'npc_7', kind: 'person', x: 1238, y: 564, direction: 0, wanderRadius: 14, periodMs: 7800 },
 
-  // Sal's / the Annex strip up top — the open ground between Sal's bottom
-  // edge and the Utility Yard's top edge.
-  { id: 'npc_4', kind: 'person', x: 770, y: 140, direction: 0, wanderRadius: 14, periodMs: 6500 },
-  { id: 'npc_5', kind: 'person', x: 860, y: 140, direction: 180, wanderRadius: 20, periodMs: 7500 },
+  // Downtown, north — Library sidewalk.
+  { id: 'npc_6', kind: 'person', x: 900, y: 165, direction: 0, wanderRadius: 18, periodMs: 8200 },
 
-  // Library sidewalk, south of the building.
-  { id: 'npc_6', kind: 'person', x: 700, y: 330, direction: 90, wanderRadius: 18, periodMs: 8200 },
-
-  // The gap between the Repair Shop and the Annex Fence, below the fence
-  // line that separates Fenwick Lot from the block underneath it.
-  { id: 'npc_7', kind: 'person', x: 994, y: 330, direction: 0, wanderRadius: 14, periodMs: 7800 },
-
-  // Ballpark and the Arcade, south side — the street between them, clear of
-  // the trees planted along the Arcade's east edge.
-  { id: 'npc_8', kind: 'person', x: 400, y: 470, direction: 0, wanderRadius: 24, periodMs: 9500 },
-  { id: 'npc_9', kind: 'person', x: 210, y: 471, direction: 0, wanderRadius: 18, periodMs: 6800 },
-  { id: 'npc_bird_2', kind: 'bird', x: 450, y: 470, direction: 200, wanderRadius: 70, periodMs: 6000 },
-
-  // The alley between Home and Ellen's, and the open ground east of
-  // Casey's — residential streets, not front lawns.
-  { id: 'npc_10', kind: 'person', x: 176, y: 230, direction: 90, wanderRadius: 24, periodMs: 8800 },
-  { id: 'npc_dog_2', kind: 'dog', x: 180, y: 400, direction: 0, wanderRadius: 20, periodMs: 3600 },
-
-  // The Treehouse strip, quiet but not empty — open ground just south of it.
-  { id: 'npc_11', kind: 'person', x: 1180, y: 150, direction: 135, wanderRadius: 18, periodMs: 7200 },
-
-  // Cats — smaller wander radii than a dog's, and generally somewhere
-  // quieter than the middle of a street, the way an actual cat picks its
+  // Riverside Park — Ballpark's own street, the park's connective open
   // ground.
-  { id: 'npc_cat_1', kind: 'cat', x: 634, y: 190, direction: 180, wanderRadius: 10, periodMs: 5200 },
-  { id: 'npc_cat_2', kind: 'cat', x: 555, y: 495, direction: 90, wanderRadius: 9, periodMs: 4600 },
-  { id: 'npc_cat_3', kind: 'cat', x: 164, y: 250, direction: 0, wanderRadius: 11, periodMs: 5800 },
-  { id: 'npc_cat_4', kind: 'cat', x: 240, y: 480, direction: 180, wanderRadius: 10, periodMs: 5000 },
+  { id: 'npc_8', kind: 'person', x: 700, y: 620, direction: 0, wanderRadius: 24, periodMs: 9500 },
+  { id: 'npc_11', kind: 'person', x: 900, y: 590, direction: 0, wanderRadius: 18, periodMs: 7200 },
+  { id: 'npc_bird_4', kind: 'bird', x: 950, y: 550, direction: 90, wanderRadius: 55, periodMs: 4800 },
 
-  // A couple more birds, over open sky where nothing at ground level cares.
-  { id: 'npc_bird_3', kind: 'bird', x: 1150, y: 90, direction: 220, wanderRadius: 65, periodMs: 5600 },
-  { id: 'npc_bird_4', kind: 'bird', x: 950, y: 250, direction: 100, wanderRadius: 55, periodMs: 4800 },
+  // Residential North — the street outside Home and Ellen's.
+  { id: 'npc_10', kind: 'person', x: 400, y: 500, direction: 0, wanderRadius: 24, periodMs: 8800 },
+  { id: 'npc_dog_2', kind: 'dog', x: 100, y: 260, direction: 0, wanderRadius: 20, periodMs: 3600 },
+  { id: 'npc_cat_2', kind: 'cat', x: 460, y: 260, direction: 0, wanderRadius: 9, periodMs: 4600 },
+
+  // South Residential and Commercial Strip — the town's own southern half,
+  // quiet but not empty.
+  { id: 'npc_12', kind: 'person', x: 208, y: 900, direction: 0, wanderRadius: 16, periodMs: 7000 },
+  { id: 'npc_13', kind: 'person', x: 800, y: 900, direction: 0, wanderRadius: 16, periodMs: 7400 },
+  { id: 'npc_9', kind: 'person', x: 1350, y: 950, direction: 0, wanderRadius: 18, periodMs: 6800 },
+  { id: 'npc_cat_3', kind: 'cat', x: 1450, y: 950, direction: 0, wanderRadius: 11, periodMs: 5800 },
+  { id: 'npc_cat_4', kind: 'cat', x: 300, y: 830, direction: 0, wanderRadius: 10, periodMs: 5000 },
+  { id: 'npc_bird_2', kind: 'bird', x: 850, y: 850, direction: 45, wanderRadius: 70, periodMs: 6000 },
+
+  // A bird over the Warehouse District's own far reach, where nothing at
+  // ground level cares.
+  { id: 'npc_bird_3', kind: 'bird', x: 1500, y: 100, direction: 45, wanderRadius: 65, periodMs: 5600 },
 ];
 
 /** Same seeded-noise technique `draw.ts`'s own `noise()` uses. */

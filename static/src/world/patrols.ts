@@ -23,69 +23,71 @@ export interface PatrolRoute {
 }
 
 /*
- * Rewritten for the district redesign: routes now run the actual road grid
- * (drawRoads' vertical/horizontal centrelines) rather than cutting across
- * open ground, so a van reads as driving a beat rather than sliding through
- * a field. Each one was walked back through the same flood-fill/overlap
- * script as the maze filler before being finalised here.
- *
- * Re-snapped to `draw.ts`'s `V_ROADS`/`H_ROADS` when the street grid went
- * from a uniform repeat to irregular block spacing — the road network moved
- * a little, so the beats that follow it moved the same amount, without
- * touching any building, obstacle, or hidden pickup coordinate (none of
- * those were ever positioned relative to the road grid in the first place).
+ * Rewritten for the district redesign: routes run `draw.ts`'s new road
+ * hierarchy (`ROAD_SEGMENTS`) — the major arterial pair, the secondary
+ * pair, and each district's own local street — rather than the old uniform
+ * grid, so a van driving the Downtown Crossroads reads as a different beat
+ * from one circling the Warehouse District's own perimeter. Every waypoint
+ * sits clear of every location and solid obstacle rect (checked the same
+ * way `scripts/check-connectivity.mjs` checks everything else that has to
+ * share the map with a building), so a van is never asked to drive through
+ * a wall.
  */
 export const PATROL_ROUTES: PatrolRoute[] = [
   {
-    // The main street: downtown's civic-core frontage, school to the Annex
-    // approach.
+    // The major E-W arterial, straight across Downtown — the fastest,
+    // most watched route in town, and the one every other beat below is a
+    // quieter alternative to.
     id: 'midtown_sweep',
     loop: false,
     points: [
-      { x: 331, y: 154 },
-      { x: 816, y: 154 },
+      { x: 520, y: 364 },
+      { x: 1040, y: 364 },
     ],
   },
   {
-    // The residential edge, between the little home/Ellen's/Casey's cluster
-    // and the road.
+    // The major N-S spine, the length of Residential North and West End —
+    // the western half of town's own main street.
     id: 'west_beat',
     loop: false,
     points: [
-      { x: 162, y: 154 },
-      { x: 162, y: 471 },
+      { x: 500, y: 40 },
+      { x: 500, y: 700 },
     ],
   },
   {
-    // Along the school and library's south flank.
+    // Downtown's own local street, School and Library's south flank, past
+    // the Marlow Street unit.
     id: 'downtown_watch',
     loop: false,
     points: [
-      { x: 480, y: 309 },
-      { x: 816, y: 309 },
+      { x: 570, y: 230 },
+      { x: 1000, y: 230 },
     ],
   },
   {
-    // A tight loop around the Town Square.
+    // A tight loop around Town Square itself — the Downtown Crossroads'
+    // own civic centre, circled from the road rather than the plaza.
     id: 'center_loop',
     loop: true,
     points: [
-      { x: 480, y: 309 },
-      { x: 480, y: 471 },
-      { x: 659, y: 471 },
-      { x: 659, y: 309 },
+      { x: 600, y: 220 },
+      { x: 790, y: 220 },
+      { x: 790, y: 300 },
+      { x: 600, y: 300 },
     ],
   },
   {
-    // A loop around the whole Annex — the one district worth circling
-    // deliberately, since it's the one the story keeps warning is watched.
-    id: 'annex_loop',
+    // A loop around the whole Warehouse District's own perimeter — the one
+    // district worth circling deliberately, since it's the one the story
+    // keeps warning is watched, and now the one with real depth to circle.
+    id: 'warehouse_loop',
     loop: true,
     points: [
-      { x: 816, y: 154 },
-      { x: 1200, y: 154 },
-      { x: 1200, y: 471 },
-      { x: 816, y: 471 },
+      { x: 1140, y: 10 },
+      { x: 1590, y: 10 },
+      { x: 1590, y: 720 },
+      { x: 1140, y: 720 },
     ],
   },
 ];

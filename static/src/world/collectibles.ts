@@ -106,33 +106,38 @@ export interface CameraNode {
 }
 
 export const CAMERA_NODES: CameraNode[] = [
-  // Stage 0 — the seven poles that are already up when the game starts.
-  { id: 'camera_dismantle_1', x: 288, y: 100, itemId: 'cracked_chipset', respawnDays: 5, heatCost: 4, coverageRadius: 195, stage: 0 },
-  { id: 'camera_dismantle_2', x: 95, y: 540, itemId: 'cracked_chipset', respawnDays: 5, heatCost: 4, coverageRadius: 180, stage: 0 },
-  { id: 'camera_dismantle_3', x: 460, y: 300, itemId: 'hard_drive', respawnDays: 4, heatCost: 3, coverageRadius: 230, stage: 0 },
-  { id: 'camera_dismantle_4', x: 940, y: 100, itemId: 'cracked_chipset', respawnDays: 5, heatCost: 4, coverageRadius: 195, stage: 0 },
-  { id: 'camera_dismantle_5', x: 260, y: 620, itemId: 'logic_board', respawnDays: 4, heatCost: 3, coverageRadius: 185, stage: 0 },
-  { id: 'camera_dismantle_6', x: 620, y: 600, itemId: 'cracked_chipset', respawnDays: 5, heatCost: 4, coverageRadius: 225, stage: 0 },
-  { id: 'camera_dismantle_7', x: 1240, y: 300, itemId: 'graphics_card', respawnDays: 6, heatCost: 5, coverageRadius: 190, stage: 0 },
-  // Stage 1 (day 4) — the rollout's first visible week: the gaps either side
-  // of downtown and the south-east corner nothing watched before.
-  { id: 'camera_dismantle_8', x: 728, y: 120, itemId: 'cracked_chipset', respawnDays: 5, heatCost: 4, coverageRadius: 200, stage: 1 },
-  { id: 'camera_dismantle_9', x: 170, y: 200, itemId: 'hard_drive', respawnDays: 4, heatCost: 3, coverageRadius: 260, stage: 1 },
-  { id: 'camera_dismantle_10', x: 1104, y: 642, itemId: 'cracked_chipset', respawnDays: 5, heatCost: 4, coverageRadius: 240, stage: 1 },
-  // Stage 2 (day 9) — the middle of the map and the western edge, including
-  // the first of the two long-range housings.
-  { id: 'camera_dismantle_11', x: 418, y: 692, itemId: 'logic_board', respawnDays: 4, heatCost: 3, coverageRadius: 190, stage: 2 },
-  { id: 'camera_dismantle_12', x: 1154, y: 480, itemId: 'cracked_chipset', respawnDays: 5, heatCost: 4, coverageRadius: 195, stage: 2 },
-  { id: 'camera_dismantle_13', x: 58, y: 336, itemId: 'hard_drive', respawnDays: 4, heatCost: 3, coverageRadius: 205, stage: 2 },
-  { id: 'camera_dismantle_14', x: 802, y: 424, itemId: 'graphics_card', respawnDays: 6, heatCost: 5, coverageRadius: 215, stage: 2 },
-  // Stage 3 (day 15) — the last four, filling the corners the first fourteen
-  // leave open. With every one of these standing the town is fully covered,
-  // which is the point: past here, doing nothing is what loses ground.
-  { id: 'camera_dismantle_15', x: 982, y: 752, itemId: 'cracked_chipset', respawnDays: 5, heatCost: 4, coverageRadius: 255, stage: 3 },
-  { id: 'camera_dismantle_16', x: 504, y: 63, itemId: 'graphics_card', respawnDays: 6, heatCost: 5, coverageRadius: 235, stage: 3 },
-  { id: 'camera_dismantle_17', x: 996, y: 288, itemId: 'cracked_chipset', respawnDays: 5, heatCost: 4, coverageRadius: 225, stage: 3 },
-  { id: 'camera_dismantle_19', x: 1180, y: 120, itemId: 'graphics_card', respawnDays: 6, heatCost: 5, coverageRadius: 225, stage: 3 },
-  { id: 'camera_dismantle_18', x: 200, y: 760, itemId: 'logic_board', respawnDays: 4, heatCost: 3, coverageRadius: 240, stage: 3 },
+  // Stage 0 — the seven poles already up when the game starts. Weighted
+  // toward Downtown and Commercial — the witnessed, fast-route districts —
+  // with the Warehouse District's own Row 1 getting the seventh, since the
+  // story keeps warning that fence line is watched from day one.
+  { id: 'camera_dismantle_1', x: 602, y: 268, itemId: 'cracked_chipset', respawnDays: 5, heatCost: 4, coverageRadius: 280, stage: 0 },
+  { id: 'camera_dismantle_2', x: 776, y: 90, itemId: 'hard_drive', respawnDays: 4, heatCost: 3, coverageRadius: 254, stage: 0 },
+  { id: 'camera_dismantle_3', x: 1253, y: 912, itemId: 'cracked_chipset', respawnDays: 5, heatCost: 4, coverageRadius: 255, stage: 0 },
+  { id: 'camera_dismantle_4', x: 1408, y: 900, itemId: 'logic_board', respawnDays: 4, heatCost: 3, coverageRadius: 277, stage: 0 },
+  { id: 'camera_dismantle_5', x: 200, y: 150, itemId: 'cracked_chipset', respawnDays: 5, heatCost: 4, coverageRadius: 275, stage: 0 },
+  { id: 'camera_dismantle_6', x: 970, y: 250, itemId: 'hard_drive', respawnDays: 4, heatCost: 3, coverageRadius: 277, stage: 0 },
+  { id: 'camera_dismantle_7', x: 1300, y: 200, itemId: 'graphics_card', respawnDays: 6, heatCost: 5, coverageRadius: 294, stage: 0 },
+  // Stage 1 (day 4) — West End, Transit Hub, and the Warehouse District's
+  // own midsection: the first of the quieter districts get their first
+  // camera, closing the gaps stage 0 left widest.
+  { id: 'camera_dismantle_8', x: 200, y: 550, itemId: 'cracked_chipset', respawnDays: 5, heatCost: 4, coverageRadius: 284, stage: 1 },
+  { id: 'camera_dismantle_9', x: 162, y: 946, itemId: 'hard_drive', respawnDays: 4, heatCost: 3, coverageRadius: 262, stage: 1 },
+  { id: 'camera_dismantle_10', x: 1300, y: 550, itemId: 'cracked_chipset', respawnDays: 5, heatCost: 4, coverageRadius: 255, stage: 1 },
+  // Stage 2 (day 9) — Residential North's own far corner, South Residential,
+  // and the Warehouse District's far reach — the map's edges start filling in.
+  { id: 'camera_dismantle_11', x: 400, y: 250, itemId: 'logic_board', respawnDays: 4, heatCost: 3, coverageRadius: 271, stage: 2 },
+  { id: 'camera_dismantle_12', x: 750, y: 900, itemId: 'cracked_chipset', respawnDays: 5, heatCost: 4, coverageRadius: 267, stage: 2 },
+  { id: 'camera_dismantle_13', x: 1500, y: 300, itemId: 'graphics_card', respawnDays: 6, heatCost: 5, coverageRadius: 314, stage: 2 },
+  { id: 'camera_dismantle_14', x: 300, y: 650, itemId: 'hard_drive', respawnDays: 4, heatCost: 3, coverageRadius: 256, stage: 2 },
+  // Stage 3 (day 15) — the last five, closing Riverside Park and the
+  // south-east corner. With every one of these standing the town is fully
+  // covered, which is the point: past here, doing nothing is what loses
+  // ground.
+  { id: 'camera_dismantle_15', x: 758, y: 550, itemId: 'cracked_chipset', respawnDays: 5, heatCost: 4, coverageRadius: 275, stage: 3 },
+  { id: 'camera_dismantle_16', x: 959, y: 672, itemId: 'graphics_card', respawnDays: 6, heatCost: 5, coverageRadius: 255, stage: 3 },
+  { id: 'camera_dismantle_17', x: 950, y: 1000, itemId: 'cracked_chipset', respawnDays: 5, heatCost: 4, coverageRadius: 255, stage: 3 },
+  { id: 'camera_dismantle_18', x: 356, y: 1005, itemId: 'logic_board', respawnDays: 4, heatCost: 3, coverageRadius: 261, stage: 3 },
+  { id: 'camera_dismantle_19', x: 1540, y: 600, itemId: 'graphics_card', respawnDays: 6, heatCost: 5, coverageRadius: 264, stage: 3 },
 ];
 
 export type SabotageActionId = 'tamper' | 'dismantle' | 'overload';

@@ -1,4 +1,11 @@
-import { HOME_LOCATION_ID, MAP_HEIGHT, MAP_WIDTH, visibleLocations, type OverworldLocation } from './locations';
+import {
+  DISTRICTS,
+  HOME_LOCATION_ID,
+  MAP_HEIGHT,
+  MAP_WIDTH,
+  visibleLocations,
+  type OverworldLocation,
+} from './locations';
 import type { Obstacle } from './obstacles';
 import type { NpcKind } from './npcs';
 import type { ThresholdTier } from '../state/schema';
@@ -41,27 +48,16 @@ const PALETTE = {
   sun: '#d99a6c',
   ground: '#3d4759',
   groundAlt: '#434e61',
-  // Subtle per-district ground tints (see DISTRICTS/drawGround) — each a
-  // close relative of the default ground/groundAlt pair rather than a
-  // clashing hue, so a neighbourhood reads as "its own patch of pavement"
-  // at a glance without the map looking painted in blocks.
-  groundResidential: '#3f4a52',
-  groundResidentialAlt: '#46525c',
-  groundCivic: '#39445a',
-  groundCivicAlt: '#404b63',
-  groundPark: '#3a4a3f',
-  groundParkAlt: '#405245',
-  groundAnnex: '#4a4038',
-  groundAnnexAlt: '#524539',
-  // The Annex's own north half, split off as its own tint once Repair Shop
-  // and Fenwick Lot became a distinct Tech Row rather than sharing the
-  // Annex's single rust-brown industrial tone — a cooler teal-grey,
-  // deliberately apart from Civic's own blue, reading as circuitry rather
-  // than city-hall respectability.
-  groundTech: '#354a4a',
-  groundTechAlt: '#3d5555',
   road: '#333c4c',
+  roadMajor: '#3a4358',
+  roadSecondary: '#363f52',
+  roadAlley: '#2d3542',
   roadLine: '#6b7488',
+  roadLineFaint: 'rgba(107, 116, 136, 0.32)',
+  river: '#2a4a5c',
+  riverRipple: 'rgba(180, 220, 230, 0.16)',
+  rail: '#2a2620',
+  railTie: 'rgba(180, 170, 150, 0.28)',
   roofA: '#2f3a4d',
   wallA: '#4a5468',
   roofB: '#4a2f2a',
@@ -240,6 +236,7 @@ export function drawTown(
 
   drawGround(ctx);
   drawRoads(ctx);
+  drawEdgeGeography(ctx);
 
   const locations = visibleLocations(flags);
 
@@ -718,34 +715,36 @@ function drawSky(ctx: CanvasRenderingContext2D, vw: number, vh: number) {
  * looking like a missing asset.
  */
 /**
- * Named zones — Bellhaven read as one undifferentiated grey grid before
- * this, the same checkerboard from one map edge to the other whether the
- * player was outside a house or outside a warehouse. A real town's own
- * ground changes underfoot: a residential street, a civic block, a park
- * around its own centre, an industrial yard — so each zone gets a subtly
- * different pair of ground tones (`PALETTE.groundResidential` etc), laid
- * down after the default checker so only the zone's own footprint is
- * touched. Nothing here moves a single building, obstacle, or route —
- * this is paint, not geometry. Boundaries were chosen to land on the
- * street grid (`H_ROADS`/`V_ROADS`) wherever possible, so a zone change
- * reads as "the other side of the street" rather than a seam mid-block.
+ * Blend two hex colours (`#rrggbb`) by `t` (0 = all `a`, 1 = all `b`).
+ * Ground tints below derive from each district's own accent colour instead
+ * of a hand-picked hex pair per zone — eight districts would otherwise be
+ * eight more PALETTE entries to keep in sync by hand every time the layout
+ * changes, and this can't drift the way a parallel hand-authored list could.
  */
-const DISTRICTS: { x: number; y: number; w: number; h: number; base: string; alt: string }[] = [
-  // The residential quarter — home, Ellen's, Casey's, the garage.
-  { x: 0, y: 164, w: 340, h: 296, base: PALETTE.groundResidential, alt: PALETTE.groundResidentialAlt },
-  // Downtown/civic — the school, the library, Sal's.
-  { x: 340, y: 0, w: 500, h: 296, base: PALETTE.groundCivic, alt: PALETTE.groundCivicAlt },
-  // The park around Town Square, dead centre of the map on purpose.
-  { x: 460, y: 296, w: 320, h: 184, base: PALETTE.groundPark, alt: PALETTE.groundParkAlt },
-  // The Annex splits into two readable halves rather than one undifferentiated
-  // block — Tech Row up top (Fenwick Lot's market table, the Repair Shop)
-  // gets its own cooler teal against Industrial below (Deja's yard, the
-  // Annex Fence itself) keeping the rust-brown the whole district used to
-  // share. The boundary sits in the H-road gap between them (y296-322),
-  // left untinted on purpose — the street itself belongs to neither side.
-  { x: 780, y: 164, w: 500, h: 132, base: PALETTE.groundTech, alt: PALETTE.groundTechAlt },
-  { x: 780, y: 322, w: 500, h: 158, base: PALETTE.groundAnnex, alt: PALETTE.groundAnnexAlt },
-];
+function mixHex(a: string, b: string, t: number): string {
+  const pa = parseInt(a.slice(1), 16);
+  const pb = parseInt(b.slice(1), 16);
+  const ar = (pa >> 16) & 0xff, ag = (pa >> 8) & 0xff, ab = pa & 0xff;
+  const br = (pb >> 16) & 0xff, bg = (pb >> 8) & 0xff, bb = pb & 0xff;
+  const r = Math.round(ar + (br - ar) * t);
+  const g = Math.round(ag + (bg - ag) * t);
+  const b2 = Math.round(ab + (bb - ab) * t);
+  return `#${((1 << 24) + (r << 16) + (g << 8) + b2).toString(16).slice(1)}`;
+}
+
+/**
+ * A whisper of each district's own accent colour worked into its ground —
+ * `DISTRICTS` (world/locations.ts) carries the accent every legend/HUD
+ * surface already uses; blending it faintly (12%/18%) into the default
+ * ground/groundAlt pair is what makes a neighbourhood read as "its own
+ * patch of pavement" without the map looking painted in blocks the way a
+ * full-saturation fill would. Computed once at module load, not per frame.
+ */
+const DISTRICT_GROUND_TINTS = DISTRICTS.map((d) => ({
+  ...d,
+  base: mixHex(PALETTE.ground, d.color, 0.12),
+  alt: mixHex(PALETTE.groundAlt, d.color, 0.18),
+}));
 
 function drawGround(ctx: CanvasRenderingContext2D) {
   ctx.fillStyle = PALETTE.ground;
@@ -758,7 +757,7 @@ function drawGround(ctx: CanvasRenderingContext2D) {
     }
   }
 
-  for (const d of DISTRICTS) {
+  for (const d of DISTRICT_GROUND_TINTS) {
     ctx.fillStyle = d.base;
     ctx.fillRect(d.x, d.y, d.w, d.h);
     ctx.fillStyle = d.alt;
@@ -779,52 +778,149 @@ function drawGround(ctx: CanvasRenderingContext2D) {
 }
 
 /**
- * Street centrelines — an explicit, irregular list rather than an evenly
- * repeating `+= 160`, so the blocks between them read as a town that grew
- * one lot at a time instead of graph paper. Kept close enough to the old
- * uniform 160/152 spacing that every location still sits a plausible short
- * walk from its nearest road (nothing here moves a building, an obstacle,
- * or a patrol route — those stay put; only the streets between them
- * stop being perfectly regular), and each gets its own width (20–28px)
- * for the same hand-built reason.
+ * The road hierarchy the district redesign asked for: a street's width and
+ * mood are supposed to tell the player something before they've read a
+ * single sign. `tier` is the whole of that:
+ *
+ * - `major` — the two arterials that cross at the Downtown Crossroads.
+ *   Widest, brightest, a hard dashed centreline. Fast, watched, exactly
+ *   where a camera cluster and a patrol beat belong.
+ * - `secondary` — the two roads bounding the Warehouse/Commercial column.
+ *   Real streets, a step down in width and a fainter, sparser centreline.
+ * - `local` — the streets inside a district's own blocks. No centreline —
+ *   at this width painting one would read as a major road shrunk down
+ *   rather than a different kind of street.
+ * - `alley` — the shortcuts. Narrow, dark, textured rather than painted
+ *   flat, no centreline, and deliberately placed alongside the obstacle
+ *   layer's own tree cover so cutting through one is the quiet route in
+ *   more than just colour (`systems/pursuit.ts` `underTreeCover`).
+ * - `path` — pedestrian paths through Riverside Park, connecting districts
+ *   the way a real park cut-through does. Thinnest, dotted, no fill mood
+ *   at all — gravel, not asphalt.
+ *
+ * Every segment is a plain rect; roads carry no collision (Overworld.tsx's
+ * collision only ever checks `LOCATIONS`/solid `OBSTACLES`), so a segment
+ * spanning the whole map costs nothing extra and a short dead-end costs
+ * nothing to leave unconnected. `DIAGONAL_ROADS` below is the one
+ * exception — a couple of rotated segments for the "not everything is a
+ * rectangle" texture the build note asked for, kept as a short, separate
+ * list rather than teaching every consumer of `ROAD_SEGMENTS` about angles
+ * it will almost never need.
  */
-const V_ROADS: { x: number; w: number }[] = [
-  { x: 0, w: 24 },
-  { x: 152, w: 20 },
-  { x: 318, w: 26 },
-  { x: 468, w: 24 },
-  { x: 648, w: 22 },
-  { x: 804, w: 24 },
-  { x: 964, w: 20 },
-  { x: 1124, w: 26 },
+export type RoadTier = 'major' | 'secondary' | 'local' | 'alley' | 'path';
+
+interface RoadSegment {
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+  tier: RoadTier;
+}
+
+const ROAD_WIDTH: Record<RoadTier, number> = { major: 44, secondary: 32, local: 20, alley: 11, path: 6 };
+
+const ROAD_SEGMENTS: RoadSegment[] = [
+  // The two majors — cross at (500,364), the Downtown Crossroads.
+  { x: 478, y: 0, w: ROAD_WIDTH.major, h: MAP_HEIGHT, tier: 'major' },
+  { x: 0, y: 342, w: MAP_WIDTH, h: ROAD_WIDTH.major, tier: 'major' },
+  // The two secondaries — bound the Warehouse/Commercial column.
+  { x: 1084, y: 0, w: ROAD_WIDTH.secondary, h: MAP_HEIGHT, tier: 'secondary' },
+  { x: 0, y: 740, w: MAP_WIDTH, h: ROAD_WIDTH.secondary, tier: 'secondary' },
+
+  // Local streets — inside each district's own blocks.
+  { x: 0, y: 210, w: 440, h: ROAD_WIDTH.local, tier: 'local' }, // Residential North's own street
+  { x: 700, y: 220, w: 170, h: ROAD_WIDTH.local, tier: 'local' }, // Downtown, Square to Marlow Street
+  { x: 1128, y: 190, w: 472, h: ROAD_WIDTH.local, tier: 'local' }, // Warehouse Row 1
+  { x: 1128, y: 530, w: 472, h: ROAD_WIDTH.local, tier: 'local' }, // Warehouse Row 2
+  { x: 0, y: 520, w: 440, h: ROAD_WIDTH.local, tier: 'local' }, // West End
+  { x: 528, y: 920, w: 544, h: ROAD_WIDTH.local, tier: 'local' }, // South Residential
+  { x: 1128, y: 920, w: 472, h: ROAD_WIDTH.local, tier: 'local' }, // Commercial Strip
+  { x: 40, y: 960, w: 160, h: ROAD_WIDTH.local, tier: 'local' }, // Transit Hub — a stub, not a through
+  // Residential North's own cul-de-sac — a dead end off the district
+  // street above, one of the "occasional dead ends" the brief asked for.
+  { x: 380, y: 230, w: ROAD_WIDTH.local, h: 90, tier: 'local' },
+
+  // Alleys — the shortcuts. See the tier comment above for why these matter
+  // more than their width suggests.
+  { x: 166, y: 430, w: 54, h: 90, tier: 'alley' }, // West End: Repair Shop <-> Wash & Fold, their own "cut through the laundromat"
+  { x: 1340, y: 410, w: ROAD_WIDTH.alley, h: 220, tier: 'alley' }, // Warehouse: a quiet cut behind Annex Fence
+  { x: 780, y: 164, w: ROAD_WIDTH.alley, h: 46, tier: 'alley' }, // Downtown: School's south side to Marlow Street, off the plaza
+  { x: 348, y: 40, w: ROAD_WIDTH.alley, h: 160, tier: 'alley' }, // Residential North: the rear yards behind Ellen's
+
+  // Pedestrian paths — Riverside Park's own connective tissue.
+  { x: 472, y: 500, w: ROAD_WIDTH.major + 56, h: ROAD_WIDTH.path, tier: 'path' }, // West End into the park
+  { x: 745, y: 500, w: 45, h: ROAD_WIDTH.path, tier: 'path' }, // Ballpark to the Green
+  { x: 780, y: 650, w: ROAD_WIDTH.path, h: 90, tier: 'path' }, // the park south, toward South Residential
 ];
 
-const H_ROADS: { y: number; h: number }[] = [
-  { y: 0, h: 24 },
-  { y: 144, h: 20 },
-  { y: 296, h: 26 },
-  { y: 460, h: 22 },
-  { y: 600, h: 24 },
-  { y: 756, h: 20 },
+/**
+ * A rotated rect — `ctx.save/translate/rotate/fillRect/restore` rather than
+ * hand-authored path data (a plain rect rotated in place is one transform,
+ * not a shape worth a bespoke path). The one deliberate exception to "every
+ * road is axis-aligned": a diagonal corner-cut is real texture, but not
+ * worth teaching the whole road model — and place, obstacle, patrol-route
+ * and connectivity code all only ever look at `LOCATIONS`/solid
+ * `OBSTACLES`, never at the road layer, so a diagonal here touches nothing
+ * downstream.
+ */
+function drawDiagonalRoad(ctx: CanvasRenderingContext2D, cx: number, cy: number, length: number, angleDeg: number) {
+  ctx.save();
+  ctx.translate(px(cx), px(cy));
+  ctx.rotate((angleDeg * Math.PI) / 180);
+  ctx.fillStyle = PALETTE.roadSecondary;
+  ctx.fillRect(-length / 2, -ROAD_WIDTH.local / 2, length, ROAD_WIDTH.local);
+  ctx.restore();
+}
+
+/** One corner-cut, at the seam between Downtown and Riverside Park — the
+ * "10-15% weird geometry" the build note asked for, spent in one place
+ * rather than spread thin enough to disappear. */
+const DIAGONAL_ROADS: { cx: number; cy: number; length: number; angleDeg: number }[] = [
+  { cx: 610, cy: 420, length: 130, angleDeg: -35 },
 ];
 
-/** Streets, with a broken centre line. Empty ones, all the way across. */
+/** Streets, with a broken centre line on `major`/`secondary` tiers only —
+ * at `local` width and below a painted centreline reads as a shrunk major
+ * road, not a different kind of street. */
 function drawRoads(ctx: CanvasRenderingContext2D) {
-  ctx.fillStyle = PALETTE.road;
-  for (const road of V_ROADS) ctx.fillRect(road.x, 0, road.w, MAP_HEIGHT);
-  for (const road of H_ROADS) ctx.fillRect(0, road.y, MAP_WIDTH, road.h);
-
-  ctx.fillStyle = PALETTE.roadLine;
-  ctx.globalAlpha = 0.5;
-  for (const road of V_ROADS) {
-    const cx = road.x + road.w / 2 - 1;
-    for (let y = 4; y < MAP_HEIGHT; y += 20) ctx.fillRect(cx, y, 2, 8);
+  for (const road of ROAD_SEGMENTS) {
+    ctx.fillStyle =
+      road.tier === 'major' ? PALETTE.roadMajor
+      : road.tier === 'secondary' ? PALETTE.roadSecondary
+      : road.tier === 'alley' ? PALETTE.roadAlley
+      : road.tier === 'path' ? PALETTE.curb
+      : PALETTE.road;
+    ctx.fillRect(road.x, road.y, road.w, road.h);
   }
-  for (const road of H_ROADS) {
-    const cy = road.y + road.h / 2 - 1;
-    for (let x = 4; x < MAP_WIDTH; x += 20) ctx.fillRect(x, cy, 8, 2);
+
+  for (const { cx, cy, length, angleDeg } of DIAGONAL_ROADS) drawDiagonalRoad(ctx, cx, cy, length, angleDeg);
+
+  ctx.globalAlpha = 0.5;
+  for (const road of ROAD_SEGMENTS) {
+    if (road.tier !== 'major' && road.tier !== 'secondary') continue;
+    ctx.fillStyle = road.tier === 'major' ? PALETTE.roadLine : PALETTE.roadLineFaint;
+    const dash = road.tier === 'major' ? 20 : 32;
+    if (road.h > road.w) {
+      // vertical segment
+      const cx = road.x + road.w / 2 - 1;
+      for (let y = road.y + 4; y < road.y + road.h; y += dash) ctx.fillRect(cx, y, 2, 8);
+    } else {
+      const cy = road.y + road.h / 2 - 1;
+      for (let x = road.x + 4; x < road.x + road.w; x += dash) ctx.fillRect(x, cy, 8, 2);
+    }
   }
   ctx.globalAlpha = 1;
+
+  // Pedestrian paths get a dotted gravel tread instead of a centreline.
+  ctx.fillStyle = PALETTE.curb;
+  for (const road of ROAD_SEGMENTS) {
+    if (road.tier !== 'path') continue;
+    if (road.w > road.h) {
+      for (let x = road.x + 4; x < road.x + road.w; x += 14) ctx.fillRect(x, road.y + road.h / 2 - 1, 3, 2);
+    } else {
+      for (let y = road.y + 4; y < road.y + road.h; y += 14) ctx.fillRect(road.x + road.w / 2 - 1, y, 2, 3);
+    }
+  }
 
   drawCracks(ctx);
 }
@@ -832,34 +928,70 @@ function drawRoads(ctx: CanvasRenderingContext2D) {
 /** Hairline cracks in the asphalt — fixed per road segment (seeded on its own
  * coordinates, not per-frame) so a street reads as old rather than new,
  * without ever reshuffling under the player's feet. Cheap grit: a handful of
- * short broken lines, not a texture pass. */
+ * short broken lines, not a texture pass. Only major/secondary roads get
+ * them — an alley or a path is already rough by design. */
 function drawCracks(ctx: CanvasRenderingContext2D) {
   ctx.strokeStyle = PALETTE.crack;
   ctx.lineWidth = 1;
-  for (const road of V_ROADS) {
-    const rand = noise(`crack:v:${road.x}`);
+  for (const road of ROAD_SEGMENTS) {
+    if (road.tier !== 'major' && road.tier !== 'secondary') continue;
+    const rand = noise(`crack:${road.x}:${road.y}`);
+    const vertical = road.h > road.w;
     for (let i = 0; i < 6; i++) {
-      const cy = rand() * MAP_HEIGHT;
-      const len = 6 + rand() * 10;
-      const branch = (rand() - 0.5) * 10;
-      ctx.beginPath();
-      ctx.moveTo(px(road.x + 4 + rand() * (road.w - 8)), px(cy));
-      ctx.lineTo(px(road.x + 4 + rand() * (road.w - 8) + branch), px(cy + len));
-      ctx.stroke();
+      if (vertical) {
+        const cy = road.y + rand() * road.h;
+        const len = 6 + rand() * 10;
+        const branch = (rand() - 0.5) * 10;
+        ctx.beginPath();
+        ctx.moveTo(px(road.x + 4 + rand() * (road.w - 8)), px(cy));
+        ctx.lineTo(px(road.x + 4 + rand() * (road.w - 8) + branch), px(cy + len));
+        ctx.stroke();
+      } else {
+        const cx = road.x + rand() * road.w;
+        const len = 6 + rand() * 10;
+        const branch = (rand() - 0.5) * 10;
+        ctx.beginPath();
+        ctx.moveTo(px(cx), px(road.y + 4 + rand() * (road.h - 8)));
+        ctx.lineTo(px(cx + len), px(road.y + 4 + rand() * (road.h - 8) + branch));
+        ctx.stroke();
+      }
     }
   }
-  for (const road of H_ROADS) {
-    const rand = noise(`crack:h:${road.y}`);
-    for (let i = 0; i < 6; i++) {
-      const cx = rand() * MAP_WIDTH;
-      const len = 6 + rand() * 10;
-      const branch = (rand() - 0.5) * 10;
-      ctx.beginPath();
-      ctx.moveTo(px(cx), px(road.y + 4 + rand() * (road.h - 8)));
-      ctx.lineTo(px(cx + len), px(road.y + 4 + rand() * (road.h - 8) + branch));
-      ctx.stroke();
-    }
+}
+
+/**
+ * The river along the west/south-west edge and the rail line along the
+ * north edge into the Warehouse District — the geography that gives the
+ * town's own boundary a reason to be there, rather than the map just
+ * stopping. Both are pure ground texture: neither carries collision
+ * (Overworld.tsx's collision only ever checks `LOCATIONS`/solid
+ * `OBSTACLES`), so crossing either is exactly as free as crossing an
+ * ordinary street — no bridge or crossing mechanic needed for a feature
+ * that was only ever asked to give the edge an identity, not to gate it.
+ */
+function drawEdgeGeography(ctx: CanvasRenderingContext2D) {
+  // The river: West End and Transit Hub's own waterfront edge.
+  const riverX = 0;
+  const riverW = 36;
+  const riverY = 392;
+  const riverH = MAP_HEIGHT - riverY;
+  ctx.fillStyle = PALETTE.river;
+  ctx.fillRect(riverX, riverY, riverW, riverH);
+  ctx.fillStyle = PALETTE.riverRipple;
+  const rand = noise('river');
+  for (let y = riverY + 6; y < riverY + riverH; y += 18) {
+    const w = 10 + rand() * 14;
+    ctx.fillRect(riverX + rand() * (riverW - w), y, w, 2);
   }
+
+  // The rail line: the north edge, continuing along the Warehouse
+  // District's own western flank down toward the Rail Spur.
+  ctx.fillStyle = PALETTE.rail;
+  ctx.fillRect(0, 0, MAP_WIDTH, 18);
+  ctx.fillRect(1128, 18, 30, 420);
+  ctx.fillStyle = PALETTE.railTie;
+  for (let x = 8; x < MAP_WIDTH; x += 16) ctx.fillRect(x, 3, 4, 12);
+  for (let y = 26; y < 438; y += 16) ctx.fillRect(1132, y, 22, 4);
 }
 
 /**
@@ -870,13 +1002,15 @@ function drawCracks(ctx: CanvasRenderingContext2D) {
  * same depth order everything else on this canvas already uses.
  */
 const STREETLIGHT_POINTS: { x: number; y: number }[] = [
-  { x: 332, y: 164 },
-  { x: 172, y: 316 },
-  { x: 652, y: 164 },
-  { x: 812, y: 468 },
-  { x: 1132, y: 164 },
-  { x: 492, y: 650 },
-  { x: 972, y: 650 },
+  { x: 500, y: 364 }, // the Downtown Crossroads itself — the brightest corner in town
+  { x: 200, y: 220 }, // Residential North's own street
+  { x: 900, y: 100 }, // Downtown, between the school and the library
+  { x: 1300, y: 220 }, // Warehouse District, Row 1
+  { x: 1300, y: 720 }, // Warehouse District, Row 2
+  { x: 200, y: 540 }, // West End, near the Repair Shop/Wash & Fold alley
+  { x: 700, y: 500 }, // Riverside Park, on the path
+  { x: 200, y: 900 }, // Transit Hub
+  { x: 1300, y: 900 }, // Commercial Strip
 ];
 
 function drawStreetlight(ctx: CanvasRenderingContext2D, p: { x: number; y: number }) {
@@ -955,6 +1089,12 @@ function drawLocation(ctx: CanvasRenderingContext2D, loc: OverworldLocation, isH
       break;
     case 'treehouse':
       drawTreehouse(ctx, loc, tier);
+      break;
+    case 'shop':
+      drawShop(ctx, loc, tier);
+      break;
+    case 'transit':
+      drawTransit(ctx, loc);
       break;
     default:
       drawBuilding(ctx, loc, tier);
@@ -1599,6 +1739,75 @@ function drawTreehouse(ctx: CanvasRenderingContext2D, loc: OverworldLocation, ti
   ctx.stroke();
 
   drawGlitchTear(ctx, loc, tier, 0);
+}
+
+/**
+ * A small storefront — general enough for a laundromat, a convenience
+ * store, a pharmacy or the safehouse's own corner unit without a bespoke
+ * shape each, the district redesign's own new render type. A solid awning
+ * in the location's own `color` rather than Sal's specific red-and-white
+ * stripe (`drawPizza`) is what keeps four different shops reading as four
+ * different shops sharing one silhouette, not four repaints of a pizzeria.
+ */
+function drawShop(ctx: CanvasRenderingContext2D, loc: OverworldLocation, tier: ThresholdTier) {
+  const roofH = 8;
+  ctx.fillStyle = PALETTE.curb;
+  ctx.fillRect(loc.x - 2, loc.y + loc.h - 1, loc.w + 4, 3);
+
+  ctx.fillStyle = PALETTE.wallA;
+  ctx.fillRect(loc.x, loc.y + roofH, loc.w, loc.h - roofH);
+  ctx.fillStyle = PALETTE.roofA;
+  ctx.fillRect(loc.x + 2, loc.y, loc.w - 4, roofH);
+
+  // The awning — a flat band in the shop's own colour, not a stripe pattern,
+  // so the render type stays legible as "generic shop" rather than "pizza
+  // place in a different colour".
+  ctx.fillStyle = loc.color;
+  ctx.fillRect(loc.x, loc.y + roofH, loc.w, 6);
+
+  drawWindows(ctx, loc, false);
+
+  // A signboard over the door, plain — the name is what the blurb already
+  // carries, this is just "a shop sign is here" at a glance.
+  ctx.fillStyle = PALETTE.windowLit;
+  ctx.fillRect(px(loc.x + loc.w * 0.32), loc.y + roofH + 8, loc.w * 0.36, 5);
+
+  drawGlitchTear(ctx, loc, tier, roofH);
+}
+
+/**
+ * The Bus Depot: an open-air platform and shelter, not a building — the one
+ * district-redesign location deliberately drawn with no walls at all, so
+ * "people passing through, nobody stays" reads in the silhouette itself
+ * before a single line of ambient text says so.
+ */
+function drawTransit(ctx: CanvasRenderingContext2D, loc: OverworldLocation) {
+  const postW = 4;
+  const canopyH = 10;
+  const postH = loc.h - canopyH - 6;
+
+  // The platform slab.
+  ctx.fillStyle = PALETTE.curb;
+  ctx.fillRect(loc.x, loc.y + loc.h - 6, loc.w, 6);
+
+  // Two support posts holding up a flat canopy roof — open underneath.
+  ctx.fillStyle = PALETTE.lampPost;
+  ctx.fillRect(px(loc.x + loc.w * 0.12), loc.y + canopyH, postW, postH);
+  ctx.fillRect(px(loc.x + loc.w * 0.88 - postW), loc.y + canopyH, postW, postH);
+
+  ctx.fillStyle = PALETTE.roofA;
+  ctx.fillRect(loc.x, loc.y, loc.w, canopyH);
+  ctx.fillStyle = PALETTE.wallA;
+  ctx.fillRect(loc.x, loc.y + canopyH - 2, loc.w, 2);
+
+  // A bench, under the canopy — the "somebody who isn't waiting for a bus"
+  // the blurb describes.
+  ctx.fillStyle = PALETTE.plank;
+  ctx.fillRect(px(loc.x + loc.w * 0.3), loc.y + canopyH + postH - 10, loc.w * 0.4, 4);
+
+  // A lit route sign, the one warm point in an otherwise unlit shelter.
+  ctx.fillStyle = PALETTE.windowLit;
+  ctx.fillRect(px(loc.x + loc.w * 0.5 - 5), loc.y + canopyH + 3, 10, 6);
 }
 
 /**

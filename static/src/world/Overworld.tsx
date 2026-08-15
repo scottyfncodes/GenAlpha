@@ -113,34 +113,38 @@ const JUNCTION_BOX_INTERACT_RADIUS = 26;
  */
 const TAP_HIT_RADIUS = 22;
 /**
- * The walkable interior of `home` (locations.ts: x 32-160, y 184-280),
- * inset from `drawHouse`'s own wall rect (y 217-280) so the sprite's head —
+ * The walkable interior of `home` (locations.ts: x 40-170, y 40-136),
+ * inset from `drawHouse`'s own wall rect (y 73-136) so the sprite's head —
  * drawn `PLAYER_H` above its feet — never rises into the roof's airspace
- * (roof bottom at y≈217), and never sinks low enough to sit on top of the
+ * (roof bottom at y≈73), and never sinks low enough to sit on top of the
  * door/colour band `drawHomeInteriorMask` (world/draw.ts) paints over.
  * Matched to the same window band the mask cuts out (`houseWindowGeometry`,
  * world/draw.ts — home's own windows run larger than an ordinary house's,
  * on purpose, so there's more to actually see), so wandering the bounds
  * actually carries the player's head through both windows rather than
- * past them.
+ * past them. Re-derived for the district redesign's own Home position —
+ * same margins (12px x, 17px/4px y) applied to the new rect, not the old
+ * one; unlike `houseWindowGeometry` itself, these three constants are
+ * hand-placed rather than computed off `loc`, so they have to move by hand
+ * whenever Home does.
  */
-const HOME_BOUNDS = { x: [44, 148] as const, y: [234, 276] as const };
+const HOME_BOUNDS = { x: [52, 158] as const, y: [90, 132] as const };
 /**
  * Where the player lands the moment confinement lifts — just outside
- * home's own front door (locations.ts: x32-160,y184-280), offset west of
- * the door's own drawn centre (x96) so the spawn point clears the Garage's
- * interact padding (x92-170 once its own 10px pad is added) rather than
+ * home's own front door (locations.ts: x40-170,y40-136), offset west of
+ * the door's own drawn centre (x105) so the spawn point clears the Garage's
+ * interact padding (x110-188 once its own 10px pad is added) rather than
  * landing arguably "at" both locations at once.
  */
-const FRONT_DOOR_SPAWN = { x: 70, y: 284 };
+const FRONT_DOOR_SPAWN = { x: 78, y: 140 };
 /**
  * Where the player lands instead, if `content/act1.ts`'s `WINDOW_ESCAPE_FLAG`
  * is set — under the near window rather than the door, same south-wall
- * threshold line (y284) as `FRONT_DOOR_SPAWN`, just further west, closer to
+ * threshold line (y140) as `FRONT_DOOR_SPAWN`, just further west, closer to
  * `houseWindowGeometry`'s own first window. The window they actually climbed
  * out of, not a second front door.
  */
-const WINDOW_SPAWN = { x: 52, y: 284 };
+const WINDOW_SPAWN = { x: 60, y: 140 };
 /** How far past its own detection radius a hunting van keeps chasing —
  * wider than the circle that started the chase, so breaking line of sight
  * for a moment doesn't shake it instantly. */
