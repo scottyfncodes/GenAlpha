@@ -34,7 +34,7 @@
  * before touching any of these; a maze that quietly seals off a location is
  * worse than no maze at all.
  */
-export type ObstacleKind = 'tree' | 'bush' | 'rock' | 'hedge' | 'fence' | 'car' | 'bin' | 'building';
+export type ObstacleKind = 'tree' | 'bush' | 'rock' | 'hedge' | 'fence' | 'car' | 'bin' | 'building' | 'crate' | 'barrel';
 
 export interface Obstacle {
   id: string;
@@ -172,6 +172,21 @@ export const OBSTACLES: Obstacle[] = [
   { id: 'filler_88', x: 1470, y: 405, w: 16, h: 16, kind: 'bin' },
   { id: 'filler_89', x: 1476, y: 245, w: 16, h: 16, kind: 'bin' },
   { id: 'filler_90', x: 1163, y: 255, w: 16, h: 16, kind: 'bin' },
+
+  // Warehouse District debris — crates and a barrel scattered near the
+  // district's own named yards (deja_jobsite's cable spools, Fenwick Lot's
+  // loading bays, the Annex, Rail Spur's boxcar, the Scrapyard), so the
+  // ground finally backs up what the district's own ambient text has always
+  // claimed about it.
+  { id: 'filler_123', x: 1225, y: 200, w: 16, h: 16, kind: 'crate' },
+  { id: 'filler_124', x: 1270, y: 230, w: 16, h: 16, kind: 'barrel' },
+  { id: 'filler_125', x: 1500, y: 270, w: 16, h: 16, kind: 'crate' },
+  { id: 'filler_126', x: 1455, y: 280, w: 16, h: 16, kind: 'crate' },
+  { id: 'filler_127', x: 1355, y: 340, w: 16, h: 16, kind: 'barrel' },
+  { id: 'filler_128', x: 1325, y: 600, w: 16, h: 16, kind: 'crate' },
+  { id: 'filler_129', x: 1325, y: 630, w: 16, h: 16, kind: 'crate' },
+  { id: 'filler_130', x: 1545, y: 610, w: 16, h: 16, kind: 'barrel' },
+  { id: 'filler_131', x: 1555, y: 700, w: 16, h: 16, kind: 'crate' },
 
   // Transit Hub — buses, benches, fences around the depot lot.
   { id: 'filler_91', x: 31, y: 796, w: 70, h: 16, kind: 'hedge' },

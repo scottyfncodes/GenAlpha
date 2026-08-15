@@ -42,6 +42,8 @@ import {
 } from './spriteIndex';
 import {
   ASPHALT_TILE,
+  BARREL_TILE,
+  CRATE_TILES,
   CROSSWALK_H,
   CROSSWALK_V,
   GROUND_TILE,
@@ -155,6 +157,9 @@ const PALETTE = {
   binBody: '#333a2c',
   binLid: '#242a1f',
   binRust: 'rgba(150, 96, 46, 0.4)',
+  crateBody: '#8a6a44',
+  crateEdge: '#6e5334',
+  barrelBody: '#9a5a2c',
   bgWall: '#3a4150',
   bgRoof: '#2a2f3a',
   bgWindow: 'rgba(240, 192, 122, 0.32)',
@@ -379,6 +384,10 @@ function drawObstacle(ctx: CanvasRenderingContext2D, obstacle: Obstacle) {
       return drawBin(ctx, obstacle);
     case 'building':
       return drawDecorativeBuilding(ctx, obstacle);
+    case 'crate':
+      return drawCrate(ctx, obstacle);
+    case 'barrel':
+      return drawBarrel(ctx, obstacle);
   }
 }
 
@@ -630,6 +639,59 @@ function drawBin(ctx: CanvasRenderingContext2D, o: Obstacle) {
   ctx.strokeStyle = PALETTE.outline;
   ctx.lineWidth = 1;
   ctx.strokeRect(x - 0.5, y - 0.5, o.w + 1, o.h + 1);
+}
+
+/** Loose cargo for the Warehouse District's own yards — the city pack's
+ * industrial debris, picked per-obstacle by id hash the same way
+ * `drawParkedCar` varies `CAR_TILES`. Falls back to a plain crate box, since
+ * the procedural shape only ever needs to read as "a box", not carry the
+ * sprite's own variety. */
+function drawCrate(ctx: CanvasRenderingContext2D, o: Obstacle) {
+  const x = px(o.x);
+  const y = px(o.y);
+
+  ctx.fillStyle = 'rgba(0,0,0,0.2)';
+  ctx.fillRect(x, y + o.h - 2, o.w, 2);
+
+  if (citySheetReady()) {
+    const idx = CRATE_TILES[Math.floor(noise(`crate:${o.id}`)() * CRATE_TILES.length)];
+    drawCityTileAt(ctx, idx, x, y, o.w);
+    return;
+  }
+
+  ctx.fillStyle = PALETTE.crateBody;
+  ctx.fillRect(x, y, o.w, o.h);
+  ctx.strokeStyle = PALETTE.crateEdge;
+  ctx.lineWidth = 1;
+  ctx.strokeRect(x + 1.5, y + 1.5, o.w - 3, o.h - 3);
+
+  ctx.strokeStyle = PALETTE.outline;
+  ctx.strokeRect(x - 0.5, y - 0.5, o.w + 1, o.h + 1);
+}
+
+/** A single rusty barrel — same shape as `drawCrate`, one fixed tile since
+ * there's only the one colourway in the sheet. */
+function drawBarrel(ctx: CanvasRenderingContext2D, o: Obstacle) {
+  const x = px(o.x);
+  const y = px(o.y);
+
+  ctx.fillStyle = 'rgba(0,0,0,0.2)';
+  ctx.beginPath();
+  ctx.ellipse(x + o.w / 2, y + o.h - 1, o.w / 2, 2, 0, 0, Math.PI * 2);
+  ctx.fill();
+
+  if (citySheetReady()) {
+    drawCityTileAt(ctx, BARREL_TILE, x, y, o.w);
+    return;
+  }
+
+  ctx.fillStyle = PALETTE.barrelBody;
+  ctx.beginPath();
+  ctx.ellipse(x + o.w / 2, y + o.h / 2, o.w / 2 - 1, o.h / 2 - 1, 0, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.strokeStyle = PALETTE.outline;
+  ctx.lineWidth = 1;
+  ctx.stroke();
 }
 
 /**

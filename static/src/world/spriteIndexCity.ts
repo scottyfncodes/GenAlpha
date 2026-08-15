@@ -81,3 +81,18 @@ export const MARKET_UMBRELLA_ORANGE = tileIndex(35, 14);
  */
 export const CROSSWALK_H = tileIndex(9, 22);
 export const CROSSWALK_V = tileIndex(12, 22);
+
+/**
+ * Loose debris for the Warehouse District's own ground — cable spools, a
+ * boxcar, a crane, and stacked cars are all named in the district's own
+ * ambient text (`locations.ts`) but nothing on the ground ever backed that
+ * up before this; a bare grey lot doesn't read as a working (or abandoned)
+ * yard. Three crate variants picked by id hash, the same "small fixed
+ * wardrobe" trick `CAR_TILES` already uses, so a cluster of them doesn't
+ * look copy-pasted.
+ */
+export const CRATE_TILES: number[] = [tileIndex(13, 15), tileIndex(14, 16), tileIndex(13, 14)];
+
+/** A single rusty-orange barrel — Fenwick Lot's loading bays and the
+ * Scrapyard both read as the kind of place these accumulate in. */
+export const BARREL_TILE = tileIndex(15, 14);
