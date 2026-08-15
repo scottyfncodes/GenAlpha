@@ -373,10 +373,20 @@ export const MARKET_EVENTS: Record<string, MarketEventDef> = {
   },
 };
 
-/** The in-fiction crypto. Kept light on purpose — it isn't a second minigame. */
+/**
+ * The in-fiction crypto. Kept light on purpose — it isn't a second minigame.
+ *
+ * `name` is the asset's own display name — what the phone's app icon and the
+ * Shadow screen's header actually show the player — while `asset` stays the
+ * ticker used everywhere else salvage/market text needs a unit ("1.4 SHDW",
+ * "SHDW/USD 3.18"). The two don't have to match, the way BTC trades under
+ * "Bitcoin" and XRP under "Ripple": SHDW is still the letters the "quiet
+ * economy... SHDW is what it runs on" line puns on (act1.ts), whatever the
+ * asset is actually called on the label above the price.
+ */
 export const SHDW = {
   asset: 'SHDW',
-  name: 'Shadow',
+  name: 'Little John',
   basePrice: 3.2,
   /** How far the rate can wander per day, as a fraction. */
   drift: 0.12,
