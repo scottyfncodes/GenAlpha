@@ -1543,11 +1543,15 @@ function drawSchool(ctx: CanvasRenderingContext2D, loc: OverworldLocation, tier:
   ctx.fillStyle = PALETTE.curb;
   ctx.fillRect(loc.x - 2, loc.y + loc.h - 1, loc.w + 4, 3);
 
-  ctx.fillStyle = PALETTE.wallA;
-  ctx.fillRect(loc.x, loc.y + roofH, loc.w, loc.h - roofH);
-  ctx.fillStyle = PALETTE.roofA;
-  ctx.fillRect(loc.x + 4, loc.y, loc.w - 8, roofH);
-  ctx.fillRect(loc.x, loc.y + roofH - 4, loc.w, 4);
+  if (spriteSheetReady()) {
+    drawSpriteBuildingShell(ctx, loc, roofH);
+  } else {
+    ctx.fillStyle = PALETTE.wallA;
+    ctx.fillRect(loc.x, loc.y + roofH, loc.w, loc.h - roofH);
+    ctx.fillStyle = PALETTE.roofA;
+    ctx.fillRect(loc.x + 4, loc.y, loc.w - 8, roofH);
+    ctx.fillRect(loc.x, loc.y + roofH - 4, loc.w, 4);
+  }
 
   const doorW = loc.w * 0.16;
   ctx.fillStyle = PALETTE.schoolSign;
@@ -1578,8 +1582,14 @@ function drawLibrary(ctx: CanvasRenderingContext2D, loc: OverworldLocation, tier
   ctx.fillStyle = PALETTE.curb;
   ctx.fillRect(loc.x - 2, loc.y + loc.h - 1, loc.w + 4, 3);
 
-  ctx.fillStyle = PALETTE.wallA;
-  ctx.fillRect(loc.x, loc.y + roofH, loc.w, loc.h - roofH);
+  // No separate roof rect to sprite — the pediment triangle below covers
+  // everything above the wall, same as it always has.
+  if (spriteSheetReady()) {
+    drawWallBand(ctx, wallKitFor(loc.id), loc.x, loc.y + roofH, loc.w, loc.h - roofH);
+  } else {
+    ctx.fillStyle = PALETTE.wallA;
+    ctx.fillRect(loc.x, loc.y + roofH, loc.w, loc.h - roofH);
+  }
 
   ctx.fillStyle = PALETTE.pediment;
   ctx.beginPath();
