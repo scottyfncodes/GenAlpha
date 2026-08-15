@@ -75,6 +75,16 @@ export const CAR_TILES: number[] = [
   tileIndex(9, 11),
 ];
 
+/** The green transit bus — 2 cols x 3 rows, the one vehicle in either
+ * sheet tall enough to actually read as a bus instead of a car. Row-major,
+ * top to bottom, so a caller can blit it the same way `drawTown` walks any
+ * other 2D tile block. */
+export const BUS_TILES: number[][] = [
+  [tileIndex(21, 14), tileIndex(22, 14)],
+  [tileIndex(21, 15), tileIndex(22, 15)],
+  [tileIndex(21, 16), tileIndex(22, 16)],
+];
+
 /** A 9-slice kit — corner/edge/fill in a 3x3 block — for a flat roof-slab
  * rect of any size. The pack ships this in a few color/border schemes; the
  * two below are the ones `drawSpriteBuildingShell` pairs with a wall kit. */

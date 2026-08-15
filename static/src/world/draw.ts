@@ -23,6 +23,7 @@ import {
   BIN_DUMPSTER,
   BUSH_ORANGE,
   BUSH_TEAL,
+  BUS_TILES,
   CAR_TILES,
   CHARACTERS,
   CHARACTER_DRAW_SIZE,
@@ -39,7 +40,18 @@ import {
   type NineSlice,
   type WallKit,
 } from './spriteIndex';
-import { ASPHALT_TILE, GROUND_TILE, ROOF_INDUSTRIAL, SIDEWALK_TILE, WALL_INDUSTRIAL } from './spriteIndexCity';
+import {
+  ASPHALT_TILE,
+  CROSSWALK_H,
+  CROSSWALK_V,
+  GROUND_TILE,
+  MARKET_UMBRELLA_GREEN,
+  MARKET_UMBRELLA_ORANGE,
+  PATROL_VAN_TILES,
+  ROOF_INDUSTRIAL,
+  SIDEWALK_TILE,
+  WALL_INDUSTRIAL,
+} from './spriteIndexCity';
 
 /**
  * THE TOWN, DRAWN.
@@ -635,7 +647,19 @@ function drawPatrolRing(ctx: CanvasRenderingContext2D, patrol: { x: number; y: n
 
 /** A SafeTrace van: a body, a darker cab end, two headlights. Small and flat,
  * matching the sprite budget everything else here keeps to. */
+/** The SafeTrace van — a real sprite once the city sheet's loaded (a
+ * front-facing utility truck, grey rather than any personal car's colour,
+ * reading as institutional the same way the old flat `patrolBody` red
+ * rectangle was trying to). The old procedural shape stays as the
+ * loading-state fallback. */
 function drawPatrol(ctx: CanvasRenderingContext2D, patrol: { x: number; y: number }) {
+  if (citySheetReady()) {
+    ctx.fillStyle = 'rgba(0,0,0,0.25)';
+    ctx.fillRect(px(patrol.x - 9), px(patrol.y + 11), 18, 3);
+    drawTileBlock(ctx, PATROL_VAN_TILES, patrol.x, patrol.y, drawCityTileAt);
+    return;
+  }
+
   const w = 16, h = 10;
   const x = px(patrol.x - w / 2);
   const y = px(patrol.y - h / 2);
@@ -1101,6 +1125,34 @@ function drawRoads(ctx: CanvasRenderingContext2D) {
   }
 
   drawCracks(ctx);
+  if (citySheetReady()) drawCrossroadsCrosswalks(ctx);
+}
+
+/**
+ * Real zebra stripes, hand-placed at the Downtown Crossroads only — the
+ * one intersection the story already treats as the town's busiest corner
+ * (a camera cluster and a patrol beat both live here). Not a general road-
+ * marking system: the other ~20 intersections in town stay exactly as
+ * they are, plain asphalt. One short strip on each of the four legs,
+ * oriented so the stripes always run parallel to that leg's own road.
+ */
+function drawCrossroadsCrosswalks(ctx: CanvasRenderingContext2D) {
+  const roadX = 478;
+  const roadW = ROAD_WIDTH.major;
+  const roadY = 342;
+  const roadH = ROAD_WIDTH.major;
+
+  const vStripX = roadX + roadW / 2 - (3 * TILE) / 2;
+  for (let i = 0; i < 3; i++) {
+    drawCityTileAt(ctx, CROSSWALK_V, vStripX + i * TILE, roadY - TILE);
+    drawCityTileAt(ctx, CROSSWALK_V, vStripX + i * TILE, roadY + roadH);
+  }
+
+  const hStripY = roadY + roadH / 2 - (3 * TILE) / 2;
+  for (let i = 0; i < 3; i++) {
+    drawCityTileAt(ctx, CROSSWALK_H, roadX - TILE, hStripY + i * TILE);
+    drawCityTileAt(ctx, CROSSWALK_H, roadX + roadW, hStripY + i * TILE);
+  }
 }
 
 /** Hairline cracks in the asphalt — fixed per road segment (seeded on its own
@@ -1397,6 +1449,26 @@ function drawGlitchTear(ctx: CanvasRenderingContext2D, loc: OverworldLocation, t
   ctx.globalAlpha = tier === 'hunted' ? 0.35 : 0.18;
   ctx.fillRect(loc.x + px(rand() * 6), y, loc.w - px(rand() * 10), 2);
   ctx.globalAlpha = 1;
+}
+
+/**
+ * A multi-tile sprite (a vehicle wider or taller than one tile) blitted at
+ * native size, centred on `(cx, cy)` — the vehicle/prop equivalent of
+ * `drawSpriteTile`'s single-tile centring, for the handful of sprites
+ * (the patrol van, the transit bus) that are a fixed 2D block of tiles
+ * rather than one. `tiles` is row-major, top to bottom; `blit` picks which
+ * sheet, same convention every multi-tile helper on this canvas uses.
+ */
+function drawTileBlock(ctx: CanvasRenderingContext2D, tiles: number[][], cx: number, cy: number, blit: typeof drawTileAt) {
+  const rows = tiles.length;
+  const cols = tiles[0].length;
+  const startX = cx - (cols * TILE) / 2;
+  const startY = cy - (rows * TILE) / 2;
+  for (let r = 0; r < rows; r++) {
+    for (let c = 0; c < cols; c++) {
+      blit(ctx, tiles[r][c], startX + c * TILE, startY + r * TILE);
+    }
+  }
 }
 
 /**
@@ -1792,6 +1864,14 @@ function drawPlaza(ctx: CanvasRenderingContext2D, loc: OverworldLocation) {
     drawTree(ctx, { id: `plaza:${loc.id}:${cx}:${cy}`, x: cx - 10, y: cy - 20, w: 20, h: 40, kind: 'tree' });
   }
 
+  // A couple of market stalls — a single umbrella tile is shorthand enough
+  // to read as one, no cart body needed. "City hall and the park people
+  // actually use" wants a square that looks occupied, not just landscaped.
+  if (spriteSheetReady()) {
+    drawCityTileAt(ctx, MARKET_UMBRELLA_GREEN, px(loc.x + loc.w * 0.25 - TILE / 2), px(loc.y + loc.h * 0.65 - TILE / 2));
+    drawCityTileAt(ctx, MARKET_UMBRELLA_ORANGE, px(loc.x + loc.w * 0.75 - TILE / 2), px(loc.y + loc.h * 0.65 - TILE / 2));
+  }
+
   const bx = loc.x + loc.w / 2;
   const by = loc.y + loc.h * 0.4;
   const bw = 36;
@@ -2173,6 +2253,19 @@ function drawTransit(ctx: CanvasRenderingContext2D, loc: OverworldLocation) {
   // A lit route sign, the one warm point in an otherwise unlit shelter.
   ctx.fillStyle = PALETTE.windowLit;
   ctx.fillRect(px(loc.x + loc.w * 0.5 - 5), loc.y + canopyH + 3, 10, 6);
+
+  // A bus, actually stopped at the depot — one parked under its own end of
+  // the canopy, the same "this place is used" cue a parked car gives any
+  // ordinary street. Bellhaven's whole point about this stop is that
+  // service is thin, not that it's abandoned; a bus that's just arrived
+  // says that better than an empty platform does.
+  if (spriteSheetReady()) {
+    const busX = loc.x + loc.w * 0.82;
+    const busY = loc.y + loc.h - 30;
+    ctx.fillStyle = 'rgba(0,0,0,0.25)';
+    ctx.fillRect(px(busX - 17), loc.y + loc.h - 8, 34, 4);
+    drawTileBlock(ctx, BUS_TILES, busX, busY, drawTileAt);
+  }
 }
 
 /**

@@ -53,3 +53,31 @@ export const SIDEWALK_TILE = tileIndex(0, 19);
  * nothing is built on it, and a bright green tile would fight that on
  * every district's own tint overlay drawn on top of it. */
 export const GROUND_TILE = tileIndex(2, 24);
+
+/** The SafeTrace patrol van — a front-facing grey utility truck, 1 col x
+ * 2 rows (the sheet only draws this one at half the width of its
+ * orange/red/green neighbours a few columns over — verified against a
+ * labeled pixel crop after initially grabbing the wrong, wider truck at
+ * col 32). Grey reads as institutional/municipal rather than as anyone's
+ * personal car, which is the read a surveillance contractor's vehicle
+ * wants; row-major, top to bottom, same convention `BUS_TILES` uses. */
+export const PATROL_VAN_TILES: number[][] = [[tileIndex(31, 14)], [tileIndex(31, 15)]];
+
+/** A single umbrella tile stands in for a market stall — a common enough
+ * shorthand in top-down pixel art that it doesn't need a cart body under
+ * it to read as one. Two colours so Town Square's stalls don't look
+ * copy-pasted. */
+export const MARKET_UMBRELLA_GREEN = tileIndex(34, 14);
+export const MARKET_UMBRELLA_ORANGE = tileIndex(35, 14);
+
+/**
+ * Crosswalk stripes, one tile each — repeated side by side, they tile
+ * seamlessly into a strip of any width. `H` runs its bars horizontally
+ * (parallel to an east-west road, for pedestrians crossing north-south);
+ * `V` runs them vertically (parallel to a north-south road). Used once,
+ * hand-placed at the Downtown Crossroads only — not a general road-marking
+ * system, just the one intersection the story already treats as the
+ * town's busiest corner.
+ */
+export const CROSSWALK_H = tileIndex(9, 22);
+export const CROSSWALK_V = tileIndex(12, 22);
