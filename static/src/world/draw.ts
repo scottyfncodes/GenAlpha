@@ -1650,12 +1650,16 @@ function drawLibrary(ctx: CanvasRenderingContext2D, loc: OverworldLocation, tier
  * civic authority (the banner, the bandstand) and the green space people
  * actually use, in the one spot on the map every district borders. */
 function drawPlaza(ctx: CanvasRenderingContext2D, loc: OverworldLocation) {
-  ctx.fillStyle = PALETTE.pavingDark;
-  ctx.fillRect(loc.x, loc.y, loc.w, loc.h);
-  ctx.fillStyle = PALETTE.pavingLight;
-  for (let y = loc.y; y < loc.y + loc.h; y += 10) {
-    for (let x = loc.x + (((y - loc.y) / 10) % 2) * 10; x < loc.x + loc.w; x += 20) {
-      ctx.fillRect(x, y, 10, 10);
+  if (spriteSheetReady()) {
+    drawNineSliceRect(ctx, roofKitFor(loc.id), loc.x, loc.y, loc.w, loc.h);
+  } else {
+    ctx.fillStyle = PALETTE.pavingDark;
+    ctx.fillRect(loc.x, loc.y, loc.w, loc.h);
+    ctx.fillStyle = PALETTE.pavingLight;
+    for (let y = loc.y; y < loc.y + loc.h; y += 10) {
+      for (let x = loc.x + (((y - loc.y) / 10) % 2) * 10; x < loc.x + loc.w; x += 20) {
+        ctx.fillRect(x, y, 10, 10);
+      }
     }
   }
 
@@ -1845,10 +1849,14 @@ function drawPizza(ctx: CanvasRenderingContext2D, loc: OverworldLocation, tier: 
   ctx.fillStyle = PALETTE.curb;
   ctx.fillRect(loc.x - 2, loc.y + loc.h - 1, loc.w + 4, 3);
 
-  ctx.fillStyle = PALETTE.wallA;
-  ctx.fillRect(loc.x, loc.y + roofH, loc.w, loc.h - roofH);
-  ctx.fillStyle = PALETTE.roofA;
-  ctx.fillRect(loc.x + 3, loc.y, loc.w - 6, roofH);
+  if (spriteSheetReady()) {
+    drawSpriteBuildingShell(ctx, loc, roofH);
+  } else {
+    ctx.fillStyle = PALETTE.wallA;
+    ctx.fillRect(loc.x, loc.y + roofH, loc.w, loc.h - roofH);
+    ctx.fillStyle = PALETTE.roofA;
+    ctx.fillRect(loc.x + 3, loc.y, loc.w - 6, roofH);
+  }
 
   const awnW = loc.w * 0.6;
   const awnX = loc.x + loc.w / 2 - awnW / 2;
@@ -1879,10 +1887,14 @@ function drawArcade(ctx: CanvasRenderingContext2D, loc: OverworldLocation, tier:
   ctx.fillStyle = PALETTE.curb;
   ctx.fillRect(loc.x - 2, loc.y + loc.h - 1, loc.w + 4, 3);
 
-  ctx.fillStyle = PALETTE.wallA;
-  ctx.fillRect(loc.x, loc.y + roofH, loc.w, loc.h - roofH);
-  ctx.fillStyle = PALETTE.roofA;
-  ctx.fillRect(loc.x + 3, loc.y, loc.w - 6, roofH);
+  if (spriteSheetReady()) {
+    drawSpriteBuildingShell(ctx, loc, roofH);
+  } else {
+    ctx.fillStyle = PALETTE.wallA;
+    ctx.fillRect(loc.x, loc.y + roofH, loc.w, loc.h - roofH);
+    ctx.fillStyle = PALETTE.roofA;
+    ctx.fillRect(loc.x + 3, loc.y, loc.w - 6, roofH);
+  }
 
   const mW = loc.w * 0.8;
   const mX = loc.x + loc.w / 2 - mW / 2;
