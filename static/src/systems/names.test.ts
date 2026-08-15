@@ -2,11 +2,11 @@ import { describe, expect, it } from 'vitest';
 import {
   backupNameFor,
   collidingCharacter,
-  collidingHandle,
+  HANDLE_POOL,
   isAdultSpeaker,
-  KID_HANDLES,
   NAME_SWAP_FROM_FLAG,
   NAME_SWAP_TO_FLAG,
+  randomHandle,
   RESERVED_NAMES,
   resolveCharacterName,
 } from './names';
@@ -71,27 +71,6 @@ describe('createNewSave — name collision at creation', () => {
   });
 });
 
-describe('KID_HANDLES', () => {
-  it('gives every handle its own distinct value — no two kids share one', () => {
-    const handles = Object.values(KID_HANDLES);
-    expect(new Set(handles).size).toBe(handles.length);
-  });
-
-  it('never hands out a handle that collides with a reserved name — that would just move the collision', () => {
-    const reservedLower = new Set(RESERVED_NAMES.map((n) => n.toLowerCase()));
-    for (const handle of Object.values(KID_HANDLES)) {
-      expect(reservedLower.has(handle.toLowerCase())).toBe(false);
-    }
-  });
-
-  it('only covers kids — every key is a reserved name, and no adult is in it', () => {
-    const reserved = new Set<string>(RESERVED_NAMES);
-    for (const canonical of Object.keys(KID_HANDLES)) {
-      expect(reserved.has(canonical)).toBe(true);
-    }
-  });
-});
-
 describe('isAdultSpeaker', () => {
   it('is true for every adult who appears as a speaker', () => {
     expect(isAdultSpeaker('Mom')).toBe(true);
@@ -107,13 +86,30 @@ describe('isAdultSpeaker', () => {
   });
 });
 
-describe('collidingHandle', () => {
-  it('matches case-insensitively and trims whitespace', () => {
-    expect(collidingHandle('nova')).toBe('Ellen');
-    expect(collidingHandle('  Files  ')).toBe('Aaron');
+describe('HANDLE_POOL', () => {
+  it('has no duplicate entries — a repeat would just make Shuffle feel thinner than it is', () => {
+    expect(new Set(HANDLE_POOL).size).toBe(HANDLE_POOL.length);
   });
 
-  it('is null for a handle nobody has claimed', () => {
-    expect(collidingHandle('Ghost')).toBeNull();
+  it('never hands out a handle that collides with a reserved name', () => {
+    const reservedLower = new Set(RESERVED_NAMES.map((n) => n.toLowerCase()));
+    for (const handle of HANDLE_POOL) {
+      expect(reservedLower.has(handle.toLowerCase())).toBe(false);
+    }
+  });
+});
+
+describe('randomHandle', () => {
+  it('always returns something from the pool', () => {
+    for (let i = 0; i < 50; i++) expect(HANDLE_POOL).toContain(randomHandle());
+  });
+
+  it('never repeats the excluded value while an alternative exists — a reroll that can no-op is not a reroll', () => {
+    for (let i = 0; i < 50; i++) expect(randomHandle('Ghost')).not.toBe('Ghost');
+  });
+
+  it('reaches more than one outcome over many rolls', () => {
+    const seen = new Set(Array.from({ length: 100 }, () => randomHandle()));
+    expect(seen.size).toBeGreaterThan(1);
   });
 });

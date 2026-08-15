@@ -38,7 +38,7 @@
         "handle": {
           "type": "string",
           "default": "unset — chosen at game start",
-          "description": "ADDED in 0.7.0. The hacking handle every kid character (and the player's own narration) addresses the player by; adult-voiced lines still use `name`. A save from before this field existed falls back to `name` on migration."
+          "description": "ADDED in 0.6.0. The player's own hacking handle, generated at game start rather than typed. Every kid character (and the player's own narration) addresses the player by it; adult-voiced lines still use `name`. Every kid keeps their own real name — the player is the only one with a handle. A save from before this field existed falls back to `name` on migration."
         },
         "currentChapter": {
           "type": "string",

@@ -178,6 +178,47 @@
   opacity: 0.75;
 }
 
+.title__handle-label {
+  margin: 0;
+  font-size: 13px;
+  opacity: 0.8;
+}
+
+/* Same visual weight as `.title__naming input` above — a generated value
+   reads as a real field, not a lesser one, even though there's nothing to
+   type into it. */
+.title__handle {
+  display: flex;
+  gap: 8px;
+}
+
+.title__handle-value {
+  flex: 1;
+  background: rgba(236, 226, 208, 0.08);
+  border: 2px solid rgba(236, 226, 208, 0.5);
+  color: var(--b-paper);
+  padding: 10px 12px;
+  font: inherit;
+  font-weight: 700;
+  text-align: center;
+  letter-spacing: 0.04em;
+}
+
+.title__handle-shuffle {
+  flex: none;
+  background: transparent;
+  border: 2px solid rgba(236, 226, 208, 0.5);
+  color: var(--b-paper);
+  padding: 10px 12px;
+  font: inherit;
+  cursor: pointer;
+}
+
+.title__handle-shuffle:hover,
+.title__handle-shuffle:focus-visible {
+  border-color: var(--b-paper);
+}
+
 /* "Gen" and "Alpha" each on their own line, and each line is exactly one
    atomic unit — the mark can never end up stranded alone the way it would
    wrapping naturally inside one long run of letter-spaced text. */

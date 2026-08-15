@@ -16,7 +16,7 @@ import { GenAMark, markStateFor } from './GenAMark';
 import type { RunOutcome } from '../systems/missions';
 import { SKINS, type SkinId } from '../content/skins';
 import { speakerColor } from '../content/characters';
-import { KID_HANDLES, resolveCharacterName } from '../systems/names';
+import { resolveCharacterName } from '../systems/names';
 import './scene-view.css';
 
 const CHARS_PER_TICK: Record<string, number> = { slow: 1, normal: 2, fast: 4 };
@@ -233,18 +233,17 @@ function lineClass(l: SceneLine): string {
  * else falls through to scene-view.css's per-language default, which is
  * exactly right for a one-line walk-on nobody needs to recognise on sight.
  *
- * A kid with a hacking handle (`KID_HANDLES`) shows that instead of their
- * real name — unconditionally, since a character's own tag is who they are,
- * not a mention inside someone else's line, which is what `render()`'s
- * speaker-conditional swap handles. Anyone without a handle (Beau, every
- * adult) falls through to the name-collision resolver exactly as before.
+ * Every kid speaks under their own real name — only the player has a
+ * handle. The one swap left is the name-collision resolver: whoever the
+ * player's own chosen name bumped at creation shows their backup name
+ * instead of the one that collided.
  */
 function SpeakerTag({ name }: { name: string }) {
   const save = useSave();
   // Colour stays keyed to the canonical name — it's a lookup table, not
   // something the player ever reads — only the label itself swaps.
   const color = speakerColor(name);
-  const display = KID_HANDLES[name] ?? resolveCharacterName(save.player.flags, name);
+  const display = resolveCharacterName(save.player.flags, name);
   return (
     <span className="scene__speaker" style={color ? { background: color } : undefined}>
       {display}

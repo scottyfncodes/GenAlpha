@@ -77,36 +77,11 @@ export function resolveCharacterName(flags: StoryFlags, canonical: string): stri
 }
 
 /**
- * Hacking handles. Kids go by these to each other and to the player; only
- * an adult uses a kid's real first name. Keyed by the same canonical name
- * `RESERVED_NAMES`/speaker tags already use, so this table and the
- * collision swap above can never disagree about who a mention means.
- *
- * Aaron's and Ellen's handles aren't new inventions — "files" and "nova"
- * are already the npcId/locationId this game has used internally for each
- * of them since Act 1 was written (mission id `files`, `nova_house`,
- * `nova_channel_seen`); this just finally lets the player see them.
- *
- * Not every kid gets one. Beau's seven and has no hacker identity to speak
- * of, and Casey never appears on screen to be addressed by anything — both
- * stay on their real name, same as before this table existed.
- */
-export const KID_HANDLES: Record<string, string> = {
-  Aaron: 'Files',
-  Ellen: 'Nova',
-  Deja: 'Fuse',
-  Milo: 'Proxy',
-  Bishop: 'Relay',
-  Ridge: 'Ledger',
-  Ines: 'Silk',
-};
-
-/**
- * Every adult who appears as a `speaker:` in dialogue. Anyone else — every
+ * Every adult who appears as a `speaker:` in dialogue. Everyone else — every
  * kid, and narration with no speaker at all, which is always the player's
- * own (a kid's) voice — talks in handles: `render()` swaps a `KID_HANDLES`
- * mention for its handle, and `{name}` becomes the player's own handle,
- * unless the line's speaker is in this set.
+ * own voice — is who `{name}` becomes the player's own handle for, in
+ * `render()`. Kids themselves go by their real, plain names throughout;
+ * only the player has a handle at all.
  */
 const ADULT_SPEAKERS = new Set(['Mom', 'Mr. Arroyo', 'Councilwoman Reyes', 'Reeta']);
 
@@ -114,11 +89,46 @@ export function isAdultSpeaker(speaker: string | undefined): boolean {
   return speaker !== undefined && ADULT_SPEAKERS.has(speaker);
 }
 
-/** Case-insensitive collision check for the player's own chosen handle
- * against the handles already claimed above — the handle-entry mirror of
- * `collidingCharacter`. Returns the real name of whichever kid already
- * has it, or null. */
-export function collidingHandle(playerHandle: string): string | null {
-  const typed = playerHandle.trim().toLowerCase();
-  return Object.keys(KID_HANDLES).find((name) => KID_HANDLES[name].toLowerCase() === typed) ?? null;
+/**
+ * The player's own hacking handle, picked for them rather than typed. A
+ * short, plain, concrete word — the same register a kid would actually
+ * reach for, not a thesaurus flex or a string of leetspeak — so Shuffle
+ * always lands on something that reads as a name a person picked, not a
+ * random noun generator showing its work.
+ */
+export const HANDLE_POOL = [
+  'Ghost',
+  'Static',
+  'Cipher',
+  'Patch',
+  'Glitch',
+  'Echo',
+  'Drift',
+  'Splice',
+  'Fault',
+  'Hollow',
+  'Root',
+  'Signal',
+  'Shade',
+  'Rogue',
+  'Flux',
+  'Null',
+  'Wire',
+  'Byte',
+  'Circuit',
+  'Vapor',
+  'Wraith',
+  'Vector',
+  'Tangle',
+  'Pixel',
+] as const;
+
+/**
+ * One pick from the pool, for the title screen's Shuffle button.
+ * `exclude` keeps a reroll from landing right back on the handle already
+ * showing — a "shuffle" that can silently do nothing isn't a shuffle.
+ */
+export function randomHandle(exclude?: string): string {
+  const choices = exclude ? HANDLE_POOL.filter((h) => h !== exclude) : HANDLE_POOL;
+  return choices[Math.floor(Math.random() * choices.length)];
 }

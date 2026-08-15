@@ -1,7 +1,7 @@
 import type { AcquiredVia, SaveState, SkillsState, StoryFlags, ThresholdTier } from '../state/schema';
 import type { SkinId } from '../content/skins';
 import { atLeast } from './heat';
-import { isAdultSpeaker, KID_HANDLES, NAME_SWAP_FROM_FLAG, NAME_SWAP_TO_FLAG } from './names';
+import { isAdultSpeaker, NAME_SWAP_FROM_FLAG, NAME_SWAP_TO_FLAG } from './names';
 
 /**
  * The dialogue/scene system. Scenes are data (see src/content/act1.ts) — this
@@ -483,20 +483,22 @@ export function validateScene(scene: Scene, locationIds: string[]): string[] {
 }
 
 /**
- * Substitutes the player's chosen name (or handle) and any kid character's
- * handle into authored copy. `speaker` is whoever's saying this particular
- * line — undefined for plain narration, which is always the player's own
- * (a kid's) voice. An adult speaker gets real names throughout; anyone
- * else gets handles, same rule Style Guide 07's "only adults use a kid's
- * real name" runs on everywhere else in the game.
+ * Substitutes the player's chosen name (or handle) into authored copy.
+ * `speaker` is whoever's saying this particular line — undefined for plain
+ * narration, which is always the player's own (a kid's) voice. An adult
+ * speaker addresses the player by their real name throughout; anyone else
+ * — every kid, and the player's own narration — uses the handle instead,
+ * same rule Style Guide 07's "only adults use a kid's real name" runs on
+ * everywhere else in the game. Every kid character keeps their own real,
+ * plain name; only the player has a handle at all.
  */
 export function render(text: string, save: SaveState, speaker?: string): string {
   let out = text;
   /*
-   * The character-name swap runs BEFORE `{name}`/handle substitution, and
-   * that order is load-bearing, not incidental. Do it after, and a line
-   * like "{name}! Hold on—" — spoken BY the collided character, addressing
-   * the player — would read "Ellen! Hold on—" once `{name}` became the
+   * The character-name swap runs BEFORE `{name}` substitution, and that
+   * order is load-bearing, not incidental. Do it after, and a line like
+   * "{name}! Hold on—" — spoken BY the collided character, addressing the
+   * player — would read "Ellen! Hold on—" once `{name}` became the
    * player's own "Ellen", and then get swapped a second time into "Robyn!
    * Hold on—", renaming the player inside their own line. Run first, against
    * the raw authored text, and the swap can only ever touch a genuine
@@ -507,11 +509,6 @@ export function render(text: string, save: SaveState, speaker?: string): string 
   const to = save.player.flags[NAME_SWAP_TO_FLAG];
   if (typeof from === 'string' && typeof to === 'string') {
     out = out.replace(new RegExp(`\\b${from}\\b`, 'g'), to);
-  }
-  if (!isAdultSpeaker(speaker)) {
-    for (const [canonical, handle] of Object.entries(KID_HANDLES)) {
-      out = out.replace(new RegExp(`\\b${canonical}\\b`, 'g'), handle);
-    }
   }
   const playerDisplayName = isAdultSpeaker(speaker) ? save.player.name : save.player.handle || save.player.name;
   out = out.replace(/\{name\}/g, playerDisplayName);

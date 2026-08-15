@@ -30,19 +30,11 @@ describe('render — {name} and the character-name swap', () => {
   });
 });
 
-describe('render — kid handles', () => {
-  it('swaps a kid character\'s real name for their handle when no speaker is given (narration)', () => {
+describe('render — the player\'s own handle', () => {
+  it('leaves a kid character\'s real name untouched — only the player has a handle', () => {
     const save = createNewSave('Wren');
-    expect(render('the corner has Ellen.', save)).toBe('the corner has Nova.');
-  });
-
-  it('swaps a kid character\'s real name for their handle when another kid is speaking', () => {
-    const save = createNewSave('Wren');
-    expect(render('Deja said to meet at the jobsite.', save, 'Aaron')).toBe('Fuse said to meet at the jobsite.');
-  });
-
-  it('leaves a kid character\'s real name alone when an adult is speaking', () => {
-    const save = createNewSave('Wren');
+    expect(render('the corner has Ellen.', save)).toBe('the corner has Ellen.');
+    expect(render('Deja said to meet at the jobsite.', save, 'Aaron')).toBe('Deja said to meet at the jobsite.');
     expect(render('Deja said to meet at the jobsite.', save, 'Mom')).toBe('Deja said to meet at the jobsite.');
   });
 
@@ -64,11 +56,5 @@ describe('render — kid handles', () => {
   it('falls back to the player\'s name when no handle was chosen', () => {
     const save = createNewSave('Wren');
     expect(render('{name}, over here.', save, 'Ellen')).toBe('Wren, over here.');
-  });
-
-  it('leaves a kid with no handle (Beau) untouched either way', () => {
-    const save = createNewSave('Wren');
-    expect(render('Beau ran off.', save, 'Ellen')).toBe('Beau ran off.');
-    expect(render('Beau ran off.', save, 'Mom')).toBe('Beau ran off.');
   });
 });
