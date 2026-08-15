@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { collides, FLIGHT_BOUNDS, isShotDown, progressPct } from '../../systems/droneflight';
 import { KAMIKAZE_FLIGHT_MS, playerDroneTuning, RECON_FLIGHT_MS, type PlayerDroneTier } from '../../world/playerdrone';
 import { play } from '../../systems/audio';
+import { drawInterceptor, drawPlayerDrone, droneSpritesReady, ensureDroneSpritesLoading } from './droneSprites';
 import './drone-flight.css';
 
 interface Enemy {
@@ -68,6 +69,7 @@ export function DroneFlight({
     if (!canvas || !ctx) return;
     canvas.width = FLIGHT_BOUNDS.w;
     canvas.height = FLIGHT_BOUNDS.h;
+    ensureDroneSpritesLoading();
 
     // Kamikaze flies into defended airspace — more of everything comes at
     // it than a recon sweep ever sees.
@@ -162,20 +164,30 @@ export function DroneFlight({
       ctx.fillStyle = '#7dd3ff';
       for (const s of shotsRef.current) ctx.fillRect(s.x - 1, s.y - 4, 2, 8);
 
-      ctx.fillStyle = '#e84ac9';
-      for (const e of enemiesRef.current) {
-        ctx.beginPath();
-        ctx.arc(e.x, e.y, e.r, 0, Math.PI * 2);
-        ctx.fill();
+      const spritesReady = droneSpritesReady();
+
+      if (spritesReady) {
+        for (const e of enemiesRef.current) drawInterceptor(ctx, e.x, e.y, e.r * 2.4);
+      } else {
+        ctx.fillStyle = '#e84ac9';
+        for (const e of enemiesRef.current) {
+          ctx.beginPath();
+          ctx.arc(e.x, e.y, e.r, 0, Math.PI * 2);
+          ctx.fill();
+        }
       }
 
-      ctx.fillStyle = '#7dd3ff';
-      ctx.beginPath();
-      ctx.moveTo(playerPos.current.x, playerPos.current.y - 9);
-      ctx.lineTo(playerPos.current.x - 7, playerPos.current.y + 7);
-      ctx.lineTo(playerPos.current.x + 7, playerPos.current.y + 7);
-      ctx.closePath();
-      ctx.fill();
+      if (spritesReady) {
+        drawPlayerDrone(ctx, playerPos.current.x, playerPos.current.y, 22);
+      } else {
+        ctx.fillStyle = '#7dd3ff';
+        ctx.beginPath();
+        ctx.moveTo(playerPos.current.x, playerPos.current.y - 9);
+        ctx.lineTo(playerPos.current.x - 7, playerPos.current.y + 7);
+        ctx.lineTo(playerPos.current.x + 7, playerPos.current.y + 7);
+        ctx.closePath();
+        ctx.fill();
+      }
 
       raf = requestAnimationFrame(frame);
     };
