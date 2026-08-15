@@ -74,3 +74,47 @@ export const CAR_TILES: number[] = [
   tileIndex(8, 11),
   tileIndex(9, 11),
 ];
+
+/** A 9-slice kit — corner/edge/fill in a 3x3 block — for a flat roof-slab
+ * rect of any size. The pack ships this in a few color/border schemes; the
+ * two below are the ones `drawSpriteBuildingShell` pairs with a wall kit. */
+export interface NineSlice {
+  tl: number;
+  t: number;
+  tr: number;
+  l: number;
+  fill: number;
+  r: number;
+  bl: number;
+  b: number;
+  br: number;
+}
+
+function nineSliceAt(col0: number, row0: number): NineSlice {
+  return {
+    tl: tileIndex(col0, row0),
+    t: tileIndex(col0 + 1, row0),
+    tr: tileIndex(col0 + 2, row0),
+    l: tileIndex(col0, row0 + 1),
+    fill: tileIndex(col0 + 1, row0 + 1),
+    r: tileIndex(col0 + 2, row0 + 1),
+    bl: tileIndex(col0, row0 + 2),
+    b: tileIndex(col0 + 1, row0 + 2),
+    br: tileIndex(col0 + 2, row0 + 2),
+  };
+}
+
+export const ROOF_GREY: NineSlice = nineSliceAt(9, 0);
+export const ROOF_TAN: NineSlice = nineSliceAt(0, 4);
+
+/** A wall kit is just two rows — the cap (the trimmed seam that sits right
+ * under the roof) and a plain fill row repeated for however tall the wall
+ * needs to be. The pack's brick textures don't need corner posts to read
+ * as a wall; a plain column works fine tiled edge to edge. */
+export interface WallKit {
+  cap: number;
+  fill: number;
+}
+
+export const WALL_RED: WallKit = { cap: tileIndex(19, 0), fill: tileIndex(19, 3) };
+export const WALL_ORANGE: WallKit = { cap: tileIndex(19, 5), fill: tileIndex(19, 7) };

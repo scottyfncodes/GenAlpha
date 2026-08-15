@@ -71,3 +71,13 @@ export function drawSpriteTile(
   const { sx, sy } = tileSourceRect(index);
   ctx.drawImage(sheet, sx, sy, TILE, TILE, Math.round(cx - dw / 2), Math.round(cy - dh / 2), Math.round(dw), Math.round(dh));
 }
+
+/** Top-left anchored, at a fixed `size` (defaults to the tile's own native
+ * 16px) — the primitive a tiled wall/roof grid repeats across a rect with,
+ * where `drawSpriteTile`'s center-anchored scaling would fight the grid
+ * math instead of helping it. */
+export function drawTileAt(ctx: CanvasRenderingContext2D, index: number, x: number, y: number, size: number = TILE): void {
+  if (!sheet || !ready) return;
+  const { sx, sy } = tileSourceRect(index);
+  ctx.drawImage(sheet, sx, sy, TILE, TILE, Math.round(x), Math.round(y), size, size);
+}

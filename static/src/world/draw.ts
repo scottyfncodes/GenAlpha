@@ -10,18 +10,24 @@ import type { Obstacle } from './obstacles';
 import type { NpcKind } from './npcs';
 import type { ThresholdTier } from '../state/schema';
 import { mulberry32, seedFrom } from '../systems/rng';
-import { drawSpriteTile, ensureSpriteSheetLoading, spriteSheetReady } from './spritesheet';
+import { drawTileAt, drawSpriteTile, ensureSpriteSheetLoading, spriteSheetReady, TILE } from './spritesheet';
 import {
   BUSH_ORANGE,
   BUSH_TEAL,
   CAR_TILES,
   CHARACTERS,
   CHARACTER_DRAW_SIZE,
+  ROOF_GREY,
+  ROOF_TAN,
   TREE_SMALL_ORANGE,
   TREE_SMALL_TEAL,
   TREE_TALL_ORANGE,
   TREE_TALL_TEAL,
+  WALL_ORANGE,
+  WALL_RED,
   type Direction,
+  type NineSlice,
+  type WallKit,
 } from './spriteIndex';
 
 /**
@@ -1265,6 +1271,72 @@ function drawGlitchTear(ctx: CanvasRenderingContext2D, loc: OverworldLocation, t
 }
 
 /**
+ * A flat rect, tiled with a 9-slice kit (corner/edge/fill) at the sheet's
+ * native 16px pitch — a roof slab of any size, clipped to its own rect so a
+ * width that isn't a clean multiple of the tile just ends cleanly at the
+ * edge rather than stretching the last tile to fit.
+ */
+function drawNineSliceRect(ctx: CanvasRenderingContext2D, slice: NineSlice, x: number, y: number, w: number, h: number) {
+  const cols = Math.ceil(w / TILE);
+  const rows = Math.ceil(h / TILE);
+  ctx.save();
+  ctx.beginPath();
+  ctx.rect(x, y, w, h);
+  ctx.clip();
+  for (let r = 0; r < rows; r++) {
+    for (let c = 0; c < cols; c++) {
+      const left = c === 0;
+      const right = c === cols - 1;
+      const top = r === 0;
+      const bottom = r === rows - 1;
+      let idx = slice.fill;
+      if (top && left) idx = slice.tl;
+      else if (top && right) idx = slice.tr;
+      else if (bottom && left) idx = slice.bl;
+      else if (bottom && right) idx = slice.br;
+      else if (top) idx = slice.t;
+      else if (bottom) idx = slice.b;
+      else if (left) idx = slice.l;
+      else if (right) idx = slice.r;
+      drawTileAt(ctx, idx, x + c * TILE, y + r * TILE);
+    }
+  }
+  ctx.restore();
+}
+
+/** A wall band — the cap row (the trimmed seam under the roof) once, then
+ * the plain fill row repeated for whatever's left, tiled and clipped the
+ * same way `drawNineSliceRect` is. */
+function drawWallBand(ctx: CanvasRenderingContext2D, kit: WallKit, x: number, y: number, w: number, h: number) {
+  const cols = Math.ceil(w / TILE);
+  const rows = Math.ceil(h / TILE);
+  ctx.save();
+  ctx.beginPath();
+  ctx.rect(x, y, w, h);
+  ctx.clip();
+  for (let r = 0; r < rows; r++) {
+    for (let c = 0; c < cols; c++) {
+      drawTileAt(ctx, r === 0 ? kit.cap : kit.fill, x + c * TILE, y + r * TILE);
+    }
+  }
+  ctx.restore();
+}
+
+/**
+ * The sprite-sheet building shell: a tiled roof slab over a tiled brick
+ * wall band, in one of two paired palettes (grey stone + red brick, or tan
+ * stone + orange brick) picked once per location id — the same "small fixed
+ * wardrobe" trick as everything else this pass varied by id hash. Callers
+ * still draw their own curb, colour band, windows and signage on top; this
+ * only replaces the flat-fill wall/roof rects underneath them.
+ */
+function drawSpriteBuildingShell(ctx: CanvasRenderingContext2D, loc: OverworldLocation, roofH: number) {
+  const grey = noise(`building-palette:${loc.id}`)() < 0.5;
+  drawNineSliceRect(ctx, grey ? ROOF_GREY : ROOF_TAN, loc.x, loc.y, loc.w, roofH);
+  drawWallBand(ctx, grey ? WALL_RED : WALL_ORANGE, loc.x, loc.y + roofH, loc.w, loc.h - roofH);
+}
+
+/**
  * A building: body, roof, a row of windows. The roof reads as pitched by being
  * inset — at eight pixels of detail that is enough, and cheaper than an angle
  * that would need anti-aliasing to survive. The fallback shape now — every
@@ -1281,12 +1353,20 @@ function drawBuilding(ctx: CanvasRenderingContext2D, loc: OverworldLocation, tie
   ctx.fillStyle = PALETTE.curb;
   ctx.fillRect(loc.x - 2, loc.y + loc.h - 1, loc.w + 4, 3);
 
-  ctx.fillStyle = isB ? PALETTE.wallB : PALETTE.wallA;
-  ctx.fillRect(loc.x, loc.y + roofH, loc.w, loc.h - roofH);
+  if (spriteSheetReady() && !isB) {
+    // Language B keeps its own warmer, hand-built flat colour — the sheet's
+    // brick-and-stone kit reads as Language A's corporate-clean surface
+    // (Style Guide 07), the opposite of what a resistance space is meant to
+    // say, so this only ever swaps in for the cool, ordinary town.
+    drawSpriteBuildingShell(ctx, loc, roofH);
+  } else {
+    ctx.fillStyle = isB ? PALETTE.wallB : PALETTE.wallA;
+    ctx.fillRect(loc.x, loc.y + roofH, loc.w, loc.h - roofH);
 
-  ctx.fillStyle = isB ? PALETTE.roofB : PALETTE.roofA;
-  ctx.fillRect(loc.x + 4, loc.y, loc.w - 8, roofH);
-  ctx.fillRect(loc.x, loc.y + roofH - 4, loc.w, 4);
+    ctx.fillStyle = isB ? PALETTE.roofB : PALETTE.roofA;
+    ctx.fillRect(loc.x + 4, loc.y, loc.w - 8, roofH);
+    ctx.fillRect(loc.x, loc.y + roofH - 4, loc.w, 4);
+  }
 
   // The location's own colour survives as a band at the base — it is how the
   // player has learned to tell these apart since Phase 1.
@@ -1797,10 +1877,14 @@ function drawShop(ctx: CanvasRenderingContext2D, loc: OverworldLocation, tier: T
   ctx.fillStyle = PALETTE.curb;
   ctx.fillRect(loc.x - 2, loc.y + loc.h - 1, loc.w + 4, 3);
 
-  ctx.fillStyle = PALETTE.wallA;
-  ctx.fillRect(loc.x, loc.y + roofH, loc.w, loc.h - roofH);
-  ctx.fillStyle = PALETTE.roofA;
-  ctx.fillRect(loc.x + 2, loc.y, loc.w - 4, roofH);
+  if (spriteSheetReady()) {
+    drawSpriteBuildingShell(ctx, loc, roofH);
+  } else {
+    ctx.fillStyle = PALETTE.wallA;
+    ctx.fillRect(loc.x, loc.y + roofH, loc.w, loc.h - roofH);
+    ctx.fillStyle = PALETTE.roofA;
+    ctx.fillRect(loc.x + 2, loc.y, loc.w - 4, roofH);
+  }
 
   // The awning — a flat band in the shop's own colour, not a stripe pattern,
   // so the render type stays legible as "generic shop" rather than "pizza
