@@ -1,5 +1,7 @@
 import type { SaveState } from '../state/schema';
-import { MATERIALS_BY_ID, RECIPES } from '../content/materials';
+import { JUNCTION_BOX_SALVAGE, MATERIALS_BY_ID, RECIPES } from '../content/materials';
+import { BLUEPRINTS } from '../content/blueprints';
+import { mulberry32, seedFrom } from './rng';
 import { BOLT_CUTTERS, PLAYER_DRONE_TIERS } from '../content/economy';
 import {
   CAMERA_NODES,
@@ -155,17 +157,69 @@ export function canDestroyJunctionBox(save: SaveState, node: { id: string; tier:
   return !onCooldown(save, node.id, JUNCTION_BOX_RISK[node.tier].respawnDays);
 }
 
+/** What was actually in a box, once the lid is off. `name` rides along so
+ * every surface that reports a find (the overworld toast, the drone strike's
+ * own result line) says the same words without re-deriving them from two
+ * different catalogs. */
+export type JunctionBoxLoot =
+  | { kind: 'blueprint'; itemId: string; quantity: 1; name: string }
+  | { kind: 'materials'; itemId: string; quantity: number; name: string };
+
 /**
- * Crack it open: the one file inside, once, at the Heat cost its tier
- * carries. `acquiredVia: 'theft'` for the same reason a camera dismantle
- * uses it — this is a decision with a cost on it, not a lucky find.
+ * What's inside a junction box — decided at the moment it's cracked, never
+ * before, which is the whole point of the change: the prompt can no longer
+ * tell the player what they're about to get, because until this runs there
+ * is nothing to tell.
+ *
+ * The roll is over the plans at this box's tier the player *doesn't already
+ * have*, so 100% collection stays reachable by persistence rather than by
+ * luck — the randomness is in the order the plans arrive and how many boxes
+ * it takes, never in whether a plan can be had at all. There are exactly as
+ * many boxes at each tier as there are plans at that tier, so a tier can
+ * always be finished; it just won't be finished in the order anyone planned,
+ * and that's what slows the run to 100% down.
+ *
+ * Once a tier's plans are all found, its boxes pay salvage instead
+ * (`JUNCTION_BOX_SALVAGE`) — a box is never empty, because a Heat cost the
+ * player already paid should never buy nothing.
+ *
+ * Deterministic, seeded off the save rather than `Math.random`: a reducer has
+ * to be a pure function of its input (React re-invokes it in development to
+ * check exactly that), and the overworld needs to be able to ask "what will
+ * this box give" and get the same answer the reducer is about to reach, so
+ * it can name the find in the toast without a second source of truth.
+ */
+export function rollJunctionBoxLoot(save: SaveState, node: { id: string; tier: 1 | 2 | 3 | 4 | 5 }): JunctionBoxLoot {
+  const unfound = BLUEPRINTS.filter((b) => b.tier === node.tier && !owns(save, b.itemId));
+  const rand = mulberry32(seedFrom(`${node.id}:${save.world.day}:${unfound.length}`));
+
+  if (unfound.length > 0) {
+    const plan = unfound[Math.floor(rand() * unfound.length)];
+    return { kind: 'blueprint', itemId: plan.itemId, quantity: 1, name: plan.name };
+  }
+
+  const pool = JUNCTION_BOX_SALVAGE[node.tier];
+  const pick = pool[Math.floor(rand() * pool.length)];
+  return {
+    kind: 'materials',
+    itemId: pick.itemId,
+    quantity: pick.quantity,
+    name: MATERIALS_BY_ID[pick.itemId]?.name ?? 'salvage',
+  };
+}
+
+/**
+ * Crack it open: whatever's inside, once, at the Heat cost its tier carries.
+ * `acquiredVia: 'theft'` for the same reason a camera dismantle uses it —
+ * this is a decision with a cost on it, not a lucky find.
  */
 export function destroyJunctionBox(save: SaveState, nodeId: string): SaveState {
   const node = JUNCTION_BOX_NODES.find((n) => n.id === nodeId);
   if (!node || !canDestroyJunctionBox(save, node)) return save;
   const risk = JUNCTION_BOX_RISK[node.tier];
+  const loot = rollJunctionBoxLoot(save, node);
 
-  const withItem = grantItem(save, node.blueprintItemId, 1, 'theft');
+  const withItem = grantItem(save, loot.itemId, loot.quantity, 'theft');
   const withHeat = {
     ...withItem,
     heat: applyHeat(withItem.heat, {
@@ -306,7 +360,14 @@ export function kamikazeStrike(save: SaveState, target: KamikazeTarget, hit: boo
     };
   }
 
-  s = camera ? grantItem(s, camera.itemId, 2, 'theft') : grantItem(s, junction!.blueprintItemId, 1, 'theft');
+  if (camera) {
+    s = grantItem(s, camera.itemId, 2, 'theft');
+  } else {
+    // Same roll an on-foot crack would make — flying a drone into a box is a
+    // different way in, not a different box.
+    const loot = rollJunctionBoxLoot(s, junction!);
+    s = grantItem(s, loot.itemId, loot.quantity, 'theft');
+  }
 
   const withHeat = {
     ...s,

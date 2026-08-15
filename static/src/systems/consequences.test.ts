@@ -28,7 +28,12 @@ describe('consequenceFor', () => {
 
 describe('applyCatch', () => {
   it('does nothing at clear — no hard fail, and no consequence to have', () => {
-    expect(applyCatch(save(), 'clear')).toEqual(save());
+    // One save compared against itself, not two freshly built ones:
+    // `createNewSave` stamps `meta.createdAt` from the wall clock, so two
+    // calls that land either side of a millisecond boundary differ on a
+    // field this assertion was never about.
+    const before = save();
+    expect(applyCatch(before, 'clear')).toEqual(before);
   });
 
   it('costs cash and Heat, and never takes cash below zero', () => {

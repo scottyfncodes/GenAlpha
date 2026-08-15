@@ -33,6 +33,14 @@ import {
   type KamikazeTarget,
 } from '../systems/materials';
 import { applyCatch } from '../systems/consequences';
+import {
+  markSwept,
+  rearmIfClear,
+  repairNetwork,
+  sweepDue,
+  SWEEP_DAYS,
+  SWEEP_HEAT_FLOOR,
+} from '../systems/coverage';
 import { resolveStreetHack, type HackLevel } from '../systems/streethacks';
 import type { SabotageActionId } from '../world/collectibles';
 import { HOME_LOCATION_ID } from '../world/locations';
@@ -79,7 +87,73 @@ type Action =
   | { type: 'CAUGHT'; tier: ThresholdTier }
   | { type: 'HACK_STREET_NODE'; nodeId: string; outcome: RunOutcome; level?: HackLevel };
 
-function reducer(state: SaveState | null, action: Action): SaveState | null {
+/**
+ * Advancing the in-fiction clock, in one place. Both the explicit
+ * `ADVANCE_DAY` and the lockdown sweep's own three days go through here, so
+ * "a day passing" means exactly the same thing however it was caused —
+ * ageing the market and the safehouses is not optional just because it was
+ * SafeTrace that moved the calendar rather than the player.
+ */
+function advanceDays(state: SaveState, days: number): SaveState {
+  const day = state.world.day + days;
+  return tickSafehouses(
+    tickMarket({ ...state, world: { ...state.world, day }, heat: decayTo(state.heat, day) }),
+  );
+}
+
+/**
+ * The lockdown sweep — what happens when SafeTrace gets to 100% coverage.
+ *
+ * GUARDRAIL (`systems/heat.ts`, and confirmed with the author before this was
+ * built): this is a severe forced consequence, not a fail state. It takes
+ * days, it takes the network back, and it leaves the town permanently harder
+ * to hide in — but the run continues, and every door that was open before it
+ * is still open after.
+ */
+function runLockdownSweep(state: SaveState): SaveState {
+  const swept = repairNetwork(advanceDays(state, SWEEP_DAYS));
+  // Only ever upward: a player who arrives at the sweep already past the
+  // floor doesn't get Heat handed back to them for the privilege.
+  const delta = Math.max(0, SWEEP_HEAT_FLOOR - swept.heat.current);
+  const withHeat = {
+    ...swept,
+    heat: applyHeat(swept.heat, { eventId: 'lockdown_sweep', delta, logToHistory: true }),
+  };
+  return markSwept(withHeat, withHeat.world.day);
+}
+
+/**
+ * Keep the coverage latch honest after every action that could have moved
+ * it. Firing the sweep from here rather than from each of the half-dozen
+ * actions that can push coverage over is what stops one of them from being
+ * forgotten later — there is exactly one place that decides the town has
+ * topped out, and it sees every state change.
+ *
+ * `sweepDue` already requires the latch to be armed, so the sweep's own
+ * three-day jump can't re-trigger it on the way out.
+ */
+function settleSurveillance(state: SaveState): SaveState {
+  if (sweepDue(state)) return runLockdownSweep(state);
+  return rearmIfClear(state);
+}
+
+export function reducer(state: SaveState | null, action: Action): SaveState | null {
+  const next = applyAction(state, action);
+  if (!state || !next) return next;
+  /*
+   * Coverage is a pure function of the day, the cooldown log and the sweep
+   * count, so there is nothing to settle unless one of the first two
+   * actually moved. This is what keeps `TICK_PLAYTIME` — dispatched on a
+   * timer for the whole session — from recomputing a 16,000-cell grid every
+   * second for an answer that cannot have changed.
+   */
+  if (next.world.day === state.world.day && next.world.collectedNodes === state.world.collectedNodes) {
+    return next;
+  }
+  return settleSurveillance(next);
+}
+
+function applyAction(state: SaveState | null, action: Action): SaveState | null {
   if (action.type === 'NEW_GAME') return createNewSave(action.name, action.handle);
   if (action.type === 'LOAD') return action.save;
   if (action.type === 'RESET') return null;
@@ -138,14 +212,8 @@ function reducer(state: SaveState | null, action: Action): SaveState | null {
     }
 
     /** The in-fiction clock. Heat decay hangs off this and nothing else. */
-    case 'ADVANCE_DAY': {
-      const day = state.world.day + (action.days ?? 1);
-      // Ageing the market is not optional just because nothing new started:
-      // an event that can't expire is a price change that never ends.
-      return tickSafehouses(
-        tickMarket({ ...state, world: { ...state.world, day }, heat: decayTo(state.heat, day) }),
-      );
-    }
+    case 'ADVANCE_DAY':
+      return advanceDays(state, action.days ?? 1);
 
     /**
      * A finished run. The whole of it lives in `resolveRun` so the Heat cost,

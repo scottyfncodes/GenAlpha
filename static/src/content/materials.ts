@@ -103,6 +103,48 @@ export const MATERIALS_BY_ID: Record<string, Material> = Object.fromEntries(
 );
 
 /**
+ * What a junction box pays when it *isn't* paying a build plan — see
+ * `systems/materials.ts` `rollJunctionBoxLoot`. A box only reaches this once
+ * every plan at its own tier is already found, so this is the long tail of a
+ * tier rather than a dud: cracking a Tier 5 box you've fully mined is still
+ * worth the trip, just not for the reason it used to be.
+ *
+ * Scaled by tier the same way the Heat cost is, so the relationship a player
+ * already learned from the prompt ("higher tier, higher price, better
+ * contents") keeps holding after the plans run out. Nothing here is unique to
+ * junction boxes — these are the same parts cameras and bushes drop, which
+ * is the point: past the plans, a box is a rich salvage node, not a new
+ * economy.
+ */
+export const JUNCTION_BOX_SALVAGE: Record<1 | 2 | 3 | 4 | 5, { itemId: string; quantity: number }[]> = {
+  1: [
+    { itemId: 'hard_drive', quantity: 2 },
+    { itemId: 'bearings', quantity: 2 },
+    { itemId: 'battery_pack', quantity: 1 },
+  ],
+  2: [
+    { itemId: 'logic_board', quantity: 2 },
+    { itemId: 'trucks', quantity: 2 },
+    { itemId: 'battery_pack', quantity: 2 },
+  ],
+  3: [
+    { itemId: 'cracked_chipset', quantity: 1 },
+    { itemId: 'graphics_card', quantity: 1 },
+    { itemId: 'motor_kit', quantity: 1 },
+  ],
+  4: [
+    { itemId: 'cracked_chipset', quantity: 2 },
+    { itemId: 'air_gapped_drive', quantity: 1 },
+    { itemId: 'graphics_card', quantity: 2 },
+  ],
+  5: [
+    { itemId: 'mag_lift_coil', quantity: 1 },
+    { itemId: 'cracked_chipset', quantity: 3 },
+    { itemId: 'air_gapped_drive', quantity: 2 },
+  ],
+};
+
+/**
  * Building something out of salvage instead of buying it built. The output is
  * always an existing `content/economy.ts` gear item — this is a second way to
  * get a `signal_jammer`, not a second catalog of gear that needs its own

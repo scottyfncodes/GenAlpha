@@ -96,7 +96,21 @@ export function migrate(save: SaveState, prefersReduced = false): SaveState {
       activeConsumables: save.economy?.activeConsumables ?? [],
     },
     missions: save.missions ?? {},
-    world: { ...base.world, ...save.world, day },
+    /*
+     * 0.6.0 -> 0.7.0 adds `surveillance`. Merged as its own subtree rather
+     * than left to the outer spread for the reason this function's own doc
+     * comment gives: a save carrying a *partial* surveillance object would
+     * otherwise survive the merge partial and blow up the first time
+     * `systems/coverage.ts` read `.armed` off it. A save from before the
+     * coverage bar existed starts armed with no sweeps behind it, which is
+     * exactly where a new game starts — the town has not swept yet.
+     */
+    world: {
+      ...base.world,
+      ...save.world,
+      day,
+      surveillance: { ...base.world.surveillance, ...save.world?.surveillance },
+    },
     settings: {
       ...base.settings,
       ...save.settings,

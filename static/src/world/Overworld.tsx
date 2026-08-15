@@ -35,13 +35,15 @@ import {
   canKamikaze,
   canSabotage,
   onCooldown,
+  rollJunctionBoxLoot,
   type KamikazeTarget,
 } from '../systems/materials';
 import { boardTier, droneToolTier, owns, playerDroneTier } from '../systems/market';
 import { consequenceFor, HURT_UNTIL_DAY_FLAG } from '../systems/consequences';
 import { MATERIALS_BY_ID } from '../content/materials';
-import { BLUEPRINTS_BY_ID } from '../content/blueprints';
 import { JUNCTION_BOX_NODES, JUNCTION_BOX_RISK, type JunctionBoxNode } from './junctionboxes';
+import { CAMERAS_FED_BY } from './coverage';
+import { camerasAtDay } from '../systems/coverage';
 import { ITEMS_BY_ID } from '../content/economy';
 import { LIE_LOW_FLAG } from '../content/breather';
 import { WINDOW_ESCAPE_FLAG } from '../content/act1';
@@ -232,6 +234,18 @@ export function Overworld() {
   /** The junction box close enough to crack open right now, if any — same
    * "spending Heat is a decision, not a walk" reasoning a camera gets. */
   const [nearbyJunctionBox, setNearbyJunctionBox] = useState<JunctionBoxNode | null>(null);
+  /**
+   * How many cameras a given box actually carries *today* — stage-gated
+   * (`world/coverage.ts`, `systems/coverage.ts`), because a box that will
+   * feed three cameras by day 15 feeds one on day 2, and the prompt has no
+   * business promising a player something the map can't deliver yet. This is
+   * the only advance information a box gives away now, and it's information
+   * the player could have worked out by looking at the street.
+   */
+  const feedsCount = (boxId: string) => {
+    const live = new Set(camerasAtDay(save.world.day).map((c) => c.id));
+    return (CAMERAS_FED_BY[boxId] ?? []).filter((id) => live.has(id)).length;
+  };
   /**
    * The id of whichever camera/hack/junction node the player has actually
    * tapped, if any — a camera/hack/junction box no longer opens its action
@@ -1363,16 +1377,37 @@ export function Overworld() {
         tappedNodeId === nearbyJunctionBox.id ? (
           <div className="overworld__sabotage">
             <p className="overworld__why">
-              Every box you crack is a blueprint SafeTrace never meant to let out — one more thing the resistance can
-              build without their permission.
+              {feedsCount(nearbyJunctionBox.id) > 0
+                ? `Cut this one and ${
+                    feedsCount(nearbyJunctionBox.id) === 1 ? 'a camera goes' : `${feedsCount(nearbyJunctionBox.id)} cameras go`
+                  } blind until SafeTrace sends somebody out. Whatever's inside is a bonus.`
+                : 'Nothing on the grid runs through this one. Whatever’s inside is the only reason to open it.'}
             </p>
+            {/*
+              The Heat price is still on the button, because Heat System
+              guardrail 2 says a cost is always shown before it's spent. What
+              is *not* on the button any more is the name of what's inside:
+              a box used to advertise its one fixed plan, which made cracking
+              it a purchase rather than a risk. The tier is the only tell —
+              it sets the price, the downtime and which pool the contents come
+              from, and that's all anybody gets until the lid is off.
+            */}
             <button
               className="overworld__prompt overworld__prompt--junction"
               disabled={!canDestroyJunctionBox(save, nearbyJunctionBox)}
-              onClick={() => dispatch({ type: 'DESTROY_JUNCTION_BOX', nodeId: nearbyJunctionBox.id })}
+              onClick={() => {
+                // Rolled here off the pre-dispatch save so the toast can name
+                // the find; the reducer reaches the same answer from the same
+                // state (`rollJunctionBoxLoot` is seeded, not random).
+                const loot = rollJunctionBoxLoot(save, nearbyJunctionBox);
+                dispatch({ type: 'DESTROY_JUNCTION_BOX', nodeId: nearbyJunctionBox.id });
+                const label = `Found: ${loot.quantity > 1 ? `${loot.quantity}× ` : ''}${loot.name}`;
+                setPicked(label);
+                window.setTimeout(() => setPicked((m) => (m === label ? null : m)), 2200);
+              }}
             >
-              Junction box · Heat +{JUNCTION_BOX_RISK[nearbyJunctionBox.tier].heatCost} ·{' '}
-              {BLUEPRINTS_BY_ID[nearbyJunctionBox.blueprintItemId]?.name ?? 'build plan'}
+              Tier {nearbyJunctionBox.tier} junction box · Heat +
+              {JUNCTION_BOX_RISK[nearbyJunctionBox.tier].heatCost} · Sealed
             </button>
           </div>
         ) : (
@@ -1444,7 +1479,7 @@ export function Overworld() {
                 const targetLabel = nearbyCamera
                   ? 'FLACK Camera Housing'
                   : nearbyJunctionBox
-                    ? (BLUEPRINTS_BY_ID[nearbyJunctionBox.blueprintItemId]?.name ?? 'Junction box')
+                    ? `Tier ${nearbyJunctionBox.tier} junction box`
                     : '';
                 return (
                   <button

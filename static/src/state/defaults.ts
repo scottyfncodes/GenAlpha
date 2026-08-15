@@ -2,7 +2,7 @@ import type { SaveState, StoryFlags } from './schema';
 import { prefersReducedMotion } from './env';
 import { backupNameFor, collidingCharacter, NAME_SWAP_FROM_FLAG, NAME_SWAP_TO_FLAG } from '../systems/names';
 
-export const SAVE_VERSION = '0.6.0';
+export const SAVE_VERSION = '0.7.0';
 
 /**
  * `handle` defaults to `name` when omitted — every existing test and the
@@ -50,7 +50,13 @@ export function createNewSave(name: string, handle: string = name): SaveState {
       activeConsumables: [],
     },
     missions: {},
-    world: { townTrust: 50, safehouses: [], day: 1, collectedNodes: [] },
+    world: {
+      townTrust: 50,
+      safehouses: [],
+      day: 1,
+      collectedNodes: [],
+      surveillance: { sweeps: 0, armed: true, lastSweepDay: 0 },
+    },
     settings: {
       textSpeed: 'normal',
       audioMuted: false,

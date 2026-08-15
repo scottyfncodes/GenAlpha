@@ -65,6 +65,7 @@ button {
 [data-reduced-flicker='true'] .glitch.is-glitching,
 [data-reduced-flicker='true'] .glitch__scan,
 [data-reduced-flicker='true'] .hud__heat,
+[data-reduced-flicker='true'] .hud__coverage,
 [data-reduced-flicker='true'] .hud__toggle--blink {
   animation: none !important;
 }

@@ -8,6 +8,7 @@ import { Crew } from './ui/Crew';
 import { Backpack } from './ui/Backpack';
 import { Cyberdeck } from './ui/Cyberdeck';
 import { Ending } from './ui/Ending';
+import { Lockdown } from './ui/Lockdown';
 import { setMuted, startAmbient, stopAmbient } from './systems/audio';
 
 /*
@@ -86,6 +87,8 @@ function Shell() {
       {settings && <SettingsPanel onClose={() => setSettings(false)} />}
       {backpack && <Backpack onClose={() => setBackpack(false)} />}
       {cyberdeckOpen && <Cyberdeck onClose={() => setCyberdeckOpen(false)} />}
+      {/* Above everything: a sweep can land while any other panel is open. */}
+      <Lockdown />
       {save.player.currentChapter === 'ending' && !endingSeen && (
         <Ending onDismiss={() => setEndingSeen(true)} />
       )}

@@ -3,6 +3,7 @@ import { RiskMeter } from './RiskMeter';
 import { Glitch } from './Glitch';
 import { useGame, useSave } from '../state/GameContext';
 import { tierLabel, TIER_ORDER } from '../systems/heat';
+import { coverageLabel, coveragePercent, coverageTier } from '../systems/coverage';
 import { progressOf } from '../systems/mentors';
 import { MENTORS } from '../content/mentors';
 import { deckTier } from '../systems/market';
@@ -35,7 +36,11 @@ export function Hud({
   const cyberdeckBlinking = hasCyberdeck && Boolean(nearbyHackNode) && canHackStreetNode(save, nearbyHackNode!);
   const [open, setOpen] = useState(false);
   const [heatInfo, setHeatInfo] = useState(false);
+  const [coverageInfo, setCoverageInfo] = useState(false);
   const { current, threshold_tier } = save.heat;
+  const coverage = coveragePercent(save);
+  const covTier = coverageTier(coverage);
+  const { sweeps } = save.world.surveillance;
 
   /*
    * The ten-second "you can be caught right now" window a tier crossing opens
@@ -104,6 +109,40 @@ export function Hud({
           )}
         </div>
       </Glitch>
+
+      {/*
+        SafeTrace's own progress bar, sitting under Heat because that's the
+        relationship: Heat is how much attention you've drawn and it eases on
+        its own; this only ever eases because you went out and did something
+        about it. Same RiskMeter every other risk in the game uses, for the
+        Style Guide 07 reason — a player who can read the Heat bar should not
+        have to learn a second grammar to read this one.
+      */}
+      <div className={`hud__coverage hud__coverage--${covTier}`}>
+        <div className="hud__heat-row">
+          {/* `status` is the band name, not the number again — RiskMeter
+              already renders `value`, and Heat right above reads "0 CLEAR"
+              the same way. */}
+          <RiskMeter label="Coverage" value={coverage} max={100} status={covTier} compact />
+          <button
+            className="hud__info"
+            onClick={() => setCoverageInfo((v) => !v)}
+            aria-expanded={coverageInfo}
+            aria-label="What is Coverage?"
+          >
+            ?
+          </button>
+        </div>
+        <p className="hud__tierline">{coverageLabel(covTier)}</p>
+        {coverageInfo && (
+          <p className="hud__heat-explain">
+            How much of town SafeTrace can see. Every camera covers real ground, and every junction box
+            carries the cameras nearest it — cut a box and everything it feeds goes blind until somebody
+            comes out to fix it. New cameras go up as the rollout advances. At 100% they sweep the town.
+            {sweeps > 0 && ` They’ve swept ${sweeps === 1 ? 'once' : `${sweeps} times`}. The lenses reach further now.`}
+          </p>
+        )}
+      </div>
 
       <div className="hud__bar">
         {/*

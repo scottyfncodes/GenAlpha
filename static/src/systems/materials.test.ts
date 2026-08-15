@@ -12,6 +12,7 @@ import {
   disableDrone,
   flyRecon,
   kamikazeStrike,
+  rollJunctionBoxLoot,
 } from './materials';
 import { createNewSave } from '../state/defaults';
 import { CAMERA_NODES } from '../world/collectibles';
@@ -103,10 +104,11 @@ describe('junction boxes', () => {
     expect(canDestroyJunctionBox(save, tier1)).toBe(true);
   });
 
-  it('grants the blueprint and charges Heat scaled by tier, then goes on cooldown', () => {
+  it('grants whatever it rolled and charges Heat scaled by tier, then goes on cooldown', () => {
     const save = createNewSave('Wren');
+    const loot = rollJunctionBoxLoot(save, tier1);
     const after = destroyJunctionBox(save, tier1.id);
-    expect(after.economy.inventory.find((i) => i.itemId === tier1.blueprintItemId)?.quantity).toBe(1);
+    expect(after.economy.inventory.find((i) => i.itemId === loot.itemId)?.quantity).toBe(loot.quantity);
     expect(after.heat.current).toBeGreaterThan(save.heat.current);
     expect(canDestroyJunctionBox(after, tier1)).toBe(false);
   });
@@ -216,11 +218,13 @@ describe('kamikaze strikes', () => {
     expect(canKamikaze(after, { kind: 'camera', id: camera.id })).toBe(false);
   });
 
-  it('a landed hit on a junction box pays its blueprint and consumes the drone', () => {
+  it('a landed hit on a junction box pays what the box held and consumes the drone', () => {
     const save = createNewSave('Wren');
     save.economy.inventory = [{ itemId: 'recon_drone', quantity: 1, acquiredVia: 'crafted' }];
     const after = kamikazeStrike(save, { kind: 'junction', id: junction.id }, true);
-    expect(after.economy.inventory.find((i) => i.itemId === junction.blueprintItemId)?.quantity).toBe(1);
+    // Rolled off the post-removal save, exactly as `kamikazeStrike` does.
+    const loot = rollJunctionBoxLoot({ ...save, economy: { ...save.economy, inventory: [] } }, junction);
+    expect(after.economy.inventory.find((i) => i.itemId === loot.itemId)?.quantity).toBe(loot.quantity);
     expect(after.economy.inventory.find((i) => i.itemId === 'recon_drone')).toBeUndefined();
   });
 

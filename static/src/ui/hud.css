@@ -201,3 +201,36 @@
 
 .hud__state dt { opacity: 0.6; }
 .hud__state dd { margin: 0; }
+
+/*
+ * The coverage meter, directly under Heat. Same box treatment so the two read
+ * as one stack of "what the town knows", but deliberately *not* the same
+ * border colour at its top band: Heat going red is about the player, and this
+ * going red is about the town, and they need to be distinguishable at a
+ * glance when both are high at once.
+ */
+.hud__coverage {
+  background: rgba(16, 14, 13, 0.72);
+  border: 1px solid rgba(236, 226, 208, 0.28);
+  border-top: none;
+  padding: 8px 10px;
+  max-width: 320px;
+}
+
+/* At 90%+ the town is nearly sealed and the sweep is close. A slow pulse on
+   the border rather than a flicker — the Heat bar already owns flicker, and
+   two competing flickers is noise, not information. */
+.hud__coverage--critical {
+  border-color: rgba(230, 64, 42, 0.75);
+  animation: hud-coverage-close 2.6s ease-in-out infinite;
+}
+
+@keyframes hud-coverage-close {
+  0%, 100% { border-color: rgba(230, 64, 42, 0.4); }
+  50% { border-color: rgba(230, 64, 42, 0.95); }
+}
+
+/* Honour the same reduced-flicker setting the Heat bar's animations do. */
+@media (prefers-reduced-motion: reduce) {
+  .hud__coverage--critical { animation: none; }
+}

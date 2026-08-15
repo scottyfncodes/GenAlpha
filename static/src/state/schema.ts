@@ -254,6 +254,34 @@ export interface WorldState {
    * good the way a inventory item would be.
    */
   collectedNodes: CollectedNode[];
+  /**
+   * ADDED in 0.7.0. SafeTrace's side of the board — see `systems/coverage.ts`.
+   * The coverage percentage itself is deliberately *not* stored: it's derived
+   * from the day, the cooldown log and `sweeps`, so there is no way for a
+   * stored number to disagree with the cameras actually standing on the map.
+   * Only the two facts that can't be re-derived live here.
+   */
+  surveillance: SurveillanceState;
+}
+
+export interface SurveillanceState {
+  /**
+   * How many lockdown sweeps the town has already run. Permanent, and
+   * permanently makes every camera see further (`SWEEP_HARDENING_PER_SWEEP`)
+   * — the ratchet that stops a sweep from being something a player can just
+   * absorb repeatedly at no lasting cost.
+   */
+  sweeps: number;
+  /**
+   * Whether coverage topping out would fire a sweep right now. Cleared when
+   * one fires, set again only once coverage has been pushed back below
+   * `COVERAGE_SWEEP_REARM_BELOW`. Without this latch the trigger would
+   * re-fire on every action taken while pinned at 100%.
+   */
+  armed: boolean;
+  /** The day the last sweep ended, for callbacks and the notice's own copy.
+   * 0 means it has never happened. */
+  lastSweepDay: number;
 }
 
 export interface SettingsState {
