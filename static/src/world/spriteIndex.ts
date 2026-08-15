@@ -118,3 +118,13 @@ export interface WallKit {
 
 export const WALL_RED: WallKit = { cap: tileIndex(19, 0), fill: tileIndex(19, 3) };
 export const WALL_ORANGE: WallKit = { cap: tileIndex(19, 5), fill: tileIndex(19, 7) };
+
+/** Chain-link, tiled the same one-row way a wall band is — a fence
+ * obstacle is never more than 18px tall, so `cap`/`fill` pointing at the
+ * same tile isn't a simplification, there's only ever the one row to
+ * draw. The tile's own pole sits at its left edge, so tiling it left to
+ * right happens to land a post every 16px on its own, no extra math. */
+export const FENCE_CHAINLINK: WallKit = { cap: tileIndex(4, 13), fill: tileIndex(4, 13) };
+
+/** A front-facing dumpster — `drawBin`'s sprite replacement. */
+export const BIN_DUMPSTER = tileIndex(8, 11);

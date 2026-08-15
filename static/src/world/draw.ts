@@ -20,11 +20,13 @@ import {
   TILE,
 } from './spritesheet';
 import {
+  BIN_DUMPSTER,
   BUSH_ORANGE,
   BUSH_TEAL,
   CAR_TILES,
   CHARACTERS,
   CHARACTER_DRAW_SIZE,
+  FENCE_CHAINLINK,
   ROOF_GREY,
   ROOF_TAN,
   TREE_SMALL_ORANGE,
@@ -529,6 +531,11 @@ function drawDecorativeBuilding(ctx: CanvasRenderingContext2D, o: Obstacle) {
  * texture on this canvas that isn't organic on purpose: the Annex is the
  * district that got fenced. */
 function drawFence(ctx: CanvasRenderingContext2D, o: Obstacle) {
+  if (spriteSheetReady()) {
+    drawWallBand(ctx, FENCE_CHAINLINK, o.x, o.y, o.w, o.h);
+    return;
+  }
+
   ctx.strokeStyle = PALETTE.chainPost;
   ctx.lineWidth = 3;
   ctx.beginPath();
@@ -595,6 +602,11 @@ function drawParkedCar(ctx: CanvasRenderingContext2D, o: Obstacle) {
 function drawBin(ctx: CanvasRenderingContext2D, o: Obstacle) {
   const x = px(o.x);
   const y = px(o.y);
+
+  if (spriteSheetReady()) {
+    drawSpriteTile(ctx, BIN_DUMPSTER, x + o.w / 2, y + o.h / 2, o.w, o.h);
+    return;
+  }
 
   ctx.fillStyle = PALETTE.binBody;
   ctx.fillRect(x, y, o.w, o.h);
