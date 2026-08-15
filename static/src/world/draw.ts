@@ -1304,36 +1304,66 @@ function drawNineSliceRect(ctx: CanvasRenderingContext2D, slice: NineSlice, x: n
   ctx.restore();
 }
 
-/** A wall band — the cap row (the trimmed seam under the roof) once, then
+/**
+ * A wall band — the cap row (the trimmed seam under the roof) once, then
  * the plain fill row repeated for whatever's left, tiled and clipped the
- * same way `drawNineSliceRect` is. */
-function drawWallBand(ctx: CanvasRenderingContext2D, kit: WallKit, x: number, y: number, w: number, h: number) {
-  const cols = Math.ceil(w / TILE);
-  const rows = Math.ceil(h / TILE);
+ * same way `drawNineSliceRect` is.
+ *
+ * `originX`/`originY` default to `x`/`y` but can be pinned elsewhere —
+ * `drawHomeInteriorMask` punches several smaller rects out of the *same*
+ * wall (everything except the window cutouts) and needs its brick to line
+ * up seamlessly with `drawHouse`'s own wall behind it, which only happens
+ * if every rect tiles from one shared grid origin instead of each restarting
+ * its own count at its own corner.
+ */
+function drawWallBand(
+  ctx: CanvasRenderingContext2D,
+  kit: WallKit,
+  x: number,
+  y: number,
+  w: number,
+  h: number,
+  originX: number = x,
+  originY: number = y,
+) {
+  const startCol = Math.floor((x - originX) / TILE);
+  const endCol = Math.ceil((x + w - originX) / TILE);
+  const startRow = Math.floor((y - originY) / TILE);
+  const endRow = Math.ceil((y + h - originY) / TILE);
   ctx.save();
   ctx.beginPath();
   ctx.rect(x, y, w, h);
   ctx.clip();
-  for (let r = 0; r < rows; r++) {
-    for (let c = 0; c < cols; c++) {
-      drawTileAt(ctx, r === 0 ? kit.cap : kit.fill, x + c * TILE, y + r * TILE);
+  for (let r = startRow; r < endRow; r++) {
+    for (let c = startCol; c < endCol; c++) {
+      drawTileAt(ctx, r === 0 ? kit.cap : kit.fill, originX + c * TILE, originY + r * TILE);
     }
   }
   ctx.restore();
 }
 
+/** Grey stone + red brick, or tan stone + orange brick — picked once per
+ * location id, the same "small fixed wardrobe" trick everything else this
+ * pass varied by id hash. Shared so a location's wall always agrees with
+ * itself across separate draw calls (`drawHouse` and its own
+ * `drawHomeInteriorMask`, in particular). */
+function wallKitFor(id: string): WallKit {
+  return noise(`building-palette:${id}`)() < 0.5 ? WALL_RED : WALL_ORANGE;
+}
+
+function roofKitFor(id: string): NineSlice {
+  return noise(`building-palette:${id}`)() < 0.5 ? ROOF_GREY : ROOF_TAN;
+}
+
 /**
  * The sprite-sheet building shell: a tiled roof slab over a tiled brick
- * wall band, in one of two paired palettes (grey stone + red brick, or tan
- * stone + orange brick) picked once per location id — the same "small fixed
- * wardrobe" trick as everything else this pass varied by id hash. Callers
- * still draw their own curb, colour band, windows and signage on top; this
- * only replaces the flat-fill wall/roof rects underneath them.
+ * wall band. Callers still draw their own curb, colour band, windows and
+ * signage on top; this only replaces the flat-fill wall/roof rects
+ * underneath them.
  */
 function drawSpriteBuildingShell(ctx: CanvasRenderingContext2D, loc: OverworldLocation, roofH: number) {
-  const grey = noise(`building-palette:${loc.id}`)() < 0.5;
-  drawNineSliceRect(ctx, grey ? ROOF_GREY : ROOF_TAN, loc.x, loc.y, loc.w, roofH);
-  drawWallBand(ctx, grey ? WALL_RED : WALL_ORANGE, loc.x, loc.y + roofH, loc.w, loc.h - roofH);
+  drawNineSliceRect(ctx, roofKitFor(loc.id), loc.x, loc.y, loc.w, roofH);
+  drawWallBand(ctx, wallKitFor(loc.id), loc.x, loc.y + roofH, loc.w, loc.h - roofH);
 }
 
 /**
@@ -1415,8 +1445,18 @@ function drawHouse(ctx: CanvasRenderingContext2D, loc: OverworldLocation, tier: 
   ctx.fillStyle = PALETTE.curb;
   ctx.fillRect(loc.x - 2, loc.y + loc.h - 1, loc.w + 4, 3);
 
-  ctx.fillStyle = PALETTE.wallA;
-  ctx.fillRect(loc.x, bodyY, loc.w, bodyH);
+  // Only the wall texture swaps in — the pitched roof stays hand-drawn.
+  // The sheet has no sloped-roof art (every roof in it is a flat slab
+  // viewed from directly above), and the two triangular faces are the one
+  // thing the doc comment above calls out as deliberately *not* the flat
+  // civic-building band, so trading them for a flat sprite roof would
+  // erase the exact distinction this shape exists to make.
+  if (spriteSheetReady()) {
+    drawWallBand(ctx, wallKitFor(loc.id), loc.x, bodyY, loc.w, bodyH);
+  } else {
+    ctx.fillStyle = PALETTE.wallA;
+    ctx.fillRect(loc.x, bodyY, loc.w, bodyH);
+  }
 
   ctx.fillStyle = PALETTE.pitchRoofDarkA;
   ctx.beginPath();
@@ -1470,6 +1510,22 @@ function drawHouse(ctx: CanvasRenderingContext2D, loc: OverworldLocation, tier: 
 function drawHomeInteriorMask(ctx: CanvasRenderingContext2D, loc: OverworldLocation) {
   const { bodyY, winY, winSize, win1X, win2X } = houseWindowGeometry(loc);
   const bodyBottom = loc.y + loc.h;
+
+  // Same sprite-or-flat branch `drawHouse` took on its own wall — the two
+  // never disagree within a frame (`spriteSheetReady` only ever flips once,
+  // on load), but if this drew flat while the wall itself was sprite tile,
+  // every non-window inch of the house would show a mismatched colour patch
+  // the moment the game opens confined to it.
+  if (spriteSheetReady()) {
+    const kit = wallKitFor(loc.id);
+    const origin: [number, number] = [loc.x, bodyY];
+    drawWallBand(ctx, kit, loc.x, bodyY, loc.w, winY - bodyY, ...origin); // above the windows
+    drawWallBand(ctx, kit, loc.x, winY + winSize, loc.w, bodyBottom - (winY + winSize), ...origin); // below
+    drawWallBand(ctx, kit, loc.x, winY, win1X - loc.x, winSize, ...origin); // left of window 1
+    drawWallBand(ctx, kit, win1X + winSize, winY, win2X - (win1X + winSize), winSize, ...origin); // between
+    drawWallBand(ctx, kit, win2X + winSize, winY, loc.x + loc.w - (win2X + winSize), winSize, ...origin); // right of window 2
+    return;
+  }
 
   ctx.fillStyle = PALETTE.wallA;
   ctx.fillRect(loc.x, bodyY, loc.w, winY - bodyY); // above the windows
