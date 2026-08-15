@@ -10,7 +10,15 @@ import type { Obstacle } from './obstacles';
 import type { NpcKind } from './npcs';
 import type { ThresholdTier } from '../state/schema';
 import { mulberry32, seedFrom } from '../systems/rng';
-import { drawTileAt, drawSpriteTile, ensureSpriteSheetLoading, spriteSheetReady, TILE } from './spritesheet';
+import {
+  citySheetReady,
+  drawTileAt,
+  drawCityTileAt,
+  drawSpriteTile,
+  ensureSpriteSheetLoading,
+  spriteSheetReady,
+  TILE,
+} from './spritesheet';
 import {
   BUSH_ORANGE,
   BUSH_TEAL,
@@ -29,6 +37,7 @@ import {
   type NineSlice,
   type WallKit,
 } from './spriteIndex';
+import { ROOF_INDUSTRIAL, WALL_INDUSTRIAL } from './spriteIndexCity';
 
 /**
  * THE TOWN, DRAWN.
@@ -1275,8 +1284,19 @@ function drawGlitchTear(ctx: CanvasRenderingContext2D, loc: OverworldLocation, t
  * native 16px pitch — a roof slab of any size, clipped to its own rect so a
  * width that isn't a clean multiple of the tile just ends cleanly at the
  * edge rather than stretching the last tile to fit.
+ *
+ * `blit` defaults to the main sheet (`drawTileAt`) but takes `drawCityTileAt`
+ * for the industrial kit — same tiling math, different sheet underneath.
  */
-function drawNineSliceRect(ctx: CanvasRenderingContext2D, slice: NineSlice, x: number, y: number, w: number, h: number) {
+function drawNineSliceRect(
+  ctx: CanvasRenderingContext2D,
+  slice: NineSlice,
+  x: number,
+  y: number,
+  w: number,
+  h: number,
+  blit: typeof drawTileAt = drawTileAt,
+) {
   const cols = Math.ceil(w / TILE);
   const rows = Math.ceil(h / TILE);
   ctx.save();
@@ -1298,7 +1318,7 @@ function drawNineSliceRect(ctx: CanvasRenderingContext2D, slice: NineSlice, x: n
       else if (bottom) idx = slice.b;
       else if (left) idx = slice.l;
       else if (right) idx = slice.r;
-      drawTileAt(ctx, idx, x + c * TILE, y + r * TILE);
+      blit(ctx, idx, x + c * TILE, y + r * TILE);
     }
   }
   ctx.restore();
@@ -1315,6 +1335,9 @@ function drawNineSliceRect(ctx: CanvasRenderingContext2D, slice: NineSlice, x: n
  * up seamlessly with `drawHouse`'s own wall behind it, which only happens
  * if every rect tiles from one shared grid origin instead of each restarting
  * its own count at its own corner.
+ *
+ * `blit` defaults to the main sheet (`drawTileAt`) but takes `drawCityTileAt`
+ * for the industrial kit — same tiling math, different sheet underneath.
  */
 function drawWallBand(
   ctx: CanvasRenderingContext2D,
@@ -1325,6 +1348,7 @@ function drawWallBand(
   h: number,
   originX: number = x,
   originY: number = y,
+  blit: typeof drawTileAt = drawTileAt,
 ) {
   const startCol = Math.floor((x - originX) / TILE);
   const endCol = Math.ceil((x + w - originX) / TILE);
@@ -1336,7 +1360,7 @@ function drawWallBand(
   ctx.clip();
   for (let r = startRow; r < endRow; r++) {
     for (let c = startCol; c < endCol; c++) {
-      drawTileAt(ctx, r === 0 ? kit.cap : kit.fill, originX + c * TILE, originY + r * TILE);
+      blit(ctx, r === 0 ? kit.cap : kit.fill, originX + c * TILE, originY + r * TILE);
     }
   }
   ctx.restore();
@@ -1680,11 +1704,22 @@ function drawWarehouse(ctx: CanvasRenderingContext2D, loc: OverworldLocation) {
   ctx.fillStyle = PALETTE.curb;
   ctx.fillRect(loc.x - 2, loc.y + loc.h - 1, loc.w + 4, 3);
 
-  ctx.fillStyle = PALETTE.wallB;
-  ctx.fillRect(loc.x, loc.y + roofH, loc.w, loc.h - roofH);
+  // The Roguelike City Pack's grey concrete, not the RPG Urban Pack's brick
+  // — this one reads as industrial/utilitarian rather than corporate-clean,
+  // so unlike `drawBuilding`'s Language A/B split it's fair game regardless
+  // of which language a given warehouse location is coded.
+  if (citySheetReady()) {
+    drawNineSliceRect(ctx, ROOF_INDUSTRIAL, loc.x, loc.y, loc.w, roofH, drawCityTileAt);
+    drawWallBand(ctx, WALL_INDUSTRIAL, loc.x, loc.y + roofH, loc.w, loc.h - roofH, loc.x, loc.y + roofH, drawCityTileAt);
+  } else {
+    ctx.fillStyle = PALETTE.wallB;
+    ctx.fillRect(loc.x, loc.y + roofH, loc.w, loc.h - roofH);
+    ctx.fillStyle = PALETTE.corrugated;
+    ctx.fillRect(loc.x, loc.y, loc.w, roofH);
+  }
 
-  ctx.fillStyle = PALETTE.corrugated;
-  ctx.fillRect(loc.x, loc.y, loc.w, roofH);
+  // The ridge lines still draw over either the flat colour or the sprite
+  // slab — a ribbed-roof detail neither one has on its own.
   ctx.strokeStyle = PALETTE.corrugatedLine;
   ctx.lineWidth = 1;
   for (let x = loc.x + 4; x < loc.x + loc.w; x += 6) {
@@ -1724,10 +1759,15 @@ function drawGarage(ctx: CanvasRenderingContext2D, loc: OverworldLocation) {
   ctx.fillStyle = PALETTE.curb;
   ctx.fillRect(loc.x - 2, loc.y + loc.h - 1, loc.w + 4, 3);
 
-  ctx.fillStyle = PALETTE.wallB;
-  ctx.fillRect(loc.x, loc.y + roofH, loc.w, loc.h - roofH);
-  ctx.fillStyle = PALETTE.corrugated;
-  ctx.fillRect(loc.x + 3, loc.y, loc.w - 6, roofH);
+  if (citySheetReady()) {
+    drawNineSliceRect(ctx, ROOF_INDUSTRIAL, loc.x + 3, loc.y, loc.w - 6, roofH, drawCityTileAt);
+    drawWallBand(ctx, WALL_INDUSTRIAL, loc.x, loc.y + roofH, loc.w, loc.h - roofH, loc.x, loc.y + roofH, drawCityTileAt);
+  } else {
+    ctx.fillStyle = PALETTE.wallB;
+    ctx.fillRect(loc.x, loc.y + roofH, loc.w, loc.h - roofH);
+    ctx.fillStyle = PALETTE.corrugated;
+    ctx.fillRect(loc.x + 3, loc.y, loc.w - 6, roofH);
+  }
 
   const doorW = loc.w * 0.42;
   const doorH = loc.h - roofH - 8;

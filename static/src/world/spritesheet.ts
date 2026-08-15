@@ -1,55 +1,86 @@
 /**
- * The one real image this game loads — Kenney's CC0 RPG Urban Pack, a single
- * 458x305 sheet of 16x16 tiles (27 cols x 18 rows, 1px spacing, 0px margin;
- * see `public/tiles/NOTICE.txt`). `spriteIndex.ts` names the specific tiles
- * the game actually draws; this module only knows how to get the sheet
- * loaded and hand back a source rect for a given tile index.
+ * The real images this game loads. Two sheets now: Kenney's CC0 RPG Urban
+ * Pack (458x305, 27 cols x 18 rows) for the cozy/suburban tiles everything
+ * so far has used, and Kenney's CC0 Roguelike City Pack (628x475, 37 cols x
+ * 28 rows) for the industrial grey concrete warehouse/garage needed and the
+ * first pack simply doesn't have. Both 16x16 tiles, 1px spacing, 0px margin
+ * — see `public/tiles/NOTICE.txt` and `NOTICE-city.txt`. `spriteIndex.ts`
+ * and `spriteIndexCity.ts` name the specific tiles each sheet actually
+ * draws; this module only knows how to get a sheet loaded and hand back a
+ * source rect for a given tile index.
  *
  * `drawTown` runs synchronously, every frame, straight from the render loop
- * — there's no `await` point to hang a "wait for the image" on. So the load
- * kicks off once at module import (a browser `<img>` decodes off the main
- * thread regardless), and every sprite draw call is expected to check
- * `spriteSheetReady()` first and fall back to the existing procedural shape
- * when it isn't — true for the handful of frames before the image lands,
- * never true again after that.
+ * — there's no `await` point to hang a "wait for the image" on. So each
+ * load kicks off once at module import (a browser `<img>` decodes off the
+ * main thread regardless), and every sprite draw call is expected to check
+ * the sheet's `ready()` first and fall back to the existing procedural
+ * shape when it isn't — true for the handful of frames before the image
+ * lands, never true again after that.
  */
 
-const SHEET_SRC = './tiles/kenney-rpg-urban-pack.png';
-
 export const TILE = 16;
-const SHEET_COLS = 27;
-const SHEET_SPACING = 1;
+const SPACING = 1;
 
-let sheet: HTMLImageElement | null = null;
-let ready = false;
-
-function load(): HTMLImageElement {
-  const img = new Image();
-  img.onload = () => {
-    ready = true;
-  };
-  img.src = SHEET_SRC;
-  return img;
+interface SpriteSheet {
+  ensureLoading(): void;
+  ready(): boolean;
+  tileSourceRect(index: number): { sx: number; sy: number };
+  drawTile(ctx: CanvasRenderingContext2D, index: number, cx: number, cy: number, dw: number, dh: number): void;
+  drawTileAt(ctx: CanvasRenderingContext2D, index: number, x: number, y: number, size?: number): void;
 }
 
+function createSheet(src: string, cols: number): SpriteSheet {
+  let img: HTMLImageElement | null = null;
+  let ready = false;
+
+  function tileSourceRect(index: number): { sx: number; sy: number } {
+    const col = index % cols;
+    const row = Math.floor(index / cols);
+    return { sx: col * (TILE + SPACING), sy: row * (TILE + SPACING) };
+  }
+
+  return {
+    ensureLoading() {
+      if (img) return;
+      img = new Image();
+      img.onload = () => {
+        ready = true;
+      };
+      img.src = src;
+    },
+    ready: () => ready,
+    tileSourceRect,
+    drawTile(ctx, index, cx, cy, dw, dh) {
+      if (!img || !ready) return;
+      const { sx, sy } = tileSourceRect(index);
+      ctx.drawImage(img, sx, sy, TILE, TILE, Math.round(cx - dw / 2), Math.round(cy - dh / 2), Math.round(dw), Math.round(dh));
+    },
+    drawTileAt(ctx, index, x, y, size = TILE) {
+      if (!img || !ready) return;
+      const { sx, sy } = tileSourceRect(index);
+      ctx.drawImage(img, sx, sy, TILE, TILE, Math.round(x), Math.round(y), size, size);
+    },
+  };
+}
+
+const mainSheet = createSheet('./tiles/kenney-rpg-urban-pack.png', 27);
+const citySheet = createSheet('./tiles/kenney-roguelike-city-pack.png', 37);
+
 /** Call once, anywhere, before the first frame — safe to call more than
- * once, the load only actually kicks off the first time. */
+ * once, each sheet's load only actually kicks off the first time. */
 export function ensureSpriteSheetLoading(): void {
-  if (!sheet) sheet = load();
+  mainSheet.ensureLoading();
+  citySheet.ensureLoading();
 }
 
 export function spriteSheetReady(): boolean {
-  return ready;
+  return mainSheet.ready();
 }
 
 /** `tileIndex(col, row)` from `spriteIndex.ts`, turned into the source rect
- * `drawImage`'s 9-argument form wants. Undefined until `ensureSpriteSheetLoading`
- * has actually fired the load — callers only reach here after checking
- * `spriteSheetReady()`, so this never has to handle the not-yet-loaded case. */
+ * `drawImage`'s 9-argument form wants. */
 export function tileSourceRect(index: number): { sx: number; sy: number } {
-  const col = index % SHEET_COLS;
-  const row = Math.floor(index / SHEET_COLS);
-  return { sx: col * (TILE + SHEET_SPACING), sy: row * (TILE + SHEET_SPACING) };
+  return mainSheet.tileSourceRect(index);
 }
 
 /**
@@ -59,17 +90,8 @@ export function tileSourceRect(index: number): { sx: number; sy: number } {
  * (a tree's canopy-then-trunk stack) are just two calls with the second
  * one's `cy` offset by the first tile's drawn height.
  */
-export function drawSpriteTile(
-  ctx: CanvasRenderingContext2D,
-  index: number,
-  cx: number,
-  cy: number,
-  dw: number,
-  dh: number,
-): void {
-  if (!sheet || !ready) return;
-  const { sx, sy } = tileSourceRect(index);
-  ctx.drawImage(sheet, sx, sy, TILE, TILE, Math.round(cx - dw / 2), Math.round(cy - dh / 2), Math.round(dw), Math.round(dh));
+export function drawSpriteTile(ctx: CanvasRenderingContext2D, index: number, cx: number, cy: number, dw: number, dh: number): void {
+  mainSheet.drawTile(ctx, index, cx, cy, dw, dh);
 }
 
 /** Top-left anchored, at a fixed `size` (defaults to the tile's own native
@@ -77,7 +99,17 @@ export function drawSpriteTile(
  * where `drawSpriteTile`'s center-anchored scaling would fight the grid
  * math instead of helping it. */
 export function drawTileAt(ctx: CanvasRenderingContext2D, index: number, x: number, y: number, size: number = TILE): void {
-  if (!sheet || !ready) return;
-  const { sx, sy } = tileSourceRect(index);
-  ctx.drawImage(sheet, sx, sy, TILE, TILE, Math.round(x), Math.round(y), size, size);
+  mainSheet.drawTileAt(ctx, index, x, y, size);
+}
+
+/** The Roguelike City Pack sheet — same shape as the functions above, kept
+ * under its own names rather than a shared "which sheet" parameter so every
+ * existing call site (all of it written against the main sheet) needed zero
+ * changes when this second sheet was added. */
+export function citySheetReady(): boolean {
+  return citySheet.ready();
+}
+
+export function drawCityTileAt(ctx: CanvasRenderingContext2D, index: number, x: number, y: number, size: number = TILE): void {
+  citySheet.drawTileAt(ctx, index, x, y, size);
 }
