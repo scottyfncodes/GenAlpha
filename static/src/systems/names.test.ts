@@ -2,6 +2,9 @@ import { describe, expect, it } from 'vitest';
 import {
   backupNameFor,
   collidingCharacter,
+  collidingHandle,
+  isAdultSpeaker,
+  KID_HANDLES,
   NAME_SWAP_FROM_FLAG,
   NAME_SWAP_TO_FLAG,
   RESERVED_NAMES,
@@ -65,5 +68,52 @@ describe('createNewSave — name collision at creation', () => {
     const save = createNewSave('Wren');
     expect(save.player.flags[NAME_SWAP_FROM_FLAG]).toBeUndefined();
     expect(save.player.flags[NAME_SWAP_TO_FLAG]).toBeUndefined();
+  });
+});
+
+describe('KID_HANDLES', () => {
+  it('gives every handle its own distinct value — no two kids share one', () => {
+    const handles = Object.values(KID_HANDLES);
+    expect(new Set(handles).size).toBe(handles.length);
+  });
+
+  it('never hands out a handle that collides with a reserved name — that would just move the collision', () => {
+    const reservedLower = new Set(RESERVED_NAMES.map((n) => n.toLowerCase()));
+    for (const handle of Object.values(KID_HANDLES)) {
+      expect(reservedLower.has(handle.toLowerCase())).toBe(false);
+    }
+  });
+
+  it('only covers kids — every key is a reserved name, and no adult is in it', () => {
+    const reserved = new Set<string>(RESERVED_NAMES);
+    for (const canonical of Object.keys(KID_HANDLES)) {
+      expect(reserved.has(canonical)).toBe(true);
+    }
+  });
+});
+
+describe('isAdultSpeaker', () => {
+  it('is true for every adult who appears as a speaker', () => {
+    expect(isAdultSpeaker('Mom')).toBe(true);
+    expect(isAdultSpeaker('Mr. Arroyo')).toBe(true);
+    expect(isAdultSpeaker('Councilwoman Reyes')).toBe(true);
+    expect(isAdultSpeaker('Reeta')).toBe(true);
+  });
+
+  it('is false for a kid, for the player, and for narration (no speaker at all)', () => {
+    expect(isAdultSpeaker('Ellen')).toBe(false);
+    expect(isAdultSpeaker('You')).toBe(false);
+    expect(isAdultSpeaker(undefined)).toBe(false);
+  });
+});
+
+describe('collidingHandle', () => {
+  it('matches case-insensitively and trims whitespace', () => {
+    expect(collidingHandle('nova')).toBe('Ellen');
+    expect(collidingHandle('  Files  ')).toBe('Aaron');
+  });
+
+  it('is null for a handle nobody has claimed', () => {
+    expect(collidingHandle('Ghost')).toBeNull();
   });
 });

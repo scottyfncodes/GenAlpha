@@ -35,6 +35,11 @@
           "type": "string",
           "default": "unset — chosen at game start"
         },
+        "handle": {
+          "type": "string",
+          "default": "unset — chosen at game start",
+          "description": "ADDED in 0.7.0. The hacking handle every kid character (and the player's own narration) addresses the player by; adult-voiced lines still use `name`. A save from before this field existed falls back to `name` on migration."
+        },
         "currentChapter": {
           "type": "string",
           "example": "act1_glitch_03"

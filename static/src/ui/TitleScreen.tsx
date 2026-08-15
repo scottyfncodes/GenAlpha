@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { GenAMark } from './GenAMark';
 import { TitleEye } from './TitleEye';
 import { hasSave } from '../state/persistence';
-import { backupNameFor, collidingCharacter } from '../systems/names';
+import { backupNameFor, collidingCharacter, collidingHandle } from '../systems/names';
 import './title-screen.css';
 
 /**
@@ -12,14 +12,25 @@ import './title-screen.css';
  * gone, along with the crack effect that went with it, in favour of
  * opening straight on the thing that mattered.)
  */
-export function TitleScreen({ onStart, onContinue }: { onStart: (name: string) => void; onContinue: () => void }) {
+export function TitleScreen({
+  onStart,
+  onContinue,
+}: {
+  onStart: (name: string, handle: string) => void;
+  onContinue: () => void;
+}) {
   const [name, setName] = useState('');
+  const [handle, setHandle] = useState('');
   const [naming, setNaming] = useState(false);
   const canContinue = hasSave();
   /** Live, not just at submit — the player should know *before* they hit
    * Start that this is going to rename somebody, not find out three scenes
    * in when a stranger called Robyn shows up expecting to be Ellen. */
   const collision = collidingCharacter(name);
+  /** Same idea, one layer down — a handle already claimed by somebody in
+   * Bellhaven reads as a bug the same way a colliding real name does. */
+  const handleCollision = collidingHandle(handle);
+  const canStart = name.trim() && handle.trim() && !handleCollision;
 
   return (
     <main className="title title--claimed">
@@ -77,7 +88,6 @@ export function TitleScreen({ onStart, onContinue }: { onStart: (name: string) =
                 maxLength={16}
                 autoFocus
                 onChange={(e) => setName(e.target.value)}
-                onKeyDown={(e) => e.key === 'Enter' && name.trim() && onStart(name.trim())}
               />
               {collision && (
                 <p className="title__namenote">
@@ -85,10 +95,28 @@ export function TitleScreen({ onStart, onContinue }: { onStart: (name: string) =
                   {backupNameFor(collision)} in your game.
                 </p>
               )}
+
+              {/* Every kid in Bellhaven goes by a hacking handle, never their
+                  real name — the player's is no different. Adults still use
+                  the name above; everyone else uses this. */}
+              <label htmlFor="handle">What’s your handle?</label>
+              <input
+                id="handle"
+                value={handle}
+                maxLength={16}
+                onChange={(e) => setHandle(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && canStart && onStart(name.trim(), handle.trim())}
+              />
+              {handleCollision && (
+                <p className="title__namenote">
+                  {handleCollision} already goes by that. Pick something nobody else in Bellhaven is using.
+                </p>
+              )}
+
               <button
                 className="title__btn title__btn--primary"
-                disabled={!name.trim()}
-                onClick={() => onStart(name.trim())}
+                disabled={!canStart}
+                onClick={() => onStart(name.trim(), handle.trim())}
               >
                 Start
               </button>

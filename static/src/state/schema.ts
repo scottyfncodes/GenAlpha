@@ -25,6 +25,16 @@ export type StoryFlags = Record<string, boolean | string | number>;
 
 export interface PlayerState {
   name: string;
+  /**
+   * ADDED in 0.7.0. The hacking handle chosen at game start — what every
+   * kid character (and the player's own narration) calls the player in
+   * dialogue, mirroring the "only adults use a kid's real name" rule the
+   * game already applies to every other kid. Adult-voiced lines still use
+   * `name`. A save migrated from before this field existed falls back to
+   * `name` itself (see `state/defaults.ts`), which is exactly the old
+   * behaviour: no handle ever chosen, so kids called you by your name too.
+   */
+  handle: string;
   currentChapter: string;
   currentLocation: string;
   flags: StoryFlags;

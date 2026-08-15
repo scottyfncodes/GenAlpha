@@ -4,7 +4,13 @@ import { backupNameFor, collidingCharacter, NAME_SWAP_FROM_FLAG, NAME_SWAP_TO_FL
 
 export const SAVE_VERSION = '0.6.0';
 
-export function createNewSave(name: string): SaveState {
+/**
+ * `handle` defaults to `name` when omitted — every existing test and the
+ * migration path in `persistence.ts` call this with one argument, and for
+ * both, "no handle was ever chosen" should mean exactly what it meant
+ * before this field existed: kids call the player by their name too.
+ */
+export function createNewSave(name: string, handle: string = name): SaveState {
   const now = new Date().toISOString();
   /*
    * Decided once, here, and never revisited — the swap is stamped into the
@@ -19,6 +25,7 @@ export function createNewSave(name: string): SaveState {
     meta: { saveVersion: SAVE_VERSION, createdAt: now, lastPlayedAt: now, playtimeSeconds: 0 },
     player: {
       name,
+      handle,
       currentChapter: 'act1_glitch_01',
       currentLocation: 'home',
       flags,

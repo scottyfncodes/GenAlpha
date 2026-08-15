@@ -47,7 +47,7 @@ const HEAT_ALERT_MS = 10_000;
  * there is exactly one place where state changes and one place that persists.
  */
 type Action =
-  | { type: 'NEW_GAME'; name: string }
+  | { type: 'NEW_GAME'; name: string; handle: string }
   | { type: 'LOAD'; save: SaveState }
   | { type: 'SET_LOCATION'; locationId: string }
   | { type: 'SET_CHAPTER'; chapterId: string }
@@ -80,7 +80,7 @@ type Action =
   | { type: 'HACK_STREET_NODE'; nodeId: string; outcome: RunOutcome; level?: HackLevel };
 
 function reducer(state: SaveState | null, action: Action): SaveState | null {
-  if (action.type === 'NEW_GAME') return createNewSave(action.name);
+  if (action.type === 'NEW_GAME') return createNewSave(action.name, action.handle);
   if (action.type === 'LOAD') return action.save;
   if (action.type === 'RESET') return null;
   if (!state) return state;
@@ -257,7 +257,7 @@ function reducer(state: SaveState | null, action: Action): SaveState | null {
 interface GameApi {
   save: SaveState | null;
   dispatch: Dispatch<Action>;
-  newGame: (name: string) => void;
+  newGame: (name: string, handle: string) => void;
   continueGame: () => boolean;
   deleteSave: () => void;
   flag: (key: string) => boolean;
@@ -310,7 +310,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
     return () => window.clearInterval(id);
   }, []);
 
-  const newGame = useCallback((name: string) => dispatch({ type: 'NEW_GAME', name }), []);
+  const newGame = useCallback((name: string, handle: string) => dispatch({ type: 'NEW_GAME', name, handle }), []);
 
   const continueGame = useCallback(() => {
     const loaded = loadSave();

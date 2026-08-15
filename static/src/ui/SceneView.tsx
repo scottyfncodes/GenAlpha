@@ -16,7 +16,7 @@ import { GenAMark, markStateFor } from './GenAMark';
 import type { RunOutcome } from '../systems/missions';
 import { SKINS, type SkinId } from '../content/skins';
 import { speakerColor } from '../content/characters';
-import { resolveCharacterName } from '../systems/names';
+import { KID_HANDLES, resolveCharacterName } from '../systems/names';
 import './scene-view.css';
 
 const CHARS_PER_TICK: Record<string, number> = { slow: 1, normal: 2, fast: 4 };
@@ -199,7 +199,7 @@ export function SceneView({ scene, onClose }: { scene: Scene; onClose: () => voi
         lines={visibleLines(node, save.heat.threshold_tier)}
         choices={visibleChoices(node, save.player.flags, save.economy.inventory.map((i) => i.itemId))}
         speed={CHARS_PER_TICK[save.settings.textSpeed] ?? 2}
-        renderText={(t) => render(t, save)}
+        renderText={(t, speaker) => render(t, save, speaker)}
         onDone={() => goTo()}
         costOf={(choice) => {
           /*
@@ -232,15 +232,22 @@ function lineClass(l: SceneLine): string {
  * characters.ts) regardless of which language scope the line's in; anyone
  * else falls through to scene-view.css's per-language default, which is
  * exactly right for a one-line walk-on nobody needs to recognise on sight.
+ *
+ * A kid with a hacking handle (`KID_HANDLES`) shows that instead of their
+ * real name — unconditionally, since a character's own tag is who they are,
+ * not a mention inside someone else's line, which is what `render()`'s
+ * speaker-conditional swap handles. Anyone without a handle (Beau, every
+ * adult) falls through to the name-collision resolver exactly as before.
  */
 function SpeakerTag({ name }: { name: string }) {
   const save = useSave();
   // Colour stays keyed to the canonical name — it's a lookup table, not
   // something the player ever reads — only the label itself swaps.
   const color = speakerColor(name);
+  const display = KID_HANDLES[name] ?? resolveCharacterName(save.player.flags, name);
   return (
     <span className="scene__speaker" style={color ? { background: color } : undefined}>
-      {resolveCharacterName(save.player.flags, name)}
+      {display}
     </span>
   );
 }
@@ -258,7 +265,10 @@ function Dialogue({
   lines: SceneLine[];
   choices: SceneChoice[];
   speed: number;
-  renderText: (t: string) => string;
+  /** `speaker` is the line's own speaker tag, undefined for narration and
+   * for choice text (the player's own words) — `render()` treats both as
+   * kid-voiced. */
+  renderText: (t: string, speaker?: string) => string;
   /** Resolved by the caller — see the clean-SIM note at the call site. */
   costOf: (choice: SceneChoice) => string | undefined;
   onDone: () => void;
@@ -267,7 +277,7 @@ function Dialogue({
   const [index, setIndex] = useState(0);
   const [chars, setChars] = useState(0);
   const line = lines[index];
-  const full = line ? renderText(line.text) : '';
+  const full = line ? renderText(line.text, line.speaker) : '';
   const typing = chars < full.length;
 
   useEffect(() => {
@@ -324,7 +334,7 @@ function Dialogue({
         {lines.slice(0, index).map((l, i) => (
           <p key={i} className={lineClass(l)}>
             {l.speaker && <SpeakerTag name={l.speaker} />}
-            {renderText(l.text)}
+            {renderText(l.text, l.speaker)}
           </p>
         ))}
         {line && (

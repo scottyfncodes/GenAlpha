@@ -75,3 +75,50 @@ export function resolveCharacterName(flags: StoryFlags, canonical: string): stri
   }
   return canonical;
 }
+
+/**
+ * Hacking handles. Kids go by these to each other and to the player; only
+ * an adult uses a kid's real first name. Keyed by the same canonical name
+ * `RESERVED_NAMES`/speaker tags already use, so this table and the
+ * collision swap above can never disagree about who a mention means.
+ *
+ * Aaron's and Ellen's handles aren't new inventions — "files" and "nova"
+ * are already the npcId/locationId this game has used internally for each
+ * of them since Act 1 was written (mission id `files`, `nova_house`,
+ * `nova_channel_seen`); this just finally lets the player see them.
+ *
+ * Not every kid gets one. Beau's seven and has no hacker identity to speak
+ * of, and Casey never appears on screen to be addressed by anything — both
+ * stay on their real name, same as before this table existed.
+ */
+export const KID_HANDLES: Record<string, string> = {
+  Aaron: 'Files',
+  Ellen: 'Nova',
+  Deja: 'Fuse',
+  Milo: 'Proxy',
+  Bishop: 'Relay',
+  Ridge: 'Ledger',
+  Ines: 'Silk',
+};
+
+/**
+ * Every adult who appears as a `speaker:` in dialogue. Anyone else — every
+ * kid, and narration with no speaker at all, which is always the player's
+ * own (a kid's) voice — talks in handles: `render()` swaps a `KID_HANDLES`
+ * mention for its handle, and `{name}` becomes the player's own handle,
+ * unless the line's speaker is in this set.
+ */
+const ADULT_SPEAKERS = new Set(['Mom', 'Mr. Arroyo', 'Councilwoman Reyes', 'Reeta']);
+
+export function isAdultSpeaker(speaker: string | undefined): boolean {
+  return speaker !== undefined && ADULT_SPEAKERS.has(speaker);
+}
+
+/** Case-insensitive collision check for the player's own chosen handle
+ * against the handles already claimed above — the handle-entry mirror of
+ * `collidingCharacter`. Returns the real name of whichever kid already
+ * has it, or null. */
+export function collidingHandle(playerHandle: string): string | null {
+  const typed = playerHandle.trim().toLowerCase();
+  return Object.keys(KID_HANDLES).find((name) => KID_HANDLES[name].toLowerCase() === typed) ?? null;
+}
