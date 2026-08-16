@@ -28,6 +28,8 @@ import {
   CHARACTERS,
   CHARACTER_DRAW_SIZE,
   FENCE_CHAINLINK,
+  PATH_KIT,
+  POND_TILE,
   ROOF_GREY,
   ROOF_TAN,
   TREE_SMALL_ORANGE,
@@ -214,6 +216,12 @@ const PALETTE = {
   bleacher: '#4a5468',
   bleacherDark: '#3a4152',
   floodlight: '#e8dcc0',
+  // The Green — a formal lawn rather than a playing field, so a softer,
+  // lighter two-tone than the ballpark's own checker.
+  lawnBase: '#5a8f5c',
+  lawnAlt: '#548754',
+  pathFill: '#c9b98a',
+  pondWater: '#4fb5a8',
   // The treehouse — reuses the tree palette above for trunk/canopy, adds
   // its own plank platform, rope and ladder.
   plank: '#6d5030',
@@ -1300,7 +1308,8 @@ const STREETLIGHT_POINTS: { x: number; y: number }[] = [
   { x: 1300, y: 220 }, // Warehouse District, Row 1
   { x: 1300, y: 720 }, // Warehouse District, Row 2
   { x: 200, y: 540 }, // West End, near the Repair Shop/Wash & Fold alley
-  { x: 700, y: 500 }, // Riverside Park, on the path
+  { x: 700, y: 500 }, // Riverside Park, the approach from the Ballpark
+  { x: 944, y: 494 }, // The Green, by the pond
   { x: 200, y: 900 }, // Transit Hub
   { x: 1300, y: 900 }, // Commercial Strip
 ];
@@ -1363,6 +1372,9 @@ function drawLocation(ctx: CanvasRenderingContext2D, loc: OverworldLocation, isH
       break;
     case 'plaza':
       drawPlaza(ctx, loc);
+      break;
+    case 'green':
+      drawGreen(ctx, loc);
       break;
     case 'warehouse':
       drawWarehouse(ctx, loc);
@@ -1959,6 +1971,121 @@ function drawPlaza(ctx: CanvasRenderingContext2D, loc: OverworldLocation) {
   ctx.fillStyle = PALETTE.bench;
   ctx.fillRect(loc.x + 10, loc.y + loc.h - 12, 16, 4);
   ctx.fillRect(loc.x + loc.w - 26, loc.y + loc.h - 12, 16, 4);
+}
+
+/** A four-post, pointed-roof gazebo — the same post-and-roof shape
+ * `drawPlaza`'s bandstand uses, pulled out to its own function because The
+ * Green's version is a real focal point (bigger, its own name in the
+ * design) rather than a detail buried in a civic plaza. `groundY` is where
+ * the posts meet the path, not the sprite's own center. */
+function drawGazebo(ctx: CanvasRenderingContext2D, cx: number, groundY: number) {
+  const w = 40;
+  const postH = 24;
+  const roofH = 12;
+
+  ctx.fillStyle = 'rgba(0,0,0,0.2)';
+  ctx.beginPath();
+  ctx.ellipse(px(cx), px(groundY + 2), w / 2, 5, 0, 0, Math.PI * 2);
+  ctx.fill();
+
+  ctx.fillStyle = PALETTE.bandstandPost;
+  ctx.fillRect(px(cx - w / 2 + 2), px(groundY - postH), 3, postH);
+  ctx.fillRect(px(cx + w / 2 - 5), px(groundY - postH), 3, postH);
+  ctx.fillRect(px(cx - 3), px(groundY - postH), 3, postH);
+  ctx.fillRect(px(cx + 2), px(groundY - postH), 3, postH * 0.4);
+
+  ctx.fillStyle = PALETTE.bandstandRoof;
+  ctx.beginPath();
+  ctx.moveTo(px(cx - w / 2 - 3), px(groundY - postH));
+  ctx.lineTo(px(cx), px(groundY - postH - roofH));
+  ctx.lineTo(px(cx + w / 2 + 3), px(groundY - postH));
+  ctx.closePath();
+  ctx.fill();
+  ctx.fillStyle = PALETTE.bandstandPost;
+  ctx.fillRect(px(cx - 1), px(groundY - postH - roofH - 3), 2, 4);
+}
+
+/** A rectangular hedge border — four `drawHedge` strips (the same procedural
+ * shape ordinary `'hedge'` obstacles already use, called directly rather
+ * than added to `OBSTACLES`) framing open lawn, so The Green's two garden
+ * panels read as planted rather than just mown. Purely decorative, same as
+ * `drawPlaza`'s inline corner trees: not a collision rect, nothing here
+ * needs `check-connectivity.mjs`. */
+function drawHedgeBorder(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, seed: string) {
+  const t = 8;
+  drawHedge(ctx, { id: `${seed}:n`, x, y, w, h: t, kind: 'hedge' });
+  drawHedge(ctx, { id: `${seed}:s`, x, y: y + h - t, w, h: t, kind: 'hedge' });
+  drawHedge(ctx, { id: `${seed}:w`, x, y: y + t, w: t, h: h - t * 2, kind: 'hedge' });
+  drawHedge(ctx, { id: `${seed}:e`, x: x + w - t, y: y + t, w: t, h: h - t * 2, kind: 'hedge' });
+}
+
+/**
+ * The Green: a real formal garden rather than Town Square's civic plaza
+ * reused with a different tint. A spine path runs from the west entrance
+ * (where the Ballpark path already arrives, per `ROAD_SEGMENTS`'s own
+ * comment) through a gazebo to a round pond, with two hedge-bordered lawn
+ * panels — one north, one south — mirrored across that spine rather than
+ * scattered. Every piece here is either the pond/path sprites verified
+ * against the source sheet, or a shape (gazebo, hedge border, benches)
+ * already proven elsewhere in this file, just arranged with an actual axis
+ * of symmetry instead of by eye.
+ */
+function drawGreen(ctx: CanvasRenderingContext2D, loc: OverworldLocation) {
+  ctx.fillStyle = PALETTE.lawnBase;
+  ctx.fillRect(loc.x, loc.y, loc.w, loc.h);
+  ctx.fillStyle = PALETTE.lawnAlt;
+  for (let y = loc.y; y < loc.y + loc.h; y += 14) {
+    for (let x = loc.x + (((y - loc.y) / 14) % 2) * 14; x < loc.x + loc.w; x += 28) {
+      ctx.fillRect(x, y, 14, 14);
+    }
+  }
+
+  const spineY = loc.y + loc.h * 0.52;
+  const pathH = 14;
+  const pathW = loc.w * 0.84;
+
+  if (spriteSheetReady()) {
+    drawNineSliceRect(ctx, PATH_KIT, loc.x, spineY - pathH / 2, pathW, pathH);
+  } else {
+    ctx.fillStyle = PALETTE.pathFill;
+    ctx.fillRect(loc.x, spineY - pathH / 2, pathW, pathH);
+  }
+
+  const panelX = loc.x + loc.w * 0.12;
+  const panelW = loc.w * 0.6;
+  const panelTop = loc.y + 14;
+  const panelBottom = spineY - pathH / 2 - 6;
+  drawHedgeBorder(ctx, panelX, panelTop, panelW, panelBottom - panelTop, `${loc.id}:n`);
+  const panelTop2 = spineY + pathH / 2 + 6;
+  const panelBottom2 = loc.y + loc.h - 14;
+  drawHedgeBorder(ctx, panelX, panelTop2, panelW, panelBottom2 - panelTop2, `${loc.id}:s`);
+
+  drawGazebo(ctx, loc.x + loc.w * 0.14, spineY);
+
+  const pondCx = loc.x + loc.w * 0.62;
+  const pondSize = Math.min(loc.w, loc.h) * 0.28;
+  if (spriteSheetReady()) {
+    drawSpriteTile(ctx, POND_TILE, pondCx, spineY, pondSize, pondSize);
+  } else {
+    ctx.fillStyle = PALETTE.pondWater;
+    ctx.beginPath();
+    ctx.ellipse(pondCx, spineY, pondSize / 2, pondSize / 2, 0, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  ctx.fillStyle = PALETTE.bench;
+  ctx.fillRect(px(panelX + panelW - 20), px(panelBottom - 6), 16, 4);
+  ctx.fillRect(px(panelX + 4), px(panelTop2 + 2), 16, 4);
+  ctx.fillRect(px(loc.x + loc.w - 34), px(spineY - 2), 16, 4);
+
+  for (const [cx, cy] of [
+    [loc.x + 14, loc.y + 14],
+    [loc.x + loc.w - 14, loc.y + 14],
+    [loc.x + 14, loc.y + loc.h - 14],
+    [loc.x + loc.w - 14, loc.y + loc.h - 14],
+  ]) {
+    drawTree(ctx, { id: `green:${loc.id}:${cx}:${cy}`, x: cx - 10, y: cy - 20, w: 20, h: 40, kind: 'tree' });
+  }
 }
 
 /** The Annex's warehouses: corrugated roofing (ridge lines, roof vents) and

@@ -138,3 +138,16 @@ export const FENCE_CHAINLINK: WallKit = { cap: tileIndex(4, 13), fill: tileIndex
 
 /** A front-facing dumpster — `drawBin`'s sprite replacement. */
 export const BIN_DUMPSTER = tileIndex(8, 11);
+
+/** A stone-curbed garden path — the same nine-slice shape `ROOF_GREY`/
+ * `ROOF_TAN` already use for a roof slab, pointed at a different 3x3 block:
+ * a lavender-curbed paving panel, verified by cropping the full 3x3 region
+ * and confirming all nine pieces actually tile edge to edge (this pack has
+ * enough near-identical tan/purple regions nearby that guessing the corner
+ * was worth checking first). Used for The Green's own walking path. */
+export const PATH_KIT: NineSlice = nineSliceAt(0, 3);
+
+/** A small round fountain/pond basin, one self-contained tile — scaled up
+ * via `drawSpriteTile` rather than tiled, since a park needs exactly one of
+ * these, not a repeating texture. */
+export const POND_TILE = tileIndex(6, 2);

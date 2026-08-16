@@ -196,7 +196,8 @@ export interface OverworldLocation {
     | 'arcade'
     | 'treehouse'
     | 'shop'
-    | 'transit';
+    | 'transit'
+    | 'green';
   /**
    * Every location blocks movement by default, the way a building's own
    * walls would (Overworld.tsx's collision). Set true for the handful that
@@ -526,13 +527,20 @@ export const LOCATIONS: OverworldLocation[] = [
      * New for the redesign — the park needed an identity beyond "the
      * ballpark's front lawn". Walkable, same as Town Square: open ground
      * the town was built around, not a building with a paint job.
+     *
+     * Grown for the landscaping pass (own `render: 'green'`, no longer
+     * sharing `drawPlaza` with Town Square) — a real formal garden needs
+     * more than 150x110 to fit a pond, a gazebo, and two symmetric hedged
+     * lawns without everything overlapping. Kept clear of both `ballpark`
+     * (ends x:750) and `treehouse` (starts y:600) with a real gap on each
+     * side, checked against scripts/check-connectivity.mjs after the resize.
      */
     id: 'park_green',
     label: 'The Green',
     language: 'A',
     district: 'riverside_park',
-    render: 'plaza',
-    x: 790, y: 460, w: 150, h: 110,
+    render: 'green',
+    x: 770, y: 400, w: 280, h: 180,
     color: '#6fa06a',
     walkable: true,
     blurb: 'Open grass, a gravel path cutting the long way across it anyway, and a bench nobody ever sits on alone.',
