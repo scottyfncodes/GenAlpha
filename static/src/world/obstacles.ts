@@ -160,16 +160,26 @@ export const OBSTACLES: Obstacle[] = [
    */
   { id: 'filler_58', x: 610, y: 316, w: 60, h: 16, kind: 'fence', minStage: 2 },
 
-  // West End — older homes, small shops.
-  { id: 'filler_34', x: 340, y: 573, w: 20, h: 40, kind: 'tree' },
-  { id: 'filler_35', x: 25, y: 562, w: 20, h: 40, kind: 'tree' },
-  { id: 'filler_36', x: 422, y: 564, w: 20, h: 40, kind: 'tree' },
-  { id: 'filler_37', x: 200, y: 560, w: 80, h: 18, kind: 'hedge' },
-  { id: 'filler_38', x: 76, y: 396, w: 80, h: 18, kind: 'hedge' },
-  { id: 'filler_39', x: 384, y: 663, w: 80, h: 18, kind: 'hedge' },
-  { id: 'filler_40', x: 185, y: 690, w: 80, h: 18, kind: 'hedge' },
-  { id: 'filler_41', x: 55, y: 609, w: 90, h: 18, kind: 'fence' },
-  { id: 'filler_42', x: 239, y: 623, w: 90, h: 18, kind: 'fence' },
+  /*
+   * West End — the Repair Shop and Wash & Fold both sit flush against
+   * their own road (the block's own street, y:520-540), the same way real
+   * older-neighbourhood shopfronts open straight onto the sidewalk with no
+   * front yard at all. So the logic here isn't a yard hedge (there's no
+   * room for one) — it's a service-yard fence behind the Repair Shop, a
+   * softer hedge behind Wash & Fold, and street trees filling the actual
+   * open frontage on either side of the two buildings, the same "plant
+   * where the street verge really is" rule Residential North used.
+   * Replaces four floating hedges and two floating fences that related to
+   * neither shop.
+   */
+  { id: 'filler_156', x: 5, y: 480, w: 20, h: 40, kind: 'tree' }, // street tree, west of the Repair Shop
+  { id: 'filler_157', x: 330, y: 480, w: 20, h: 40, kind: 'tree' }, // street tree, east of Wash & Fold
+  { id: 'filler_158', x: 440, y: 480, w: 20, h: 40, kind: 'tree' }, // street tree
+  { id: 'filler_159', x: 462, y: 480, w: 20, h: 40, kind: 'tree' }, // street tree
+  { id: 'filler_160', x: 28, y: 428, w: 8, h: 90, kind: 'fence' }, // Repair Shop, service-yard fence (west)
+  { id: 'filler_161', x: 28, y: 420, w: 136, h: 8, kind: 'fence' }, // Repair Shop, service-yard fence (north)
+  { id: 'filler_162', x: 208, y: 428, w: 8, h: 70, kind: 'hedge' }, // Wash & Fold, back hedge (west)
+  { id: 'filler_163', x: 222, y: 420, w: 88, h: 8, kind: 'hedge' }, // Wash & Fold, back hedge (north)
 
   // Riverside Park — the heaviest tree cover in town, on purpose: the
   // "open during the day, fewer eyes at night" district needed real canopy
@@ -225,36 +235,59 @@ export const OBSTACLES: Obstacle[] = [
   { id: 'filler_130', x: 1545, y: 610, w: 16, h: 16, kind: 'barrel' },
   { id: 'filler_131', x: 1555, y: 700, w: 16, h: 16, kind: 'crate' },
 
-  // Transit Hub — buses, benches, fences around the depot lot.
-  { id: 'filler_91', x: 31, y: 796, w: 70, h: 16, kind: 'hedge' },
-  { id: 'filler_92', x: 87, y: 1026, w: 70, h: 16, kind: 'hedge' },
-  { id: 'filler_93', x: 228, y: 845, w: 70, h: 16, kind: 'hedge' },
-  { id: 'filler_94', x: 335, y: 787, w: 18, h: 12, kind: 'car' },
-  { id: 'filler_95', x: 292, y: 941, w: 18, h: 12, kind: 'car' },
-  { id: 'filler_96', x: 327, y: 1024, w: 18, h: 12, kind: 'car' },
-  { id: 'filler_97', x: 263, y: 1051, w: 18, h: 12, kind: 'car' },
+  /*
+   * Transit Hub — a park-and-ride, not a neighbourhood: the depot itself
+   * (its own platform and shelter, drawn by drawTransit) is the whole
+   * point, so the logic here is a single boundary hedge behind it and an
+   * actual parking row beside it, not scenery scattered around an empty
+   * lot. filler_98/99 (fencing further south, past the depot's own stub
+   * road) were already reasonably placed as a lot boundary and are kept.
+   */
+  { id: 'filler_164', x: 40, y: 822, w: 160, h: 8, kind: 'hedge' }, // Bus Depot, north boundary
+  { id: 'filler_165', x: 220, y: 870, w: 18, h: 12, kind: 'car' }, // park-and-ride row
+  { id: 'filler_166', x: 250, y: 870, w: 18, h: 12, kind: 'car' },
+  { id: 'filler_167', x: 280, y: 870, w: 18, h: 12, kind: 'car' },
+  { id: 'filler_168', x: 310, y: 870, w: 18, h: 12, kind: 'car' },
   { id: 'filler_98', x: 304, y: 981, w: 90, h: 16, kind: 'fence' },
   { id: 'filler_99', x: 314, y: 1080, w: 90, h: 16, kind: 'fence' },
   { id: 'filler_100', x: 382, y: 876, w: 90, h: 70, kind: 'building' },
 
-  // South Residential — family homes, quieter streets.
-  { id: 'filler_101', x: 767, y: 831, w: 80, h: 18, kind: 'hedge' },
-  { id: 'filler_102', x: 976, y: 989, w: 80, h: 18, kind: 'hedge' },
-  { id: 'filler_103', x: 791, y: 1057, w: 80, h: 18, kind: 'hedge' },
-  { id: 'filler_104', x: 839, y: 999, w: 80, h: 18, kind: 'hedge' },
-  { id: 'filler_105', x: 1004, y: 821, w: 20, h: 40, kind: 'tree' },
-  { id: 'filler_106', x: 673, y: 991, w: 20, h: 40, kind: 'tree' },
-  { id: 'filler_107', x: 708, y: 976, w: 20, h: 40, kind: 'tree' },
-  { id: 'filler_108', x: 1003, y: 1022, w: 16, h: 24, kind: 'bush' },
-  { id: 'filler_109', x: 949, y: 812, w: 16, h: 24, kind: 'bush' },
-  { id: 'filler_110', x: 962, y: 1018, w: 16, h: 24, kind: 'bush' },
+  /*
+   * South Residential — Casey's is the only named building in the whole
+   * district, which is the district's own point ("quieter than the north
+   * side, closer to the edge of everything"): a sparser, single-house
+   * street reads truer to that mood than filling the emptiness back in
+   * with the same density Residential North earned by actually having
+   * three buildings. One side hedge for the house (its own front faces
+   * the road to the south, flush the same way West End's shops are, so
+   * there's no room for a front yard), and street trees filling the real
+   * open frontage on both sides of it.
+   */
+  { id: 'filler_169', x: 560, y: 834, w: 8, h: 86, kind: 'hedge' }, // Casey's, west side yard
+  { id: 'filler_170', x: 540, y: 880, w: 20, h: 40, kind: 'tree' }, // street tree, west of the house
+  { id: 'filler_171', x: 720, y: 880, w: 20, h: 40, kind: 'tree' }, // street tree, east of the house
+  { id: 'filler_172', x: 850, y: 880, w: 20, h: 40, kind: 'tree' },
+  { id: 'filler_173', x: 900, y: 880, w: 20, h: 40, kind: 'tree' },
+  { id: 'filler_174', x: 1000, y: 880, w: 20, h: 40, kind: 'tree' },
 
-  // Commercial Strip — storefronts, parking lots.
-  { id: 'filler_111', x: 1132, y: 896, w: 18, h: 12, kind: 'car' },
-  { id: 'filler_112', x: 1158, y: 1083, w: 18, h: 12, kind: 'car' },
-  { id: 'filler_113', x: 1139, y: 1042, w: 18, h: 12, kind: 'car' },
-  { id: 'filler_114', x: 1427, y: 821, w: 18, h: 12, kind: 'car' },
-  { id: 'filler_115', x: 1468, y: 845, w: 18, h: 12, kind: 'car' },
+  /*
+   * Commercial Strip — the location geometry already draws a real strip
+   * mall (Sal's Pizza/Arcade along the north row, Convenience/Pharmacy
+   * along the south row, the district's own street running between them);
+   * the old cars just never used it. Two ordinary parking rows, one
+   * fronting each row of storefronts, read as an actual lot instead of
+   * five cars parked nowhere in particular. filler_116/117/118 (bins) and
+   * filler_119/120 (trees) were already sitting close enough to a real
+   * storefront to keep.
+   */
+  { id: 'filler_175', x: 1185, y: 906, w: 18, h: 12, kind: 'car' }, // Sal's Pizza frontage
+  { id: 'filler_176', x: 1225, y: 906, w: 18, h: 12, kind: 'car' },
+  { id: 'filler_177', x: 1315, y: 906, w: 18, h: 12, kind: 'car' }, // the Arcade frontage
+  { id: 'filler_178', x: 1355, y: 906, w: 18, h: 12, kind: 'car' },
+  { id: 'filler_179', x: 1185, y: 946, w: 18, h: 12, kind: 'car' }, // Convenience Store frontage
+  { id: 'filler_180', x: 1225, y: 946, w: 18, h: 12, kind: 'car' },
+  { id: 'filler_181', x: 1300, y: 946, w: 18, h: 12, kind: 'car' }, // Pharmacy frontage
+  { id: 'filler_182', x: 1400, y: 946, w: 18, h: 12, kind: 'car' },
   { id: 'filler_116', x: 1575, y: 813, w: 16, h: 16, kind: 'bin' },
   { id: 'filler_117', x: 1524, y: 829, w: 16, h: 16, kind: 'bin' },
   { id: 'filler_118', x: 1289, y: 1041, w: 16, h: 16, kind: 'bin' },
