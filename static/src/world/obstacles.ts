@@ -75,33 +75,53 @@ export const OBSTACLES: Obstacle[] = [
   { id: 'filler_54', x: 1274, y: 888, w: 16, h: 24, kind: 'bush' },
   { id: 'filler_55', x: 1492, y: 1018, w: 16, h: 24, kind: 'bush' },
 
-  // The four alley shortcuts' own tree cover — West End (Repair Shop <->
-  // Wash & Fold), the Warehouse back cut behind Annex Fence, the Downtown
-  // side alley off the plaza, and Residential North's rear yards.
+  // The alley shortcuts' own tree cover — West End (Repair Shop <-> Wash &
+  // Fold), the Warehouse back cut behind Annex Fence, the Downtown side
+  // alley off the plaza. Residential North's own alley (behind Ellen's) is
+  // planted separately below, as part of that district's own landscaping
+  // pass rather than lumped in here.
   { id: 'filler_1', x: 173, y: 413, w: 20, h: 40, kind: 'tree' },
   { id: 'filler_3', x: 187, y: 469, w: 20, h: 40, kind: 'tree' },
   { id: 'filler_5', x: 1358, y: 451, w: 20, h: 40, kind: 'tree' },
   { id: 'filler_6', x: 1352, y: 396, w: 20, h: 40, kind: 'tree' },
   { id: 'filler_7', x: 799, y: 154, w: 20, h: 40, kind: 'tree' },
-  { id: 'filler_8', x: 358, y: 101, w: 20, h: 40, kind: 'tree' },
-  { id: 'filler_9', x: 368, y: 35, w: 20, h: 40, kind: 'tree' },
-  { id: 'filler_11', x: 332, y: 161, w: 20, h: 40, kind: 'tree' },
-  { id: 'filler_13', x: 363, y: 148, w: 20, h: 40, kind: 'tree' },
 
-  // Residential North — hedges and trees framing home, the Garage, Ellen's.
-  { id: 'filler_14', x: 235, y: 272, w: 90, h: 20, kind: 'hedge' },
-  { id: 'filler_15', x: 190, y: 159, w: 90, h: 20, kind: 'hedge' },
-  { id: 'filler_17', x: 214, y: 246, w: 90, h: 20, kind: 'hedge' },
-  { id: 'filler_18', x: 235, y: 314, w: 90, h: 20, kind: 'hedge' },
-  { id: 'filler_19', x: 54, y: 162, w: 16, h: 24, kind: 'bush' },
-  { id: 'filler_20', x: 405, y: 52, w: 16, h: 24, kind: 'bush' },
-  { id: 'filler_21', x: 108, y: 265, w: 16, h: 24, kind: 'bush' },
-  { id: 'filler_22', x: 444, y: 105, w: 16, h: 24, kind: 'bush' },
+  /*
+   * Residential North, landscaped rather than scattered. Three things a
+   * real block actually has:
+   *  - Street trees in a regular rhythm along the main road's own north
+   *    verge (y:210-230) — the single strongest "this is a street" signal
+   *    a top-down block can give, and the thing the old scatter never did.
+   *  - A low yard-front hedge for Home and for Ellen's, each broken by a
+   *    gap for the walkway to its own door — a boundary that belongs to a
+   *    specific building, not a hedge floating in open grass.
+   *  - The Garage's own pair of foundation bushes, and three trees flanking
+   *    the open (east) side of the rear alley behind Ellen's — the alley's
+   *    west side is the house's own wall, so there's nowhere to plant one
+   *    there.
+   * Replaces the old filler_8/9/11/13 (alley trees, irregular and two of
+   * them actually inside the alley's own walkable width) and filler_14/15/
+   * 17/18/19/20/21/22 (hedges and bushes with no relationship to any
+   * building) plus filler_23/24/25 (loose trees with no placement logic,
+   * despite being grouped under the "Downtown" comment below).
+   */
+  { id: 'filler_132', x: 20, y: 155, w: 20, h: 40, kind: 'tree' }, // street tree
+  { id: 'filler_133', x: 80, y: 155, w: 20, h: 40, kind: 'tree' }, // street tree
+  { id: 'filler_134', x: 240, y: 155, w: 20, h: 40, kind: 'tree' }, // street tree
+  { id: 'filler_135', x: 260, y: 155, w: 20, h: 40, kind: 'tree' }, // street tree
+  { id: 'filler_136', x: 320, y: 155, w: 20, h: 40, kind: 'tree' }, // street tree
+  { id: 'filler_137', x: 420, y: 155, w: 20, h: 40, kind: 'tree' }, // street tree
+  { id: 'filler_138', x: 365, y: 45, w: 20, h: 40, kind: 'tree' }, // rear alley, east side
+  { id: 'filler_139', x: 365, y: 95, w: 20, h: 40, kind: 'tree' }, // rear alley, east side
+  { id: 'filler_140', x: 365, y: 145, w: 20, h: 40, kind: 'tree' }, // rear alley, east side
+  { id: 'filler_141', x: 40, y: 138, w: 45, h: 8, kind: 'hedge' }, // Home's yard front, left of the walk
+  { id: 'filler_142', x: 130, y: 138, w: 40, h: 8, kind: 'hedge' }, // Home's yard front, right of the walk
+  { id: 'filler_143', x: 220, y: 142, w: 50, h: 8, kind: 'hedge' }, // Ellen's yard front, left of the walk
+  { id: 'filler_144', x: 298, y: 142, w: 48, h: 8, kind: 'hedge' }, // Ellen's yard front, right of the walk
+  { id: 'filler_145', x: 126, y: 201, w: 10, h: 8, kind: 'bush' }, // Garage, foundation planting
+  { id: 'filler_146', x: 162, y: 201, w: 10, h: 8, kind: 'bush' }, // Garage, foundation planting
 
   // Downtown — the school, the library, the plaza, tree-lined throughout.
-  { id: 'filler_23', x: 188, y: 279, w: 22, h: 42, kind: 'tree' },
-  { id: 'filler_24', x: 388, y: 87, w: 22, h: 42, kind: 'tree' },
-  { id: 'filler_25', x: 428, y: 160, w: 22, h: 42, kind: 'tree' },
   { id: 'filler_26', x: 1044, y: 84, w: 22, h: 42, kind: 'tree' },
   { id: 'filler_27', x: 980, y: 265, w: 22, h: 42, kind: 'tree' },
   { id: 'filler_28', x: 538, y: 263, w: 22, h: 42, kind: 'tree' },
