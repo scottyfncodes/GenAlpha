@@ -181,11 +181,19 @@ export const OBSTACLES: Obstacle[] = [
   { id: 'filler_162', x: 208, y: 428, w: 8, h: 70, kind: 'hedge' }, // Wash & Fold, back hedge (west)
   { id: 'filler_163', x: 222, y: 420, w: 88, h: 8, kind: 'hedge' }, // Wash & Fold, back hedge (north)
 
-  // Riverside Park — the heaviest tree cover in town, on purpose: the
-  // "open during the day, fewer eyes at night" district needed real canopy
-  // to earn that read rather than just saying it.
+  /*
+   * Riverside Park — the heaviest tree cover in town, on purpose: the
+   * "open during the day, fewer eyes at night" district needed real canopy
+   * to earn that read rather than just saying it. The Green got its own
+   * full landscaping pass already (see drawGreen); this is the smaller
+   * remaining piece — filler_44 already sat right at the Ballpark's own
+   * south-west corner (the field's open side, opposite the bleachers along
+   * its north edge per drawBallpark), so it reads as shade seating once
+   * it's mirrored the same way School's own entrance tree was.
+   */
   { id: 'filler_43', x: 821, y: 681, w: 24, h: 44, kind: 'tree' },
-  { id: 'filler_44', x: 569, y: 589, w: 24, h: 44, kind: 'tree' },
+  { id: 'filler_44', x: 569, y: 589, w: 24, h: 44, kind: 'tree' }, // Ballpark, south-west shade tree
+  { id: 'filler_183', x: 730, y: 589, w: 24, h: 44, kind: 'tree' }, // Ballpark, south-east shade tree — mirrors filler_44
   { id: 'filler_56', x: 544, y: 392, w: 24, h: 44, kind: 'tree' },
   { id: 'filler_57', x: 584, y: 396, w: 24, h: 44, kind: 'tree' },
   { id: 'filler_59', x: 542, y: 649, w: 24, h: 44, kind: 'tree' },
