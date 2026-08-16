@@ -121,15 +121,35 @@ export const OBSTACLES: Obstacle[] = [
   { id: 'filler_145', x: 126, y: 201, w: 10, h: 8, kind: 'bush' }, // Garage, foundation planting
   { id: 'filler_146', x: 162, y: 201, w: 10, h: 8, kind: 'bush' }, // Garage, foundation planting
 
-  // Downtown — the school, the library, the plaza, tree-lined throughout.
-  { id: 'filler_26', x: 1044, y: 84, w: 22, h: 42, kind: 'tree' },
+  /*
+   * Downtown — the civic quad School and Library actually form together,
+   * landscaped as one rather than each getting a random handful of trees.
+   *  - filler_33 already sat right at School's own south-west corner; it
+   *    reads as a real entrance planting once it's mirrored across the
+   *    building's own centre line instead of standing alone.
+   *  - Library gets the same symmetric pair, flanking the pedimented
+   *    entrance its own code comment already calls out as the one building
+   *    in town "dressed up to look civic on purpose".
+   *  - The old scatter's real problem was the four trees with no logic at
+   *    all (filler_26/29/30 bunched loosely on the district's east side,
+   *    filler_32 alone on the west) — replaced with two deliberate lines,
+   *    east and west, reading as the planted buffer between Downtown and
+   *    its neighbours rather than debris.
+   * filler_27 (near Marlow Street) and filler_31 (near Town Square) were
+   * already close enough to a real building to keep as they were.
+   */
+  { id: 'filler_33', x: 560, y: 178, w: 22, h: 42, kind: 'tree' }, // School, entrance planting (west)
+  { id: 'filler_147', x: 746, y: 165, w: 22, h: 40, kind: 'tree' }, // School, entrance planting (east) — mirrors filler_33
+  { id: 'filler_148', x: 826, y: 156, w: 20, h: 40, kind: 'tree' }, // Library, entrance planting (west)
+  { id: 'filler_149', x: 942, y: 156, w: 20, h: 40, kind: 'tree' }, // Library, entrance planting (east)
+  { id: 'filler_150', x: 535, y: 60, w: 20, h: 40, kind: 'tree' }, // west edge line, toward the Crossroads
+  { id: 'filler_151', x: 535, y: 150, w: 20, h: 40, kind: 'tree' },
+  { id: 'filler_152', x: 535, y: 240, w: 20, h: 40, kind: 'tree' },
+  { id: 'filler_153', x: 1050, y: 60, w: 20, h: 40, kind: 'tree' }, // east edge line, toward the Warehouse District
+  { id: 'filler_154', x: 1050, y: 150, w: 20, h: 40, kind: 'tree' },
+  { id: 'filler_155', x: 1050, y: 240, w: 20, h: 40, kind: 'tree' },
   { id: 'filler_27', x: 980, y: 265, w: 22, h: 42, kind: 'tree' },
-  { id: 'filler_28', x: 538, y: 263, w: 22, h: 42, kind: 'tree' },
-  { id: 'filler_29', x: 1042, y: 167, w: 22, h: 42, kind: 'tree' },
-  { id: 'filler_30', x: 1001, y: 65, w: 22, h: 42, kind: 'tree' },
   { id: 'filler_31', x: 809, y: 278, w: 22, h: 42, kind: 'tree' },
-  { id: 'filler_32', x: 528, y: 128, w: 22, h: 42, kind: 'tree' },
-  { id: 'filler_33', x: 560, y: 178, w: 22, h: 42, kind: 'tree' },
   /*
    * The one piece of scenery in town that isn't there from day one — new
    * fencing near the Downtown Crossroads, matching Town Square's own
