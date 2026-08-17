@@ -1,6 +1,7 @@
 import {
   DISTRICTS,
   HOME_LOCATION_ID,
+  LOCATIONS,
   MAP_HEIGHT,
   MAP_WIDTH,
   visibleLocations,
@@ -964,6 +965,52 @@ function surfaceGrid(): (RoadTier | null)[][] {
         // this segment with (`PALETTE.roadSecondary`); there's no separate
         // tier field on a diagonal to read instead.
         if (Math.abs(lx) <= half && Math.abs(ly) <= halfW) grid[r][c] = 'secondary';
+      }
+    }
+  }
+
+  /*
+   * A sidewalk apron around every real building's own lot — the ground-
+   * plane half of the "the town lacks form" fix (the obstacle-placement
+   * pass fixed what surrounds a building; this fixes what a building
+   * actually sits on). Reuses the 'path' tier's own paver tile rather than
+   * inventing a new one, since a lot apron and a pedestrian path are the
+   * same idea — pavement a person, not a car, walks on. Only fills cells
+   * that are still open ground (`grid[r][c] === null`): a road always wins
+   * over an apron, so a building whose lot happens to touch a street edge
+   * doesn't get its own road tile overwritten with a paver one.
+   *
+   * `render` values that already paint their own ground (`'green'`,
+   * `'plaza'`, `'ballpark'`) or that aren't a walk-up building at all
+   * (`'camera'`, `'treehouse'`, a platform with no ground-level footprint)
+   * are excluded — an apron under a plaza's own paving or a camera post
+   * would either be invisible or wrong. `requiresFlag` locations that
+   * haven't unlocked yet are skipped too, so a sidewalk patch never shows
+   * up in an empty field before the story's put a building there.
+   */
+  const LOT_APRON_RENDERS = new Set<OverworldLocation['render']>([
+    undefined,
+    'building',
+    'house',
+    'school',
+    'library',
+    'warehouse',
+    'garage',
+    'pizza',
+    'arcade',
+    'shop',
+    'transit',
+  ]);
+  for (const loc of LOCATIONS) {
+    if (loc.requiresFlag) continue;
+    if (!LOT_APRON_RENDERS.has(loc.render)) continue;
+    const c0 = Math.max(0, Math.floor((loc.x - GRID_TILE) / GRID_TILE));
+    const c1 = Math.min(GRID_COLS - 1, Math.floor((loc.x + loc.w + GRID_TILE - 1) / GRID_TILE));
+    const r0 = Math.max(0, Math.floor((loc.y - GRID_TILE) / GRID_TILE));
+    const r1 = Math.min(GRID_ROWS - 1, Math.floor((loc.y + loc.h + GRID_TILE - 1) / GRID_TILE));
+    for (let r = r0; r <= r1; r++) {
+      for (let c = c0; c <= c1; c++) {
+        if (grid[r][c] === null) grid[r][c] = 'path';
       }
     }
   }
