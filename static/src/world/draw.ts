@@ -1820,11 +1820,25 @@ function drawHouse(ctx: CanvasRenderingContext2D, loc: OverworldLocation, tier: 
 
   const doorW = 10;
   const doorH = 16;
+  const porchTop = loc.y + loc.h - doorH - 5;
+  const porchW = doorW + 8;
   ctx.fillStyle = PALETTE.porchPost;
-  ctx.fillRect(px(apexX - doorW / 2 - 3), loc.y + loc.h - doorH - 5, 2, doorH);
-  ctx.fillRect(px(apexX + doorW / 2 + 1), loc.y + loc.h - doorH - 5, 2, doorH);
+  ctx.fillRect(px(apexX - doorW / 2 - 3), porchTop, 2, doorH);
+  ctx.fillRect(px(apexX + doorW / 2 + 1), porchTop, 2, doorH);
   ctx.fillStyle = PALETTE.doorColor;
-  ctx.fillRect(px(apexX - doorW / 2), loc.y + loc.h - doorH - 5, doorW, doorH);
+  ctx.fillRect(px(apexX - doorW / 2), porchTop, doorW, doorH);
+
+  /*
+   * A small canopy roof over the porch — the one piece of the house that
+   * actually breaks the building's own rectangle instead of just changing
+   * colour within it. Sits a few px above the posts, a little wider than
+   * the doorway they flank, with its own shadow so it reads as something
+   * standing proud of the wall rather than a stripe painted on it.
+   */
+  ctx.fillStyle = 'rgba(0,0,0,0.16)';
+  ctx.fillRect(px(apexX - porchW / 2), porchTop + 3, porchW, 2);
+  ctx.fillStyle = PALETTE.pitchRoofA;
+  ctx.fillRect(px(apexX - porchW / 2 - 1), porchTop - 4, porchW + 2, 4);
 
   const rand = noise(`house:${loc.id}`);
   const win = houseWindowGeometry(loc);
@@ -2440,11 +2454,25 @@ function drawShop(ctx: CanvasRenderingContext2D, loc: OverworldLocation, tier: T
     ctx.fillRect(loc.x + 2, loc.y, loc.w - 4, roofH);
   }
 
-  // The awning — a flat band in the shop's own colour, not a stripe pattern,
-  // so the render type stays legible as "generic shop" rather than "pizza
-  // place in a different colour".
+  /*
+   * The awning — a flat band in the shop's own colour, not a stripe
+   * pattern, so the render type stays legible as "generic shop" rather
+   * than "pizza place in a different colour". Now a real overhang rather
+   * than a stripe painted on the flat wall: it projects a few px past
+   * both edges of the building and drops a shadow on the pavement below
+   * it, so the silhouette actually breaks instead of every shop reading
+   * as the same rectangle with a different paint job — the ground-plane
+   * pass gave every building a real lot; this gives it a real edge.
+   */
+  const awningOverhang = 4;
+  const awningDepth = 6;
+  ctx.fillStyle = 'rgba(0,0,0,0.18)';
+  ctx.fillRect(loc.x - awningOverhang, loc.y + roofH + awningDepth, loc.w + awningOverhang * 2, 2);
+  ctx.fillStyle = PALETTE.outline;
+  ctx.fillRect(px(loc.x - awningOverhang), loc.y + roofH, 2, awningDepth + 2);
+  ctx.fillRect(px(loc.x + loc.w + awningOverhang - 2), loc.y + roofH, 2, awningDepth + 2);
   ctx.fillStyle = loc.color;
-  ctx.fillRect(loc.x, loc.y + roofH, loc.w, 6);
+  ctx.fillRect(loc.x - awningOverhang, loc.y + roofH, loc.w + awningOverhang * 2, awningDepth);
 
   drawWindows(ctx, loc, false);
 
