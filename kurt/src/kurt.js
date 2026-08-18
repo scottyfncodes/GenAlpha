@@ -33,7 +33,7 @@ export function resetKurt(kurt, x, y, cosmetic) {
   kurt.blinking = false;
   kurt.blinkTimer = rand(1.5, 3);
   kurt.cosmetic = cosmetic;
-  resetHair(kurt.hair, x - PHYSICS.kurtRadius * 0.3, y - PHYSICS.kurtRadius * 1.05);
+  resetHair(kurt.hair, x - PHYSICS.kurtRadius * 0.24, y - PHYSICS.kurtRadius * 0.99);
 }
 
 export function beginThrust(kurt) {
@@ -82,8 +82,8 @@ export function updateKurt(kurt, dt, gravityMult, scrollSpeed, thrustMult = 1) {
   const rad = (kurt.rotation * Math.PI) / 180;
   const cos = Math.cos(rad);
   const sin = Math.sin(rad);
-  const localX = -R * 0.3;
-  const localY = -R * 1.05;
+  const localX = -R * 0.24;
+  const localY = -R * 0.99;
   const anchorX = kurt.x + localX * cos - localY * sin;
   const anchorY = kurt.y + localX * sin + localY * cos;
   updateHair(kurt.hair, dt, anchorX, anchorY, kurt.vy, scrollSpeed);
@@ -98,8 +98,8 @@ export function getButtPosition(kurt) {
   const rad = (kurt.rotation * Math.PI) / 180;
   const cos = Math.cos(rad);
   const sin = Math.sin(rad);
-  const localX = R * 0.04;
-  const localY = R * 0.86;
+  const localX = R * 0.05;
+  const localY = R * 0.9;
   return {
     x: kurt.x + localX * cos - localY * sin,
     y: kurt.y + localX * sin + localY * cos,
@@ -108,7 +108,6 @@ export function getButtPosition(kurt) {
 
 const SKIN = "#f4c9a0";
 const SKIN_SHADE = "#e0a97c";
-const SKIN_DARK = "#c98f60";
 const OUTLINE = "rgba(120,66,38,0.55)";
 const HAIR_BASE = "#4a2f1c";
 const HAIR_HI = "#7a4f2f";
@@ -123,52 +122,47 @@ export function drawKurt(ctx, kurt) {
   ctx.rotate((kurt.rotation * Math.PI) / 180);
   ctx.scale(kurt.scaleX, kurt.scaleY);
 
-  drawArmCurve(ctx, R, -R * 0.1, -R * 0.5, -R * 0.75, R * 0.05, R * 0.26, R * 0.46);
+  // back arm: sweeps behind the body around to the clasped hands
+  drawArmCurve(ctx, R, -R * 0.18, -R * 0.32, -R * 0.7, R * 0.14, R * 0.24, R * 0.5);
 
-  // torso (tucked cannonball body)
+  // one rounded body mass reads as the tucked torso + thighs together,
+  // matching a real cannonball tuck instead of separate limb shapes
   ctx.fillStyle = SKIN;
   ctx.beginPath();
-  ctx.ellipse(0, R * 0.08, R * 0.82, R * 0.78, 0, 0, Math.PI * 2);
+  ctx.ellipse(R * 0.05, R * 0.1, R * 0.88, R * 0.8, 0.06, 0, Math.PI * 2);
   ctx.fill();
   ctx.strokeStyle = OUTLINE;
   ctx.lineWidth = 2;
   ctx.stroke();
 
-  // chest/ab definition
+  // soft shading where the thighs tuck against the chest
+  ctx.fillStyle = "rgba(190,120,80,0.22)";
+  ctx.beginPath();
+  ctx.ellipse(R * 0.3, R * 0.26, R * 0.48, R * 0.38, 0.25, 0, Math.PI * 2);
+  ctx.fill();
+
+  // knee crease
   ctx.strokeStyle = "rgba(150,90,55,0.4)";
   ctx.lineWidth = 2;
   ctx.beginPath();
-  ctx.moveTo(-R * 0.02, -R * 0.32);
-  ctx.lineTo(-R * 0.02, R * 0.28);
-  ctx.stroke();
-  ctx.beginPath();
-  ctx.moveTo(-R * 0.34, -R * 0.02);
-  ctx.quadraticCurveTo(-R * 0.02, R * 0.08, R * 0.3, -R * 0.06);
+  ctx.moveTo(-R * 0.24, -R * 0.08);
+  ctx.quadraticCurveTo(R * 0.14, R * 0.08, R * 0.52, -R * 0.04);
   ctx.stroke();
 
-  const wiggle = kurt.thrusting ? Math.sin(kurt.buttWigglePhase) * R * 0.045 : 0;
-  drawButt(ctx, R, wiggle);
+  const wiggle = kurt.thrusting ? Math.sin(kurt.buttWigglePhase) * R * 0.04 : 0;
+  drawButtCrack(ctx, R, wiggle);
 
-  // legs tucked together as one compact mass, feet peeking out
-  drawKnee(ctx, R, R * 0.46, R * 0.26);
-  drawKnee(ctx, R, R * 0.36, R * 0.5);
-  drawFoot(ctx, R, R * 0.6, R * 0.62);
-  drawFoot(ctx, R, R * 0.48, R * 0.7);
+  drawFoot(ctx, R, R * 0.82, R * 0.48, 0.6);
+  drawFoot(ctx, R, R * 0.7, R * 0.74, 0.8);
 
-  drawArmCurve(ctx, R, R * 0.15, -R * 0.45, R * 0.7, 0, R * 0.4, R * 0.52);
-  drawHand(ctx, R, R * 0.28, R * 0.48);
-  drawHand(ctx, R, R * 0.4, R * 0.53);
+  // front arm: comes over the top of the tuck to meet the back arm
+  drawArmCurve(ctx, R, R * 0.22, -R * 0.3, R * 0.62, R * 0.14, R * 0.3, R * 0.48);
+  drawClaspedHands(ctx, R, R * 0.27, R * 0.49);
 
   drawAccessoryBehindHead(ctx, R, kurt.cosmetic);
 
-  // neck stub connecting head to torso
-  ctx.fillStyle = SKIN_SHADE;
-  ctx.beginPath();
-  ctx.ellipse(-R * 0.16, -R * 0.42, R * 0.22, R * 0.18, 0.3, 0, Math.PI * 2);
-  ctx.fill();
-
   ctx.save();
-  ctx.translate(-R * 0.28, -R * 0.62);
+  ctx.translate(-R * 0.22, -R * 0.56);
   ctx.rotate(-0.08);
 
   ctx.fillStyle = SKIN;
@@ -220,67 +214,42 @@ export function drawKurt(ctx, kurt) {
   ctx.restore();
 }
 
-function drawButt(ctx, R, wiggle) {
-  const cx = R * 0.04 + wiggle;
-  const cy = R * 0.72;
-  ctx.fillStyle = SKIN;
-  ctx.beginPath();
-  ctx.ellipse(cx - R * 0.15, cy, R * 0.22, R * 0.19, 0, 0, Math.PI * 2);
-  ctx.fill();
-  ctx.beginPath();
-  ctx.ellipse(cx + R * 0.15, cy, R * 0.22, R * 0.19, 0, 0, Math.PI * 2);
-  ctx.fill();
-  ctx.strokeStyle = OUTLINE;
-  ctx.lineWidth = 1.6;
-  ctx.beginPath();
-  ctx.ellipse(cx - R * 0.15, cy, R * 0.22, R * 0.19, 0, 0, Math.PI * 2);
-  ctx.stroke();
-  ctx.beginPath();
-  ctx.ellipse(cx + R * 0.15, cy, R * 0.22, R * 0.19, 0, 0, Math.PI * 2);
-  ctx.stroke();
-
-  ctx.strokeStyle = "rgba(140,80,50,0.5)";
+function drawButtCrack(ctx, R, wiggle) {
+  const cx = -R * 0.16 + wiggle;
+  ctx.strokeStyle = "rgba(140,80,50,0.45)";
   ctx.lineWidth = 1.6;
   ctx.lineCap = "round";
   ctx.beginPath();
-  ctx.moveTo(cx, cy - R * 0.16);
-  ctx.quadraticCurveTo(cx, cy, cx, cy + R * 0.2);
+  ctx.moveTo(cx, R * 0.62);
+  ctx.quadraticCurveTo(cx, R * 0.74, cx, R * 0.84);
   ctx.stroke();
 }
 
-function drawKnee(ctx, R, cx, cy) {
-  ctx.fillStyle = SKIN;
-  ctx.beginPath();
-  ctx.arc(cx, cy, R * 0.34, 0, Math.PI * 2);
-  ctx.fill();
-  ctx.strokeStyle = OUTLINE;
-  ctx.lineWidth = 1.8;
-  ctx.stroke();
-  ctx.fillStyle = SKIN_DARK;
-  ctx.globalAlpha = 0.5;
-  ctx.beginPath();
-  ctx.arc(cx + R * 0.06, cy - R * 0.06, R * 0.13, 0, Math.PI * 2);
-  ctx.fill();
-  ctx.globalAlpha = 1;
-}
-
-function drawHand(ctx, R, cx, cy) {
+function drawClaspedHands(ctx, R, cx, cy) {
   ctx.fillStyle = SKIN_SHADE;
   ctx.beginPath();
-  ctx.arc(cx, cy, R * 0.16, 0, Math.PI * 2);
+  ctx.arc(cx - R * 0.07, cy, R * 0.15, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.beginPath();
+  ctx.arc(cx + R * 0.09, cy + R * 0.03, R * 0.15, 0, Math.PI * 2);
   ctx.fill();
   ctx.strokeStyle = OUTLINE;
-  ctx.lineWidth = 1.5;
+  ctx.lineWidth = 1.4;
+  ctx.beginPath();
+  ctx.arc(cx - R * 0.07, cy, R * 0.15, 0, Math.PI * 2);
+  ctx.stroke();
+  ctx.beginPath();
+  ctx.arc(cx + R * 0.09, cy + R * 0.03, R * 0.15, 0, Math.PI * 2);
   ctx.stroke();
 }
 
-function drawFoot(ctx, R, cx, cy) {
+function drawFoot(ctx, R, cx, cy, rot) {
   ctx.fillStyle = SKIN;
   ctx.beginPath();
-  ctx.ellipse(cx, cy, R * 0.2, R * 0.13, 0.5, 0, Math.PI * 2);
+  ctx.ellipse(cx, cy, R * 0.19, R * 0.12, rot, 0, Math.PI * 2);
   ctx.fill();
   ctx.strokeStyle = OUTLINE;
-  ctx.lineWidth = 1.5;
+  ctx.lineWidth = 1.4;
   ctx.stroke();
 }
 

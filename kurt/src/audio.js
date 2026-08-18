@@ -6,6 +6,7 @@ let masterGain = null;
 let windGain = null;
 let windSource = null;
 let noiseBuffer = null;
+let unlocked = false;
 let muted = storage.getMuted();
 
 function ensureContext() {
@@ -30,7 +31,27 @@ function buildNoiseBuffer(c) {
 
 export function initAudio() {
   const c = ensureContext();
-  if (c && c.state === "suspended") c.resume();
+  if (!c) return;
+  if (c.state === "suspended") {
+    c.resume().catch(() => {});
+  }
+  // Some mobile browsers keep an AudioContext silent until a real sound is
+  // started synchronously inside the same user-gesture call stack that
+  // created/resumed it. A near-silent blip here fully commits the context.
+  if (!unlocked) {
+    unlocked = true;
+    try {
+      const osc = c.createOscillator();
+      const g = c.createGain();
+      g.gain.value = 0.0001;
+      osc.connect(g);
+      g.connect(masterGain);
+      osc.start(c.currentTime);
+      osc.stop(c.currentTime + 0.05);
+    } catch (e) {
+      /* ignore */
+    }
+  }
 }
 
 export function setMuted(m) {
