@@ -8,9 +8,9 @@ export function spawnFartBurst(sys, x, y, intensity, angleDeg = 100) {
   const count = Math.round(4 + intensity * 5);
   const baseAngle = (angleDeg * Math.PI) / 180;
   for (let i = 0; i < count; i++) {
-    const spread = (rand(-28, 28) * Math.PI) / 180;
+    const spread = (rand(-26, 26) * Math.PI) / 180;
     const a = baseAngle + spread;
-    const speed = rand(60, 160) * (0.6 + intensity * 0.6);
+    const speed = rand(35, 100) * (0.55 + intensity * 0.55);
     sys.puffs.push({
       x: x + rand(-4, 4),
       y: y + rand(-4, 4),
@@ -18,22 +18,22 @@ export function spawnFartBurst(sys, x, y, intensity, angleDeg = 100) {
       vy: Math.sin(a) * speed,
       r: rand(5, 10) * (0.7 + intensity * 0.7),
       life: 0,
-      maxLife: rand(0.5, 0.9),
+      maxLife: rand(0.65, 1.1),
       spin: rand(-1, 1),
     });
   }
   const bitCount = Math.round(3 + intensity * 4);
   for (let i = 0; i < bitCount; i++) {
-    const spread = (rand(-40, 40) * Math.PI) / 180;
+    const spread = (rand(-38, 38) * Math.PI) / 180;
     const a = baseAngle + spread;
-    const speed = rand(120, 260) * (0.6 + intensity * 0.8);
+    const speed = rand(80, 170) * (0.55 + intensity * 0.6);
     sys.bits.push({
       x, y,
       vx: Math.cos(a) * speed,
       vy: Math.sin(a) * speed,
       r: rand(1.5, 3),
       life: 0,
-      maxLife: rand(0.25, 0.4),
+      maxLife: rand(0.4, 0.65),
     });
   }
 }
@@ -55,8 +55,8 @@ export function spawnSparkles(sys, x, y, color, count = 14) {
 }
 
 export function updateParticles(sys, dt) {
-  updateArr(sys.puffs, dt, 40);
-  updateArr(sys.bits, dt, 20);
+  updateArr(sys.puffs, dt, 9);
+  updateArr(sys.bits, dt, 7);
   updateArr(sys.sparkles, dt, 10, true);
 }
 

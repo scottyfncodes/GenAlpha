@@ -1,5 +1,5 @@
-const STRAND_COUNT = 5;
-const REST_LENGTHS = [7.5, 6, 4.5, 3];
+const STRAND_COUNT = 7;
+const REST_LENGTHS = [9, 7.5, 6, 4.5];
 const DAMPING = 0.9;
 
 function createStrand(offsetX, offsetY, lenScale) {
@@ -16,7 +16,7 @@ export function createHair() {
   for (let i = 0; i < n; i++) {
     const t = i / (n - 1) - 0.5;
     // biased toward the back of the scalp, leaving the forehead bare
-    strands.push(createStrand(-9 + t * 12, -Math.abs(t) * 4 - 1, 1 - Math.abs(t) * 0.35));
+    strands.push(createStrand(-9 + t * 13, -Math.abs(t) * 4 - 1, 1 - Math.abs(t) * 0.3));
   }
   return { strands };
 }
@@ -90,7 +90,7 @@ export function drawHair(ctx, hair, baseColor, highlightColor) {
   for (const s of hair.strands) {
     const pts = s.points;
     ctx.strokeStyle = baseColor;
-    ctx.lineWidth = 7;
+    ctx.lineWidth = 8;
     ctx.beginPath();
     ctx.moveTo(pts[0].x, pts[0].y);
     for (let i = 1; i < pts.length - 1; i++) {
