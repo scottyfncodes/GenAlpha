@@ -9,7 +9,7 @@ import {
   updateParticles,
   drawParticles,
 } from "./particles.js";
-import { createKurt, resetKurt, tapKurt, updateKurt, getHitCircle, drawKurt } from "./kurt.js";
+import { createKurt, resetKurt, beginThrust, endThrust, pulseFart, updateKurt, getHitCircle, drawKurt } from "./kurt.js";
 import {
   createObstacleField,
   resetObstacleField,
@@ -59,6 +59,7 @@ export function createGame(canvas, stageEl) {
   let shake = { t: 0, dur: 0.001, mag: 0 };
   let idleTime = 0;
   let idleTapTimer = 1.4;
+  let fartTickTimer = 0;
   let cosmeticId = storage.getCosmetic();
   let lastTime = 0;
   let running = false;
@@ -93,16 +94,16 @@ export function createGame(canvas, stageEl) {
     shownGradeIndex = 0;
   }
 
-  function doTap(nowSec, seedIntensity) {
-    const mods = getActiveModifiers(powerupField);
-    const { intensity } = tapKurt(kurt, nowSec, mods.thrustMult);
-    registerFart(scoring, intensity);
-    audio.playFart(intensity);
-    spawnFartBurst(particles, kurt.x - 8, kurt.y + 20, intensity, 100);
-    if (intensity > 0.85) triggerShake(0.15, 5 * intensity);
+  function fartTick(intensity) {
+    const clamped = clamp(intensity, 0.3, 1.6);
+    registerFart(scoring, clamped);
+    audio.playFart(clamped);
+    spawnFartBurst(particles, kurt.x - 8, kurt.y + 20, clamped, 100);
+    pulseFart(kurt, clamped);
+    if (clamped > 0.85) triggerShake(0.12, 4 * clamped);
   }
 
-  function beginPlay(nowSec) {
+  function beginPlay() {
     audio.initAudio();
     fullReset();
     state = "playing";
@@ -111,7 +112,7 @@ export function createGame(canvas, stageEl) {
     ui.showHud();
     audio.startWind();
     input.setEnabled(true);
-    doTap(nowSec, 1);
+    fartTick(0.8);
   }
 
   function triggerShake(dur, mag) {
@@ -121,6 +122,7 @@ export function createGame(canvas, stageEl) {
   function endGame() {
     if (state !== "playing") return;
     state = "gameover";
+    endThrust(kurt);
     input.setEnabled(false);
     audio.stopWind();
     audio.playImpact();
@@ -155,27 +157,39 @@ export function createGame(canvas, stageEl) {
     }, 220);
   }
 
-  function handleTap(nowSec) {
+  function handleDown() {
     audio.initAudio();
     if (state !== "playing") return;
-    doTap(nowSec, 1);
+    beginThrust(kurt);
+    fartTickTimer = 0;
   }
 
-  const input = createInputHandler(canvas, handleTap);
+  function handleUp() {
+    if (state !== "playing") return;
+    endThrust(kurt);
+  }
+
+  const input = createInputHandler(canvas, handleDown, handleUp);
   input.setEnabled(false);
 
   function updateIdleStart(dt) {
     idleTime += dt;
     idleTapTimer -= dt;
     if (idleTapTimer <= 0) {
-      const { intensity } = tapKurt(kurt, idleTime, 1);
-      spawnFartBurst(particles, kurt.x - 8, kurt.y + 20, intensity, 100);
-      idleTapTimer = rand(2, 2.8);
+      if (kurt.thrusting) {
+        endThrust(kurt);
+        idleTapTimer = rand(1.1, 1.6);
+      } else {
+        beginThrust(kurt);
+        spawnFartBurst(particles, kurt.x - 8, kurt.y + 20, 0.6, 100);
+        idleTapTimer = rand(0.5, 0.8);
+      }
     }
-    updateKurt(kurt, dt, 0.5, 50);
+    updateKurt(kurt, dt, 0.5, 50, 0.7);
     if (kurt.y > worldH * 0.75 || kurt.y < worldH * 0.12) {
       kurt.y = worldH * 0.42;
       kurt.vy = 0;
+      endThrust(kurt);
     }
     updateBackground(background, dt, 40, 0);
     updateParticles(particles, dt);
@@ -189,7 +203,18 @@ export function createGame(canvas, stageEl) {
       SCROLL.maxSpeed
     ) * mods.speedMult;
 
-    updateKurt(kurt, dt, mods.gravityMult, scrollSpeed);
+    updateKurt(kurt, dt, mods.gravityMult, scrollSpeed, mods.thrustMult);
+
+    if (kurt.thrusting) {
+      fartTickTimer -= dt;
+      if (fartTickTimer <= 0) {
+        fartTick(rand(0.55, 0.85) * mods.thrustMult);
+        fartTickTimer = PHYSICS.fartTickInterval;
+      }
+    } else {
+      fartTickTimer = 0;
+    }
+
     addDistance(scoring, scrollSpeed * dt, WORLD.pxPerMeter);
     updateBackground(background, dt, scrollSpeed, scoring.meters);
     updateObstacles(obstacles, dt, scrollSpeed, worldW, worldH, GROUND_H, scoring.meters);
@@ -332,10 +357,10 @@ export function createGame(canvas, stageEl) {
   function init() {
     ui.initUI({
       onStart: () => {
-        beginPlay(performance.now() / 1000);
+        beginPlay();
       },
       onRestart: () => {
-        beginPlay(performance.now() / 1000);
+        beginPlay();
       },
       onToggleMute: () => {
         const m = !audio.isMuted();

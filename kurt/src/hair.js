@@ -1,101 +1,114 @@
-const SEGMENT_COUNT = 8;
-const REST_LENGTHS = [15, 14.5, 14, 13, 12, 10.5, 9, 7.5];
-const DAMPING = 0.94;
+const STRAND_COUNT = 5;
+const REST_LENGTHS = [7.5, 6, 4.5, 3];
+const DAMPING = 0.9;
 
-export function createHair() {
+function createStrand(offsetX, offsetY, lenScale) {
   const points = [];
-  for (let i = 0; i < SEGMENT_COUNT; i++) {
+  for (let i = 0; i < REST_LENGTHS.length + 1; i++) {
     points.push({ x: 0, y: 0, px: 0, py: 0 });
   }
-  return { points, windX: -60, windY: 0 };
+  return { points, offsetX, offsetY, lenScale };
+}
+
+export function createHair() {
+  const strands = [];
+  const n = STRAND_COUNT;
+  for (let i = 0; i < n; i++) {
+    const t = i / (n - 1) - 0.5;
+    strands.push(createStrand(t * 20, -Math.abs(t) * 5 - 2, 1 - Math.abs(t) * 0.35));
+  }
+  return { strands };
 }
 
 export function resetHair(hair, x, y) {
-  for (let i = 0; i < hair.points.length; i++) {
-    const p = hair.points[i];
-    p.x = x - i * 10;
-    p.y = y + i * 2;
-    p.px = p.x;
-    p.py = p.y;
+  for (const s of hair.strands) {
+    const rootX = x + s.offsetX;
+    const rootY = y + s.offsetY;
+    for (let i = 0; i < s.points.length; i++) {
+      const p = s.points[i];
+      p.x = rootX + s.offsetX * 0.15 * i;
+      p.y = rootY - i * 3;
+      p.px = p.x;
+      p.py = p.y;
+    }
   }
 }
 
 export function burstHair(hair, dirX, dirY, strength) {
-  for (let i = 1; i < hair.points.length; i++) {
-    const p = hair.points[i];
-    const falloff = 1 - i / hair.points.length;
-    p.px -= dirX * strength * falloff * 0.06;
-    p.py -= dirY * strength * falloff * 0.06;
+  for (const s of hair.strands) {
+    for (let i = 1; i < s.points.length; i++) {
+      const p = s.points[i];
+      const falloff = 1 - i / s.points.length;
+      p.px -= dirX * strength * falloff * 0.05;
+      p.py -= dirY * strength * falloff * 0.05;
+    }
   }
 }
 
 export function updateHair(hair, dt, anchorX, anchorY, kurtVy, scrollSpeed) {
-  const pts = hair.points;
-  pts[0].px = pts[0].x;
-  pts[0].py = pts[0].y;
-  pts[0].x = anchorX;
-  pts[0].y = anchorY;
-
-  const ax = -scrollSpeed * 0.9;
-  const ay = kurtVy * 0.35 + 220;
+  const ax = -scrollSpeed * 0.7;
+  const ay = kurtVy * 0.3 + 160;
   const clampedDt = Math.min(dt, 1 / 30);
 
-  for (let i = 1; i < pts.length; i++) {
-    const p = pts[i];
-    const vx = (p.x - p.px) * DAMPING;
-    const vy = (p.y - p.py) * DAMPING;
-    p.px = p.x;
-    p.py = p.y;
-    p.x += vx + ax * clampedDt * clampedDt;
-    p.y += vy + ay * clampedDt * clampedDt;
-  }
+  for (const s of hair.strands) {
+    const pts = s.points;
+    pts[0].px = pts[0].x;
+    pts[0].py = pts[0].y;
+    pts[0].x = anchorX + s.offsetX;
+    pts[0].y = anchorY + s.offsetY;
 
-  for (let i = 1; i < pts.length; i++) {
-    const prev = pts[i - 1];
-    const p = pts[i];
-    const dx = p.x - prev.x;
-    const dy = p.y - prev.y;
-    const dist = Math.hypot(dx, dy) || 0.0001;
-    const target = REST_LENGTHS[i - 1];
-    const diff = (dist - target) / dist;
-    p.x -= dx * diff;
-    p.y -= dy * diff;
+    for (let i = 1; i < pts.length; i++) {
+      const p = pts[i];
+      const vx = (p.x - p.px) * DAMPING;
+      const vy = (p.y - p.py) * DAMPING;
+      p.px = p.x;
+      p.py = p.y;
+      p.x += vx + ax * clampedDt * clampedDt;
+      p.y += vy + ay * clampedDt * clampedDt;
+    }
+
+    for (let i = 1; i < pts.length; i++) {
+      const prev = pts[i - 1];
+      const p = pts[i];
+      const dx = p.x - prev.x;
+      const dy = p.y - prev.y;
+      const dist = Math.hypot(dx, dy) || 0.0001;
+      const target = REST_LENGTHS[i - 1] * s.lenScale;
+      const diff = (dist - target) / dist;
+      p.x -= dx * diff;
+      p.y -= dy * diff;
+    }
   }
 }
 
 export function drawHair(ctx, hair, baseColor, highlightColor) {
-  const pts = hair.points;
   ctx.save();
   ctx.lineCap = "round";
   ctx.lineJoin = "round";
 
-  for (let pass = 0; pass < 2; pass++) {
-    const strand = pass === 0 ? 0 : 1;
-    const offsetSign = strand === 0 ? 1 : -1;
-    ctx.strokeStyle = pass === 0 ? baseColor : highlightColor;
+  for (const s of hair.strands) {
+    const pts = s.points;
+    ctx.strokeStyle = baseColor;
+    ctx.lineWidth = 7;
     ctx.beginPath();
-    ctx.moveTo(pts[0].x, pts[0].y + offsetSign * 2);
+    ctx.moveTo(pts[0].x, pts[0].y);
     for (let i = 1; i < pts.length - 1; i++) {
       const mx = (pts[i].x + pts[i + 1].x) / 2;
       const my = (pts[i].y + pts[i + 1].y) / 2;
-      ctx.quadraticCurveTo(pts[i].x, pts[i].y + offsetSign * 2 * (1 - i / pts.length), mx, my);
+      ctx.quadraticCurveTo(pts[i].x, pts[i].y, mx, my);
     }
-    const last = pts[pts.length - 1];
-    ctx.lineTo(last.x, last.y);
-    ctx.lineWidth = pass === 0 ? 13 : 5;
-    ctx.globalAlpha = pass === 0 ? 1 : 0.55;
+    ctx.lineTo(pts[pts.length - 1].x, pts[pts.length - 1].y);
     ctx.stroke();
-  }
-  ctx.globalAlpha = 1;
 
-  ctx.lineWidth = 8;
-  ctx.strokeStyle = baseColor;
-  ctx.beginPath();
-  ctx.moveTo(pts[pts.length - 3].x, pts[pts.length - 3].y);
-  ctx.lineTo(pts[pts.length - 2].x, pts[pts.length - 2].y);
-  ctx.lineTo(pts[pts.length - 1].x, pts[pts.length - 1].y);
-  ctx.lineWidth = 4;
-  ctx.stroke();
+    ctx.strokeStyle = highlightColor;
+    ctx.lineWidth = 2.5;
+    ctx.globalAlpha = 0.6;
+    ctx.beginPath();
+    ctx.moveTo(pts[0].x, pts[0].y);
+    ctx.lineTo(pts[Math.floor(pts.length / 2)].x, pts[Math.floor(pts.length / 2)].y);
+    ctx.stroke();
+    ctx.globalAlpha = 1;
+  }
 
   ctx.restore();
 }

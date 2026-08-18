@@ -5,12 +5,10 @@ export const WORLD = {
 
 export const PHYSICS = {
   gravity: 1350,
-  thrustImpulse: -510,
+  holdThrustAccel: 2500,
+  fartTickInterval: 0.12,
   maxFall: 920,
   maxRise: -700,
-  rapidTapWindow: 0.16,
-  rapidTapDecay: 0.16,
-  rapidTapFloor: 0.42,
   rotationLerp: 10,
   maxRotationDown: 78,
   maxRotationUp: -32,
