@@ -94,7 +94,7 @@ export function drawKurt(ctx, kurt) {
   ctx.rotate((kurt.rotation * Math.PI) / 180);
   ctx.scale(kurt.scaleX, kurt.scaleY);
 
-  drawArm(ctx, R, -1);
+  drawArmCurve(ctx, R, -R * 0.1, -R * 0.5, -R * 0.75, R * 0.05, R * 0.26, R * 0.46);
 
   // torso (tucked cannonball body)
   ctx.fillStyle = SKIN;
@@ -117,13 +117,15 @@ export function drawKurt(ctx, kurt) {
   ctx.quadraticCurveTo(-R * 0.02, R * 0.08, R * 0.3, -R * 0.06);
   ctx.stroke();
 
-  // two distinct tucked knees, front and center
-  drawKnee(ctx, R, R * 0.5, R * 0.18);
-  drawKnee(ctx, R, R * 0.22, R * 0.58);
+  // legs tucked together as one compact mass, feet peeking out
+  drawKnee(ctx, R, R * 0.46, R * 0.26);
+  drawKnee(ctx, R, R * 0.36, R * 0.5);
+  drawFoot(ctx, R, R * 0.6, R * 0.62);
+  drawFoot(ctx, R, R * 0.48, R * 0.7);
 
-  drawArm(ctx, R, 1);
-  drawHand(ctx, R, -R * 0.06, R * 0.62);
-  drawHand(ctx, R, R * 0.5, R * 0.5);
+  drawArmCurve(ctx, R, R * 0.15, -R * 0.45, R * 0.7, 0, R * 0.4, R * 0.52);
+  drawHand(ctx, R, R * 0.28, R * 0.48);
+  drawHand(ctx, R, R * 0.4, R * 0.53);
 
   drawAccessoryBehindHead(ctx, R, kurt.cosmetic);
 
@@ -143,6 +145,17 @@ export function drawKurt(ctx, kurt) {
   ctx.fill();
   ctx.strokeStyle = OUTLINE;
   ctx.lineWidth = 2;
+  ctx.stroke();
+
+  // receding hairline: bare forehead with a soft shine and a hairline edge
+  ctx.fillStyle = "rgba(255,255,255,0.3)";
+  ctx.beginPath();
+  ctx.ellipse(R * 0.02, -R * 0.4, R * 0.28, R * 0.2, -0.2, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.strokeStyle = "rgba(120,80,50,0.4)";
+  ctx.lineWidth = 1.4;
+  ctx.beginPath();
+  ctx.arc(-R * 0.08, -R * 0.3, R * 0.42, Math.PI * 1.12, Math.PI * 1.72);
   ctx.stroke();
 
   ctx.fillStyle = "rgba(190,120,80,0.35)";
@@ -212,6 +225,16 @@ function drawHand(ctx, R, cx, cy) {
   ctx.stroke();
 }
 
+function drawFoot(ctx, R, cx, cy) {
+  ctx.fillStyle = SKIN;
+  ctx.beginPath();
+  ctx.ellipse(cx, cy, R * 0.2, R * 0.13, 0.5, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.strokeStyle = OUTLINE;
+  ctx.lineWidth = 1.5;
+  ctx.stroke();
+}
+
 function drawEye(ctx, ex, ey, R) {
   ctx.fillStyle = "#fff";
   ctx.beginPath();
@@ -227,16 +250,16 @@ function drawEye(ctx, ex, ey, R) {
   ctx.fill();
 }
 
-function drawArm(ctx, R, side) {
+function drawArmCurve(ctx, R, sx, sy, cx, cy, ex, ey) {
   ctx.lineCap = "round";
   ctx.beginPath();
-  ctx.moveTo(side * R * 0.05, -R * 0.48);
-  ctx.quadraticCurveTo(side * R * 0.92, -R * 0.05, side * R * 0.5, R * 0.58);
+  ctx.moveTo(sx, sy);
+  ctx.quadraticCurveTo(cx, cy, ex, ey);
   ctx.strokeStyle = OUTLINE;
-  ctx.lineWidth = R * 0.32 + 3;
+  ctx.lineWidth = R * 0.3 + 3;
   ctx.stroke();
   ctx.strokeStyle = SKIN;
-  ctx.lineWidth = R * 0.32;
+  ctx.lineWidth = R * 0.3;
   ctx.stroke();
 }
 

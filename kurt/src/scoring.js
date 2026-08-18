@@ -43,6 +43,10 @@ export function loseDignity(s, amount) {
   s.dignity = Math.max(0, s.dignity - amount);
 }
 
+export function gainDignity(s, amount) {
+  s.dignity = Math.min(100, s.dignity + amount);
+}
+
 export function getEfficiency(s) {
   if (s.farts === 0) return 100;
   const metersPerFart = s.meters / s.farts;

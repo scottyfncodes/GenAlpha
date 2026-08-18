@@ -31,7 +31,7 @@ import {
   drawPowerups,
 } from "./powerups.js";
 import { createBackground, resizeBackground, updateBackground, drawBackground } from "./background.js";
-import { createScoring, resetScoring, addDistance, registerFart, registerPass, loseDignity, getEfficiency } from "./scoring.js";
+import { createScoring, resetScoring, addDistance, registerFart, registerPass, loseDignity, gainDignity, getEfficiency } from "./scoring.js";
 import { getGradeForMeters, getGradeIndex } from "./progression.js";
 import { kurtHitsRects, kurtHitsSpinner, kurtHitsCircle, kurtOutOfBounds } from "./collision.js";
 import { createInputHandler } from "./input.js";
@@ -257,10 +257,21 @@ export function createGame(canvas, stageEl) {
       }
     });
 
-    tryCollectPowerups(powerupField, kurt.x, kurt.y, hit.r, (key, def) => {
-      audio.playPowerUp();
-      spawnSparkles(particles, kurt.x, kurt.y, def.color);
-    });
+    tryCollectPowerups(
+      powerupField,
+      kurt.x,
+      kurt.y,
+      hit.r,
+      (key, def) => {
+        audio.playPowerUp();
+        spawnSparkles(particles, kurt.x, kurt.y, def.color);
+      },
+      (key, def) => {
+        audio.playPowerUp();
+        gainDignity(scoring, def.dignityBonus || 0);
+        spawnSparkles(particles, kurt.x, kurt.y, def.color);
+      }
+    );
 
     const grade = getGradeForMeters(scoring.meters);
     const idx = getGradeIndex(grade.code);

@@ -37,15 +37,19 @@ export function updatePowerups(field, dt, scrollSpeed) {
   }
 }
 
-export function tryCollectPowerups(field, kurtX, kurtY, kurtR, onCollect) {
+export function tryCollectPowerups(field, kurtX, kurtY, kurtR, onCollect, onInstant) {
   for (let i = field.items.length - 1; i >= 0; i--) {
     const p = field.items[i];
     const dx = p.x - kurtX;
     const dy = p.y - kurtY;
     if (dx * dx + dy * dy <= (p.r + kurtR) * (p.r + kurtR)) {
       field.items.splice(i, 1);
-      field.active = { key: p.key, def: p.def, timeLeft: p.def.duration, duration: p.def.duration };
-      onCollect(p.key, p.def);
+      if (p.def.instant) {
+        onInstant(p.key, p.def);
+      } else {
+        field.active = { key: p.key, def: p.def, timeLeft: p.def.duration, duration: p.def.duration };
+        onCollect(p.key, p.def);
+      }
     }
   }
 }
@@ -112,6 +116,28 @@ function drawIcon(ctx, x, y, def) {
       ctx.beginPath();
       ctx.moveTo(-6, 4);
       ctx.lineTo(6, -4);
+      ctx.stroke();
+      break;
+    case "pancakes":
+      ctx.fillStyle = "#c97f34";
+      ctx.beginPath();
+      ctx.ellipse(0, 8, 12, 4, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = "#d99a4e";
+      ctx.beginPath();
+      ctx.ellipse(0, 2.5, 12, 4, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = "#eebb6c";
+      ctx.beginPath();
+      ctx.ellipse(0, -3, 12, 4, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = "#f6d445";
+      ctx.fillRect(-3, -7, 6, 4);
+      ctx.strokeStyle = "#8a5a20";
+      ctx.lineWidth = 1.2;
+      ctx.beginPath();
+      ctx.moveTo(-9, -2);
+      ctx.quadraticCurveTo(0, 3, 9, 0);
       ctx.stroke();
       break;
     default:

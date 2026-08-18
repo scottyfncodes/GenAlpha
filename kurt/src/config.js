@@ -97,6 +97,13 @@ export const POWERUPS = {
       color: "#8fd6c8",
       icon: "gasx",
     },
+    pancakes: {
+      label: "STACK OF PANCAKES",
+      instant: true,
+      dignityBonus: 15,
+      color: "#e8a33d",
+      icon: "pancakes",
+    },
   },
 };
 

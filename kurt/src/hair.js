@@ -15,7 +15,8 @@ export function createHair() {
   const n = STRAND_COUNT;
   for (let i = 0; i < n; i++) {
     const t = i / (n - 1) - 0.5;
-    strands.push(createStrand(t * 20, -Math.abs(t) * 5 - 2, 1 - Math.abs(t) * 0.35));
+    // biased toward the back of the scalp, leaving the forehead bare
+    strands.push(createStrand(-9 + t * 12, -Math.abs(t) * 4 - 1, 1 - Math.abs(t) * 0.35));
   }
   return { strands };
 }
