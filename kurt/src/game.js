@@ -9,7 +9,7 @@ import {
   updateParticles,
   drawParticles,
 } from "./particles.js";
-import { createKurt, resetKurt, beginThrust, endThrust, pulseFart, updateKurt, getHitCircle, drawKurt } from "./kurt.js";
+import { createKurt, resetKurt, beginThrust, endThrust, pulseFart, updateKurt, getHitCircle, getButtPosition, drawKurt } from "./kurt.js";
 import {
   createObstacleField,
   resetObstacleField,
@@ -98,7 +98,8 @@ export function createGame(canvas, stageEl) {
     const clamped = clamp(intensity, 0.3, 1.6);
     registerFart(scoring, clamped);
     audio.playFart(clamped);
-    spawnFartBurst(particles, kurt.x - 8, kurt.y + 20, clamped, 100);
+    const butt = getButtPosition(kurt);
+    spawnFartBurst(particles, butt.x, butt.y, clamped, 91);
     pulseFart(kurt, clamped);
     if (clamped > 0.85) triggerShake(0.12, 4 * clamped);
   }
@@ -181,7 +182,8 @@ export function createGame(canvas, stageEl) {
         idleTapTimer = rand(1.1, 1.6);
       } else {
         beginThrust(kurt);
-        spawnFartBurst(particles, kurt.x - 8, kurt.y + 20, 0.6, 100);
+        const butt = getButtPosition(kurt);
+        spawnFartBurst(particles, butt.x, butt.y, 0.6, 91);
         idleTapTimer = rand(0.5, 0.8);
       }
     }

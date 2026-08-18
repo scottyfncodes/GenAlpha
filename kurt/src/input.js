@@ -42,6 +42,13 @@ export function createInputHandler(el, onDown, onUp) {
     e.preventDefault();
   }
 
+  // iOS Safari can still raise its text-selection magnifier loupe on a
+  // held touch even with pointerdown suppressed; blocking the raw touch
+  // events too stops it at the source.
+  function blockTouch(e) {
+    e.preventDefault();
+  }
+
   el.addEventListener("pointerdown", handlePointerDown, { passive: false });
   window.addEventListener("pointerup", handlePointerUp, { passive: true });
   window.addEventListener("pointercancel", handlePointerUp, { passive: true });
@@ -49,13 +56,10 @@ export function createInputHandler(el, onDown, onUp) {
   window.addEventListener("keydown", handleKeyDown, { passive: false });
   window.addEventListener("keyup", handleKeyUp, { passive: true });
   el.addEventListener("contextmenu", blockContextMenu);
-  document.addEventListener(
-    "touchmove",
-    (e) => {
-      e.preventDefault();
-    },
-    { passive: false }
-  );
+  el.addEventListener("touchstart", blockTouch, { passive: false });
+  el.addEventListener("touchend", blockTouch, { passive: false });
+  el.addEventListener("touchcancel", blockTouch, { passive: false });
+  document.addEventListener("touchmove", blockTouch, { passive: false });
 
   return {
     setEnabled(v) {
@@ -70,6 +74,10 @@ export function createInputHandler(el, onDown, onUp) {
       window.removeEventListener("keydown", handleKeyDown);
       window.removeEventListener("keyup", handleKeyUp);
       el.removeEventListener("contextmenu", blockContextMenu);
+      el.removeEventListener("touchstart", blockTouch);
+      el.removeEventListener("touchend", blockTouch);
+      el.removeEventListener("touchcancel", blockTouch);
+      document.removeEventListener("touchmove", blockTouch);
     },
   };
 }

@@ -1,5 +1,5 @@
 import { PHYSICS } from "./config.js";
-import { clamp, expLerp } from "./utils.js";
+import { clamp, expLerp, rand } from "./utils.js";
 import { createHair, resetHair, updateHair, burstHair, drawHair } from "./hair.js";
 
 export function createKurt() {
@@ -12,6 +12,9 @@ export function createKurt() {
     scaleY: 1,
     squash: 0,
     thrusting: false,
+    buttWigglePhase: 0,
+    blinking: false,
+    blinkTimer: 2.5,
     hair: createHair(),
     cosmetic: null,
   };
@@ -26,6 +29,9 @@ export function resetKurt(kurt, x, y, cosmetic) {
   kurt.scaleY = 1;
   kurt.squash = 0;
   kurt.thrusting = false;
+  kurt.buttWigglePhase = 0;
+  kurt.blinking = false;
+  kurt.blinkTimer = rand(1.5, 3);
   kurt.cosmetic = cosmetic;
   resetHair(kurt.hair, x - PHYSICS.kurtRadius * 0.3, y - PHYSICS.kurtRadius * 1.05);
 }
@@ -62,6 +68,16 @@ export function updateKurt(kurt, dt, gravityMult, scrollSpeed, thrustMult = 1) {
   kurt.scaleY = 1 - squashAmt;
   kurt.scaleX = 1 + squashAmt * 0.6;
 
+  if (kurt.thrusting) {
+    kurt.buttWigglePhase += dt * 46;
+  }
+
+  kurt.blinkTimer -= dt;
+  if (kurt.blinkTimer <= 0) {
+    kurt.blinking = !kurt.blinking;
+    kurt.blinkTimer = kurt.blinking ? 0.09 : rand(2, 4.5);
+  }
+
   const R = PHYSICS.kurtRadius;
   const rad = (kurt.rotation * Math.PI) / 180;
   const cos = Math.cos(rad);
@@ -75,6 +91,19 @@ export function updateKurt(kurt, dt, gravityMult, scrollSpeed, thrustMult = 1) {
 
 export function getHitCircle(kurt) {
   return { x: kurt.x, y: kurt.y, r: PHYSICS.kurtRadius * 0.72 };
+}
+
+export function getButtPosition(kurt) {
+  const R = PHYSICS.kurtRadius;
+  const rad = (kurt.rotation * Math.PI) / 180;
+  const cos = Math.cos(rad);
+  const sin = Math.sin(rad);
+  const localX = R * 0.04;
+  const localY = R * 0.86;
+  return {
+    x: kurt.x + localX * cos - localY * sin,
+    y: kurt.y + localX * sin + localY * cos,
+  };
 }
 
 const SKIN = "#f4c9a0";
@@ -116,6 +145,9 @@ export function drawKurt(ctx, kurt) {
   ctx.moveTo(-R * 0.34, -R * 0.02);
   ctx.quadraticCurveTo(-R * 0.02, R * 0.08, R * 0.3, -R * 0.06);
   ctx.stroke();
+
+  const wiggle = kurt.thrusting ? Math.sin(kurt.buttWigglePhase) * R * 0.045 : 0;
+  drawButt(ctx, R, wiggle);
 
   // legs tucked together as one compact mass, feet peeking out
   drawKnee(ctx, R, R * 0.46, R * 0.26);
@@ -164,17 +196,13 @@ export function drawKurt(ctx, kurt) {
   ctx.fill();
 
   const eyeY = -R * 0.06;
-  drawEye(ctx, -R * 0.14, eyeY, R);
-  drawEye(ctx, R * 0.2, eyeY, R);
+  const silly = kurt.thrusting;
+  drawEye(ctx, -R * 0.14, eyeY, R, kurt.blinking, silly);
+  drawEye(ctx, R * 0.2, eyeY, R, kurt.blinking, silly);
 
-  ctx.strokeStyle = "rgba(120,70,40,0.5)";
-  ctx.lineWidth = 1.5;
-  ctx.beginPath();
-  ctx.arc(-R * 0.14, eyeY - R * 0.14, R * 0.13, Math.PI * 1.05, Math.PI * 1.85);
-  ctx.stroke();
-  ctx.beginPath();
-  ctx.arc(R * 0.2, eyeY - R * 0.14, R * 0.13, Math.PI * 1.05, Math.PI * 1.85);
-  ctx.stroke();
+  drawEyebrows(ctx, R, eyeY, silly);
+
+  drawMouth(ctx, R, silly);
 
   ctx.fillStyle = MUSTACHE;
   ctx.beginPath();
@@ -185,18 +213,39 @@ export function drawKurt(ctx, kurt) {
   ctx.quadraticCurveTo(-R * 0.14, R * 0.34, -R * 0.32, R * 0.22);
   ctx.fill();
 
-  ctx.strokeStyle = "#8a5a35";
-  ctx.lineWidth = R * 0.05;
-  ctx.lineCap = "round";
-  ctx.beginPath();
-  ctx.arc(0, R * 0.34, R * 0.16, 0.25, Math.PI - 0.25);
-  ctx.stroke();
-
   drawAccessoryOnHead(ctx, R, kurt.cosmetic);
 
   ctx.restore();
 
   ctx.restore();
+}
+
+function drawButt(ctx, R, wiggle) {
+  const cx = R * 0.04 + wiggle;
+  const cy = R * 0.72;
+  ctx.fillStyle = SKIN;
+  ctx.beginPath();
+  ctx.ellipse(cx - R * 0.15, cy, R * 0.22, R * 0.19, 0, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.beginPath();
+  ctx.ellipse(cx + R * 0.15, cy, R * 0.22, R * 0.19, 0, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.strokeStyle = OUTLINE;
+  ctx.lineWidth = 1.6;
+  ctx.beginPath();
+  ctx.ellipse(cx - R * 0.15, cy, R * 0.22, R * 0.19, 0, 0, Math.PI * 2);
+  ctx.stroke();
+  ctx.beginPath();
+  ctx.ellipse(cx + R * 0.15, cy, R * 0.22, R * 0.19, 0, 0, Math.PI * 2);
+  ctx.stroke();
+
+  ctx.strokeStyle = "rgba(140,80,50,0.5)";
+  ctx.lineWidth = 1.6;
+  ctx.lineCap = "round";
+  ctx.beginPath();
+  ctx.moveTo(cx, cy - R * 0.16);
+  ctx.quadraticCurveTo(cx, cy, cx, cy + R * 0.2);
+  ctx.stroke();
 }
 
 function drawKnee(ctx, R, cx, cy) {
@@ -235,19 +284,78 @@ function drawFoot(ctx, R, cx, cy) {
   ctx.stroke();
 }
 
-function drawEye(ctx, ex, ey, R) {
+function drawEye(ctx, ex, ey, R, blinking, silly) {
+  if (blinking) {
+    ctx.strokeStyle = "#2b2016";
+    ctx.lineWidth = 1.6;
+    ctx.lineCap = "round";
+    ctx.beginPath();
+    ctx.moveTo(ex - R * 0.11, ey);
+    ctx.quadraticCurveTo(ex, ey + R * 0.03, ex + R * 0.11, ey);
+    ctx.stroke();
+    return;
+  }
+  const scale = silly ? 1.2 : 1;
   ctx.fillStyle = "#fff";
   ctx.beginPath();
-  ctx.ellipse(ex, ey, R * 0.13, R * 0.11, 0, 0, Math.PI * 2);
+  ctx.ellipse(ex, ey, R * 0.13 * scale, R * 0.11 * scale, 0, 0, Math.PI * 2);
   ctx.fill();
   ctx.fillStyle = "#2b2016";
   ctx.beginPath();
-  ctx.arc(ex + R * 0.02, ey + R * 0.01, R * 0.055, 0, Math.PI * 2);
+  ctx.arc(ex + R * 0.02, ey + R * 0.01, R * 0.055 * scale, 0, Math.PI * 2);
   ctx.fill();
   ctx.fillStyle = "#fff";
   ctx.beginPath();
-  ctx.arc(ex + R * 0.045, ey - R * 0.02, R * 0.018, 0, Math.PI * 2);
+  ctx.arc(ex + R * 0.045, ey - R * 0.02, R * 0.018 * scale, 0, Math.PI * 2);
   ctx.fill();
+}
+
+function drawEyebrows(ctx, R, eyeY, silly) {
+  ctx.strokeStyle = "rgba(120,70,40,0.5)";
+  ctx.lineWidth = 1.5;
+  ctx.lineCap = "round";
+  if (silly) {
+    ctx.beginPath();
+    ctx.arc(-R * 0.14, eyeY - R * 0.22, R * 0.13, Math.PI * 1.05, Math.PI * 1.85);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.arc(R * 0.2, eyeY - R * 0.22, R * 0.13, Math.PI * 1.05, Math.PI * 1.85);
+    ctx.stroke();
+  } else {
+    ctx.beginPath();
+    ctx.moveTo(-R * 0.25, eyeY - R * 0.06);
+    ctx.lineTo(-R * 0.04, eyeY - R * 0.19);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(R * 0.06, eyeY - R * 0.19);
+    ctx.lineTo(R * 0.29, eyeY - R * 0.06);
+    ctx.stroke();
+  }
+}
+
+function drawMouth(ctx, R, silly) {
+  if (silly) {
+    ctx.fillStyle = "#7a2020";
+    ctx.beginPath();
+    ctx.ellipse(0, R * 0.33, R * 0.19, R * 0.17, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = "#fff";
+    ctx.beginPath();
+    ctx.ellipse(0, R * 0.24, R * 0.16, R * 0.05, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.strokeStyle = OUTLINE;
+    ctx.lineWidth = 1.4;
+    ctx.beginPath();
+    ctx.ellipse(0, R * 0.33, R * 0.19, R * 0.17, 0, 0, Math.PI * 2);
+    ctx.stroke();
+  } else {
+    ctx.strokeStyle = "#8a5a35";
+    ctx.lineWidth = R * 0.05;
+    ctx.lineCap = "round";
+    ctx.beginPath();
+    ctx.arc(0, R * 0.46, R * 0.13, Math.PI * 1.3, Math.PI * 1.7);
+    ctx.stroke();
+  }
 }
 
 function drawArmCurve(ctx, R, sx, sy, cx, cy, ex, ey) {
