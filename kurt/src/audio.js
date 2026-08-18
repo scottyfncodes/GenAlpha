@@ -232,3 +232,26 @@ export function playNearMiss() {
 export function playTapVariant() {
   playFart(rand(0.15, 0.4));
 }
+
+export function playGiggle() {
+  const c = ensureContext();
+  if (!c) return;
+  const t0 = c.currentTime;
+  const noteCount = 3 + Math.floor(rand(0, 3));
+  const baseFreq = rand(480, 560);
+  const noteDur = 0.1;
+  for (let i = 0; i < noteCount; i++) {
+    const start = t0 + i * noteDur * 0.82;
+    const freq = baseFreq * rand(0.94, 1.12) + i * 14;
+    const osc = c.createOscillator();
+    osc.type = "sine";
+    osc.frequency.setValueAtTime(freq, start);
+    osc.frequency.exponentialRampToValueAtTime(freq * 1.22, start + noteDur * 0.55);
+    osc.frequency.exponentialRampToValueAtTime(freq * 0.92, start + noteDur);
+    const g = envGain(c, 0.012, noteDur * 0.75, 0.16, start);
+    osc.connect(g);
+    g.connect(masterGain);
+    osc.start(start);
+    osc.stop(start + noteDur + 0.03);
+  }
+}

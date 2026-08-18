@@ -60,6 +60,7 @@ export function createGame(canvas, stageEl) {
   let idleTime = 0;
   let idleTapTimer = 1.4;
   let fartTickTimer = 0;
+  let giggleTimer = 0;
   let cosmeticId = storage.getCosmetic();
   let lastTime = 0;
   let running = false;
@@ -92,6 +93,7 @@ export function createGame(canvas, stageEl) {
     resetKurt(kurt, worldW * PHYSICS.kurtX, worldH * 0.42, currentCosmetic());
     scrollSpeed = SCROLL.baseSpeed;
     shownGradeIndex = 0;
+    giggleTimer = 0;
   }
 
   function fartTick(intensity) {
@@ -102,6 +104,12 @@ export function createGame(canvas, stageEl) {
     spawnFartBurst(particles, butt.x, butt.y, clamped, 91);
     pulseFart(kurt, clamped);
     if (clamped > 0.85) triggerShake(0.12, 4 * clamped);
+  }
+
+  function maybeGiggle() {
+    if (giggleTimer > 0) return;
+    audio.playGiggle();
+    giggleTimer = rand(1.6, 3.2);
   }
 
   function beginPlay() {
@@ -163,6 +171,7 @@ export function createGame(canvas, stageEl) {
     if (state !== "playing") return;
     beginThrust(kurt);
     fartTickTimer = 0;
+    maybeGiggle();
   }
 
   function handleUp() {
@@ -184,6 +193,7 @@ export function createGame(canvas, stageEl) {
         beginThrust(kurt);
         const butt = getButtPosition(kurt);
         spawnFartBurst(particles, butt.x, butt.y, 0.6, 91);
+        maybeGiggle();
         idleTapTimer = rand(0.5, 0.8);
       }
     }
@@ -193,6 +203,7 @@ export function createGame(canvas, stageEl) {
       kurt.vy = 0;
       endThrust(kurt);
     }
+    if (giggleTimer > 0) giggleTimer -= dt;
     updateBackground(background, dt, 40, 0);
     updateParticles(particles, dt);
   }
@@ -216,6 +227,7 @@ export function createGame(canvas, stageEl) {
     } else {
       fartTickTimer = 0;
     }
+    if (giggleTimer > 0) giggleTimer -= dt;
 
     addDistance(scoring, scrollSpeed * dt, WORLD.pxPerMeter);
     updateBackground(background, dt, scrollSpeed, scoring.meters);
