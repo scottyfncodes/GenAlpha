@@ -179,15 +179,15 @@ export function drawKurt(ctx, kurt) {
   ctx.lineWidth = 2;
   ctx.stroke();
 
-  // receding hairline: bare forehead with a soft shine and a hairline edge
-  ctx.fillStyle = "rgba(255,255,255,0.3)";
+  // a slightly higher hairline: just a hint of bare forehead
+  ctx.fillStyle = "rgba(255,255,255,0.16)";
   ctx.beginPath();
-  ctx.ellipse(R * 0.02, -R * 0.4, R * 0.28, R * 0.2, -0.2, 0, Math.PI * 2);
+  ctx.ellipse(R * 0.04, -R * 0.44, R * 0.2, R * 0.13, -0.2, 0, Math.PI * 2);
   ctx.fill();
-  ctx.strokeStyle = "rgba(120,80,50,0.4)";
-  ctx.lineWidth = 1.4;
+  ctx.strokeStyle = "rgba(120,80,50,0.22)";
+  ctx.lineWidth = 1.1;
   ctx.beginPath();
-  ctx.arc(-R * 0.08, -R * 0.3, R * 0.42, Math.PI * 1.12, Math.PI * 1.72);
+  ctx.arc(-R * 0.06, -R * 0.36, R * 0.4, Math.PI * 1.16, Math.PI * 1.68);
   ctx.stroke();
 
   ctx.fillStyle = "rgba(190,120,80,0.35)";
