@@ -3,7 +3,10 @@ name: Deploy GitHub Pages
 on:
   push:
     branches:
-      - main
+      # This repo has no `main` — claude/open-run-build-complete-rrk4y7 is
+      # the actual default branch (and the github-pages environment's
+      # deployment-branch rule only allows deploys from it).
+      - claude/open-run-build-complete-rrk4y7
       - claude/new-session-0ydjcg
   workflow_dispatch:
 
