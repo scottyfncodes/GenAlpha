@@ -1905,8 +1905,6 @@ function drawSchool(ctx: CanvasRenderingContext2D, loc: OverworldLocation, tier:
   }
 
   const doorW = loc.w * 0.16;
-  ctx.fillStyle = PALETTE.schoolSign;
-  ctx.fillRect(px(loc.x + loc.w / 2 - doorW / 2 - 4), loc.y + roofH, doorW + 8, 5);
 
   ctx.fillStyle = loc.color;
   ctx.fillRect(loc.x, loc.y + loc.h - 5, loc.w, 5);
@@ -1915,6 +1913,26 @@ function drawSchool(ctx: CanvasRenderingContext2D, loc: OverworldLocation, tier:
 
   ctx.fillStyle = PALETTE.curb;
   ctx.fillRect(px(loc.x + loc.w / 2 - doorW / 2), loc.y + loc.h - 3, doorW, 3);
+
+  /*
+   * An entrance portico — a flat canopy on two support posts standing
+   * proud of the wall, replacing the old sign band that just sat flush
+   * against it. Drawn last so it occludes the window grid behind it, the
+   * same "projecting feature drawn over everything else" trick the house's
+   * porch canopy uses.
+   */
+  const porticoW = doorW + 12;
+  const porticoX = loc.x + loc.w / 2 - porticoW / 2;
+  const porticoY = loc.y + roofH;
+  const porticoDepth = 5;
+  const postBottom = loc.y + loc.h - 8;
+  ctx.fillStyle = PALETTE.pillar;
+  ctx.fillRect(px(porticoX + 1), porticoY + porticoDepth, 2, postBottom - (porticoY + porticoDepth));
+  ctx.fillRect(px(porticoX + porticoW - 3), porticoY + porticoDepth, 2, postBottom - (porticoY + porticoDepth));
+  ctx.fillStyle = 'rgba(0,0,0,0.16)';
+  ctx.fillRect(px(porticoX - 1), porticoY + porticoDepth, porticoW + 2, 2);
+  ctx.fillStyle = PALETTE.schoolSign;
+  ctx.fillRect(px(porticoX), porticoY, porticoW, porticoDepth);
 
   const poleX = loc.x + loc.w - 10;
   ctx.fillStyle = PALETTE.flagpole;
@@ -2199,6 +2217,28 @@ function drawWarehouse(ctx: CanvasRenderingContext2D, loc: OverworldLocation) {
     ctx.stroke();
   }
 
+  /*
+   * A loading-dock canopy over the roll door — a flat strip on angled
+   * brackets, projecting past the door the way a real dock awning has to
+   * keep rain off whatever's being loaded. The industrial counterpart to
+   * the shop's own awning overhang.
+   */
+  const dockOverhang = 5;
+  const dockDepth = 4;
+  const dockY = loc.y + roofH;
+  ctx.fillStyle = PALETTE.corrugated;
+  ctx.fillRect(px(doorX - dockOverhang), dockY, doorW + dockOverhang * 2, dockDepth);
+  ctx.fillStyle = 'rgba(0,0,0,0.2)';
+  ctx.fillRect(px(doorX - dockOverhang), dockY + dockDepth, doorW + dockOverhang * 2, 2);
+  ctx.strokeStyle = PALETTE.corrugatedLine;
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(px(doorX - dockOverhang + 2), dockY + dockDepth);
+  ctx.lineTo(px(doorX + 3), dockY + dockDepth + 6);
+  ctx.moveTo(px(doorX + doorW + dockOverhang - 2), dockY + dockDepth);
+  ctx.lineTo(px(doorX + doorW - 3), dockY + dockDepth + 6);
+  ctx.stroke();
+
   ctx.fillStyle = loc.color;
   ctx.fillRect(loc.x, loc.y + loc.h - 5, loc.w, 5);
 
@@ -2225,16 +2265,34 @@ function drawGarage(ctx: CanvasRenderingContext2D, loc: OverworldLocation) {
 
   const doorW = loc.w * 0.42;
   const doorH = loc.h - roofH - 8;
+  const doorX = loc.x + 8;
   ctx.fillStyle = PALETTE.rollDoor;
-  ctx.fillRect(loc.x + 8, loc.y + roofH + 4, doorW, doorH);
+  ctx.fillRect(doorX, loc.y + roofH + 4, doorW, doorH);
   ctx.strokeStyle = PALETTE.rollDoorLine;
   ctx.lineWidth = 1;
   for (let y = loc.y + roofH + 8; y < loc.y + roofH + 4 + doorH; y += 5) {
     ctx.beginPath();
-    ctx.moveTo(loc.x + 8, y);
-    ctx.lineTo(loc.x + 8 + doorW, y);
+    ctx.moveTo(doorX, y);
+    ctx.lineTo(doorX + doorW, y);
     ctx.stroke();
   }
+
+  // The same small loading-dock canopy `drawWarehouse` gets, scaled to the
+  // garage's one door instead of a building-wide one.
+  const dockOverhang = 4;
+  const dockDepth = 3;
+  const dockY = loc.y + roofH;
+  ctx.fillStyle = PALETTE.corrugated;
+  ctx.fillRect(px(doorX - dockOverhang), dockY, doorW + dockOverhang * 2, dockDepth);
+  ctx.fillStyle = 'rgba(0,0,0,0.2)';
+  ctx.fillRect(px(doorX - dockOverhang), dockY + dockDepth, doorW + dockOverhang * 2, 2);
+  ctx.strokeStyle = PALETTE.corrugatedLine;
+  ctx.beginPath();
+  ctx.moveTo(px(doorX - dockOverhang + 2), dockY + dockDepth);
+  ctx.lineTo(px(doorX + 2), dockY + dockDepth + 5);
+  ctx.moveTo(px(doorX + doorW + dockOverhang - 2), dockY + dockDepth);
+  ctx.lineTo(px(doorX + doorW - 2), dockY + dockDepth + 5);
+  ctx.stroke();
 
   ctx.fillStyle = PALETTE.schoolSign;
   ctx.fillRect(px(loc.x + loc.w - 34), loc.y + roofH + 6, 26, 10);
@@ -2308,13 +2366,22 @@ function drawPizza(ctx: CanvasRenderingContext2D, loc: OverworldLocation, tier: 
     ctx.fillRect(loc.x + 3, loc.y, loc.w - 6, roofH);
   }
 
-  const awnW = loc.w * 0.6;
+  // A real overhang rather than a stripe painted flush on the wall — the
+  // same projecting-awning grammar `drawShop` uses, kept here in Sal's own
+  // red-and-white stripe instead of a solid colour band.
+  const awnOverhang = 4;
+  const awnW = loc.w * 0.6 + awnOverhang * 2;
   const awnX = loc.x + loc.w / 2 - awnW / 2;
-  const stripes = 5;
+  const stripes = 6;
+  ctx.fillStyle = 'rgba(0,0,0,0.18)';
+  ctx.fillRect(px(awnX), loc.y + roofH + 6, awnW, 2);
   for (let i = 0; i < stripes; i++) {
     ctx.fillStyle = i % 2 === 0 ? PALETTE.awningRed : PALETTE.awningWhite;
     ctx.fillRect(px(awnX + (i * awnW) / stripes), loc.y + roofH, awnW / stripes, 6);
   }
+  ctx.fillStyle = PALETTE.outline;
+  ctx.fillRect(px(awnX), loc.y + roofH, 2, 8);
+  ctx.fillRect(px(awnX + awnW - 2), loc.y + roofH, 2, 8);
 
   drawWindows(ctx, loc, false);
 
@@ -2346,8 +2413,16 @@ function drawArcade(ctx: CanvasRenderingContext2D, loc: OverworldLocation, tier:
     ctx.fillRect(loc.x + 3, loc.y, loc.w - 6, roofH);
   }
 
-  const mW = loc.w * 0.8;
+  // The marquee now overhangs the wall on both sides and drops a shadow
+  // and angled support cables, instead of sitting flush against the
+  // facade — the same projecting-canopy grammar as the shop awning and the
+  // dock canopy, applied to a theatre-style sign instead of a roof.
+  const mOverhang = 4;
+  const mW = loc.w * 0.8 + mOverhang * 2;
   const mX = loc.x + loc.w / 2 - mW / 2;
+  const mBottom = loc.y + roofH + 12;
+  ctx.fillStyle = 'rgba(0,0,0,0.22)';
+  ctx.fillRect(px(mX), mBottom, mW, 2);
   ctx.fillStyle = PALETTE.marqueeBody;
   ctx.fillRect(px(mX), loc.y + roofH + 2, mW, 10);
   ctx.fillStyle = PALETTE.marqueeGlow;
@@ -2358,6 +2433,14 @@ function drawArcade(ctx: CanvasRenderingContext2D, loc: OverworldLocation, tier:
     ctx.fillStyle = rand() < 0.8 ? PALETTE.marqueeBulb : PALETTE.bgWindowDark;
     ctx.fillRect(px(mX + i * 6 + 1), loc.y + roofH + 1, 2, 2);
   }
+  ctx.strokeStyle = PALETTE.outline;
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(px(mX + 2), mBottom);
+  ctx.lineTo(px(mX + 2 + mOverhang), mBottom + 6);
+  ctx.moveTo(px(mX + mW - 2), mBottom);
+  ctx.lineTo(px(mX + mW - 2 - mOverhang), mBottom + 6);
+  ctx.stroke();
 
   ctx.fillStyle = PALETTE.windowDark;
   ctx.fillRect(px(loc.x + 6), loc.y + roofH + 16, loc.w - 12, loc.h - roofH - 22);
