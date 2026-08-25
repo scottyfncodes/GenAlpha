@@ -95,7 +95,13 @@ export const DISTRICTS: District[] = [
     id: 'south_residential',
     label: 'South Residential',
     x: 528, y: 784, w: 544, h: 316,
-    color: '#7fa3c9',
+    // Was the same hex as Residential North — the two ends of town read as
+    // one district split in half by the map instead of two neighbourhoods,
+    // since the ground tint (`DISTRICT_GROUND_TINTS`) is the only per-district
+    // signal a player picks up ambiently while walking. A warmer, dustier
+    // rose rather than another blue keeps it out of every other district's
+    // family too (three of the eight already sit in the blue-grey range).
+    color: '#c98a7f',
     mood: 'Family homes, quieter than the north side, and closer to the edge of everything.',
   },
   {

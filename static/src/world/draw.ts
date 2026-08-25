@@ -163,6 +163,26 @@ const PALETTE = {
   crateBody: '#8a6a44',
   crateEdge: '#6e5334',
   barrelBody: '#9a5a2c',
+  // The Warehouse District's own per-location yard props (`drawWarehouseYardProps`)
+  // — a cable spool, a boxcar, a crane — none of it sprite-sourced, so it needs
+  // its own small palette rather than reusing sprite-derived tones.
+  spoolBody: '#7a5636',
+  spoolLine: '#4a3420',
+  boxcarBody: '#7a3a2e',
+  boxcarRoof: '#5c2c22',
+  boxcarLine: 'rgba(20, 14, 12, 0.4)',
+  boxcarRust: 'rgba(150, 96, 46, 0.55)',
+  boxcarWheel: '#1c1815',
+  craneBody: '#4a4a3e',
+  craneCable: 'rgba(20, 20, 16, 0.6)',
+  // Casey's House's own yard props (`drawHouseYardProps`) — a weathered
+  // realtor sign and a bare swing frame, both meant to read as slightly
+  // sun-bleached rather than freshly painted.
+  forSaleSign: '#c9c0a8',
+  forSaleText: '#5a5240',
+  swingFrame: '#5c6270',
+  swingChain: 'rgba(40, 44, 52, 0.7)',
+  swingSeat: '#3a4048',
   bgWall: '#3a4150',
   bgRoof: '#2a2f3a',
   bgWindow: 'rgba(240, 192, 122, 0.32)',
@@ -1848,6 +1868,91 @@ function drawHouse(ctx: CanvasRenderingContext2D, loc: OverworldLocation, tier: 
   ctx.fillRect(win.win2X, win.winY, win.winSize, win.winSize);
 
   drawGlitchTear(ctx, loc, tier, roofH);
+  drawHouseYardProps(ctx, loc);
+}
+
+/**
+ * `casey_house` is South Residential's only named location in a district
+ * with real acreage to spare, and its own blurb already describes a scene
+ * ("For Sale sign. The swing set is still up.") that never made it past
+ * text — the one lone house in that whole district was reading as any
+ * other house instead of the specific abandoned one the writing means.
+ * Same id-keyed, collision-free approach as `drawWarehouseYardProps`.
+ */
+function drawHouseYardProps(ctx: CanvasRenderingContext2D, loc: OverworldLocation) {
+  if (loc.id !== 'casey_house') return;
+
+  drawForSaleSign(ctx, loc.x - 14, loc.y + loc.h - 4);
+  drawSwingSet(ctx, loc.x + loc.w + 20, loc.y + loc.h - 2);
+}
+
+/** A post-and-panel yard sign — two thin legs and a rectangle, small enough
+ * to read as signage rather than a second structure. */
+function drawForSaleSign(ctx: CanvasRenderingContext2D, x: number, groundY: number) {
+  const signW = 20;
+  const signH = 12;
+  const postH = 10;
+
+  ctx.strokeStyle = PALETTE.porchPost;
+  ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  ctx.moveTo(px(x + 4), px(groundY));
+  ctx.lineTo(px(x + 4), px(groundY - postH));
+  ctx.moveTo(px(x + signW - 4), px(groundY));
+  ctx.lineTo(px(x + signW - 4), px(groundY - postH));
+  ctx.stroke();
+
+  ctx.fillStyle = 'rgba(0,0,0,0.18)';
+  ctx.fillRect(px(x), px(groundY - postH - signH + 2), signW, signH);
+  ctx.fillStyle = PALETTE.forSaleSign;
+  ctx.fillRect(px(x - 1), px(groundY - postH - signH), signW, signH);
+  // Two scribbled lines standing in for the sign's own text — legible as
+  // "something is written here" without needing real type at this scale.
+  ctx.strokeStyle = PALETTE.forSaleText;
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(px(x + 3), px(groundY - postH - signH * 0.62));
+  ctx.lineTo(px(x + signW - 4), px(groundY - postH - signH * 0.62));
+  ctx.moveTo(px(x + 5), px(groundY - postH - signH * 0.3));
+  ctx.lineTo(px(x + signW - 7), px(groundY - postH - signH * 0.3));
+  ctx.stroke();
+}
+
+/** A swing set — an A-frame at each end, a crossbar, two hanging seats.
+ * Static, no one on it, per "the swing set is still up" — a detail that's
+ * doing the work of a family who isn't there any more. */
+function drawSwingSet(ctx: CanvasRenderingContext2D, x: number, groundY: number) {
+  const w = 34;
+  const barY = groundY - 22;
+
+  ctx.strokeStyle = PALETTE.swingFrame;
+  ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  // Left A-frame.
+  ctx.moveTo(px(x - 4), px(groundY));
+  ctx.lineTo(px(x + 5), px(barY));
+  ctx.lineTo(px(x + 14), px(groundY));
+  // Right A-frame.
+  ctx.moveTo(px(x + w - 14), px(groundY));
+  ctx.lineTo(px(x + w - 5), px(barY));
+  ctx.lineTo(px(x + w + 4), px(groundY));
+  // Crossbar.
+  ctx.moveTo(px(x + 5), px(barY));
+  ctx.lineTo(px(x + w - 5), px(barY));
+  ctx.stroke();
+
+  ctx.strokeStyle = PALETTE.swingChain;
+  ctx.lineWidth = 1;
+  for (const seatX of [x + w * 0.32, x + w * 0.68]) {
+    ctx.beginPath();
+    ctx.moveTo(px(seatX - 3), px(barY));
+    ctx.lineTo(px(seatX - 2), px(groundY - 5));
+    ctx.moveTo(px(seatX + 3), px(barY));
+    ctx.lineTo(px(seatX + 2), px(groundY - 5));
+    ctx.stroke();
+    ctx.fillStyle = PALETTE.swingSeat;
+    ctx.fillRect(px(seatX - 4), px(groundY - 6), 8, 2);
+  }
 }
 
 /**
@@ -2243,6 +2348,176 @@ function drawWarehouse(ctx: CanvasRenderingContext2D, loc: OverworldLocation) {
   ctx.fillRect(loc.x, loc.y + loc.h - 5, loc.w, 5);
 
   drawTag(ctx, loc, roofH);
+  drawWarehouseYardProps(ctx, loc);
+}
+
+/**
+ * Five Warehouse District locations share `drawWarehouse`'s shell (same
+ * roll door, same corrugated roof) because they're the same *kind* of
+ * building — but each one's own blurb already describes a completely
+ * different yard (cable spools, three bins, a fence with a gap, a dead rail
+ * siding, a stacked-car scrapyard), and none of that ever reached the
+ * canvas. This is what makes five warehouses read as five different places
+ * instead of one shape repeated five times — a couple of id-keyed props in
+ * the yard, drawn with the same primitives the Obstacle system already
+ * uses (`drawFence`, `drawBin`, `drawCrate`, `drawBarrel`) but as pure
+ * decoration, never registered in `OBSTACLES`, so there's no collision or
+ * connectivity-graph risk to re-check.
+ */
+function drawWarehouseYardProps(ctx: CanvasRenderingContext2D, loc: OverworldLocation) {
+  const yardY = loc.y + loc.h + 4;
+
+  switch (loc.id) {
+    case 'deja_jobsite': {
+      // "Spools of cable" — two cable reels, concentric rings on their side,
+      // stacked near the gate rather than centred, the way real cable drums
+      // get dumped and left rather than arranged.
+      drawCableSpool(ctx, loc.x + 14, yardY + 10, 12);
+      drawCableSpool(ctx, loc.x + 32, yardY + 14, 9);
+      break;
+    }
+    case 'fenwick_lot': {
+      // "Three bins" — literally three, lined up along the front wall.
+      const binW = 12;
+      const binH = 14;
+      for (let i = 0; i < 3; i++) {
+        drawBin(ctx, { id: `${loc.id}-bin-${i}`, x: loc.x + 10 + i * (binW + 6), y: yardY, w: binW, h: binH, kind: 'bin' });
+      }
+      break;
+    }
+    case 'annex_fence': {
+      // "A fence with a gap somebody keeps re-opening" — two chain-link runs
+      // with a deliberate break between them, not one continuous line.
+      const fenceH = 20;
+      const gap = 14;
+      const run = (loc.w - gap) / 2;
+      drawFence(ctx, { id: `${loc.id}-fence-l`, x: loc.x, y: yardY, w: run, h: fenceH, kind: 'fence' });
+      drawFence(ctx, { id: `${loc.id}-fence-r`, x: loc.x + run + gap, y: yardY, w: run, h: fenceH, kind: 'fence' });
+      break;
+    }
+    case 'rail_spur': {
+      drawBoxcar(ctx, loc.x + loc.w / 2, yardY + 14, Math.min(loc.w - 20, 96));
+      break;
+    }
+    case 'scrapyard': {
+      // "Stacked cars, a crane" — two crate-shaped hulks offset to read as a
+      // stack rather than a row, plus a simple crane silhouette in the corner.
+      drawCrate(ctx, { id: `${loc.id}-stack-a`, x: loc.x + 8, y: yardY, w: 20, h: 14, kind: 'crate' });
+      drawCrate(ctx, { id: `${loc.id}-stack-b`, x: loc.x + 12, y: yardY - 9, w: 16, h: 11, kind: 'crate' });
+      drawBarrel(ctx, { id: `${loc.id}-barrel`, x: loc.x + 36, y: yardY + 2, w: 10, h: 10, kind: 'barrel' });
+      drawCrane(ctx, loc.x + loc.w - 30, loc.y + loc.h);
+      break;
+    }
+  }
+}
+
+/** A cable reel on its side — two concentric rings and a hub, the shape a
+ * spent spool of cable actually makes lying flat in a yard. */
+function drawCableSpool(ctx: CanvasRenderingContext2D, cx: number, cy: number, r: number) {
+  ctx.fillStyle = 'rgba(0,0,0,0.2)';
+  ctx.beginPath();
+  ctx.ellipse(px(cx), px(cy + r - 1), r, r * 0.35, 0, 0, Math.PI * 2);
+  ctx.fill();
+
+  ctx.fillStyle = PALETTE.spoolBody;
+  ctx.beginPath();
+  ctx.arc(px(cx), px(cy), r, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.strokeStyle = PALETTE.spoolLine;
+  ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  ctx.arc(px(cx), px(cy), r, 0, Math.PI * 2);
+  ctx.stroke();
+  ctx.beginPath();
+  ctx.arc(px(cx), px(cy), r * 0.55, 0, Math.PI * 2);
+  ctx.stroke();
+  ctx.fillStyle = PALETTE.spoolLine;
+  ctx.beginPath();
+  ctx.arc(px(cx), px(cy), r * 0.14, 0, Math.PI * 2);
+  ctx.fill();
+}
+
+/** One rusted boxcar on a short dead siding — two rail lines with ties
+ * running under it, so it reads as parked on a spur rather than floating
+ * in the yard. The Rail Spur's own one-boxcar landmark, per its blurb. */
+function drawBoxcar(ctx: CanvasRenderingContext2D, cx: number, topY: number, w: number) {
+  const h = 20;
+  const x = cx - w / 2;
+  const railY1 = topY + h + 3;
+  const railY2 = topY + h + 7;
+
+  ctx.strokeStyle = PALETTE.rail;
+  ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  ctx.moveTo(px(x - 10), px(railY1));
+  ctx.lineTo(px(x + w + 10), px(railY1));
+  ctx.moveTo(px(x - 10), px(railY2));
+  ctx.lineTo(px(x + w + 10), px(railY2));
+  ctx.stroke();
+  ctx.strokeStyle = PALETTE.railTie;
+  ctx.lineWidth = 1;
+  for (let tx = x - 10; tx <= x + w + 10; tx += 6) {
+    ctx.beginPath();
+    ctx.moveTo(px(tx), px(railY1 - 1));
+    ctx.lineTo(px(tx), px(railY2 + 1));
+    ctx.stroke();
+  }
+
+  ctx.fillStyle = 'rgba(0,0,0,0.22)';
+  ctx.fillRect(px(x), px(topY + h - 1), w, 2);
+
+  ctx.fillStyle = PALETTE.boxcarBody;
+  ctx.fillRect(px(x), px(topY), w, h);
+  ctx.fillStyle = PALETTE.boxcarRoof;
+  ctx.fillRect(px(x - 1), px(topY - 2), w + 2, 3);
+  ctx.strokeStyle = PALETTE.boxcarLine;
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(px(x + w * 0.42), px(topY + 2));
+  ctx.lineTo(px(x + w * 0.42), px(topY + h - 2));
+  ctx.moveTo(px(x + w * 0.58), px(topY + 2));
+  ctx.lineTo(px(x + w * 0.58), px(topY + h - 2));
+  ctx.stroke();
+  ctx.fillStyle = PALETTE.boxcarRust;
+  ctx.fillRect(px(x + w * 0.12), px(topY + h * 0.55), w * 0.14, h * 0.4);
+  ctx.fillRect(px(x + w * 0.78), px(topY + h * 0.3), w * 0.1, h * 0.3);
+
+  ctx.fillStyle = PALETTE.boxcarWheel;
+  ctx.beginPath();
+  ctx.arc(px(x + w * 0.18), px(topY + h), 3, 0, Math.PI * 2);
+  ctx.arc(px(x + w * 0.82), px(topY + h), 3, 0, Math.PI * 2);
+  ctx.fill();
+}
+
+/** A gantry crane, drawn as a mast and a boom rather than anything that
+ * moves — "hasn't moved in a year" per the Scrapyard's own blurb, so it's a
+ * silhouette, not a piece of machinery mid-lift. */
+function drawCrane(ctx: CanvasRenderingContext2D, x: number, groundY: number) {
+  const mastH = 46;
+  const boomLen = 34;
+  const topY = groundY - mastH;
+
+  ctx.strokeStyle = PALETTE.craneBody;
+  ctx.lineWidth = 3;
+  ctx.beginPath();
+  ctx.moveTo(px(x), px(groundY));
+  ctx.lineTo(px(x), px(topY));
+  ctx.lineTo(px(x - boomLen), px(topY + 6));
+  ctx.stroke();
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(px(x + 5), px(groundY));
+  ctx.lineTo(px(x + 3), px(topY + 8));
+  ctx.stroke();
+
+  ctx.strokeStyle = PALETTE.craneCable;
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(px(x - boomLen + 4), px(topY + 8));
+  ctx.lineTo(px(x - boomLen + 4), px(topY + 22));
+  ctx.stroke();
+  ctx.fillStyle = PALETTE.craneBody;
+  ctx.fillRect(px(x - boomLen), px(topY + 22), 8, 5);
 }
 
 /** The Repair Shop: a smaller warehouse — one roll-up door instead of a
