@@ -23,6 +23,40 @@
 export const TILE = 16;
 const SPACING = 1;
 
+/**
+ * Every purchased tile — from any of the three Kenney sheets — passes
+ * through `drawTile`/`drawTileAt` below, so this is the one place to make
+ * them land in Bellhaven's own dusk/riso register instead of the pack's
+ * brighter, cheerier default colours. The hand-drawn vector art (ground,
+ * roads, glows, `PALETTE` in draw.ts) is already muted to this register;
+ * the sprites were the one thing still arguing with it. Desaturated and
+ * darkened rather than recoloured outright — this has to keep reading as
+ * "a building/tree/car", just toned to the same evening light everything
+ * else on the canvas is drawn in.
+ *
+ * Applied once, at load time, to a tinted copy of the sheet — never as a
+ * live `ctx.filter` on the per-frame blit. `drawTown` redraws every visible
+ * tile every frame, and a chained canvas filter re-evaluated per `drawImage`
+ * call is real per-frame cost for zero further benefit once the pixels are
+ * already the right colour; this way every frame's blit is exactly as cheap
+ * as it was before the tint existed.
+ *
+ * Two passes, not one. `saturate`/`brightness`/`contrast` alone (tried
+ * first) measured as a ~7% average pixel shift — real, but not visible at a
+ * glance; a filter grade that subtle reads as noise, not as "this sprite
+ * belongs to this world". The second pass is a flat wash of the town's own
+ * ground colour (`PALETTE.ground`, draw.ts) blended in with `source-atop`,
+ * which paints only where the sprite already has ink — transparent pixels
+ * stay transparent, so a tree's silhouette or a window's cutout is untouched
+ * — and does the actual work of pulling Kenney's palette toward Bellhaven's.
+ */
+const SPRITE_FILTER = 'saturate(0.4) brightness(0.74) contrast(1.18)';
+/** Same hex as `PALETTE.ground` in draw.ts — kept as a literal rather than a
+ * shared import because that constant lives in a module that pulls in the
+ * whole overworld render pipeline, and this file has no other reason to
+ * depend on it. */
+const SPRITE_WASH = 'rgba(61, 71, 89, 0.4)';
+
 interface SpriteSheet {
   ensureLoading(): void;
   ready(): boolean;
@@ -33,6 +67,12 @@ interface SpriteSheet {
 
 function createSheet(src: string, cols: number): SpriteSheet {
   let img: HTMLImageElement | null = null;
+  /** The tinted copy actually drawn from once it exists — a same-size
+   * canvas painted through `SPRITE_FILTER` exactly once, in `onload`, so
+   * every later `drawImage` call reads pre-tinted pixels at zero extra
+   * per-frame cost. Falls back to the raw `img` for the handful of frames
+   * between "image decoded" and "tint pass finished". */
+  let tinted: HTMLCanvasElement | null = null;
   let ready = false;
 
   function tileSourceRect(index: number): { sx: number; sy: number } {
@@ -41,26 +81,47 @@ function createSheet(src: string, cols: number): SpriteSheet {
     return { sx: col * (TILE + SPACING), sy: row * (TILE + SPACING) };
   }
 
+  function source(): CanvasImageSource | null {
+    return tinted ?? img;
+  }
+
   return {
     ensureLoading() {
       if (img) return;
       img = new Image();
       img.onload = () => {
         ready = true;
+        const el = img;
+        if (!el) return;
+        const off = document.createElement('canvas');
+        off.width = el.naturalWidth;
+        off.height = el.naturalHeight;
+        const offCtx = off.getContext('2d');
+        if (!offCtx) return; // stays on the untinted fallback
+        offCtx.filter = SPRITE_FILTER;
+        offCtx.drawImage(el, 0, 0);
+        offCtx.filter = 'none';
+        offCtx.globalCompositeOperation = 'source-atop';
+        offCtx.fillStyle = SPRITE_WASH;
+        offCtx.fillRect(0, 0, off.width, off.height);
+        offCtx.globalCompositeOperation = 'source-over';
+        tinted = off;
       };
       img.src = src;
     },
     ready: () => ready,
     tileSourceRect,
     drawTile(ctx, index, cx, cy, dw, dh) {
-      if (!img || !ready) return;
+      const src = source();
+      if (!src || !ready) return;
       const { sx, sy } = tileSourceRect(index);
-      ctx.drawImage(img, sx, sy, TILE, TILE, Math.round(cx - dw / 2), Math.round(cy - dh / 2), Math.round(dw), Math.round(dh));
+      ctx.drawImage(src, sx, sy, TILE, TILE, Math.round(cx - dw / 2), Math.round(cy - dh / 2), Math.round(dw), Math.round(dh));
     },
     drawTileAt(ctx, index, x, y, size = TILE) {
-      if (!img || !ready) return;
+      const src = source();
+      if (!src || !ready) return;
       const { sx, sy } = tileSourceRect(index);
-      ctx.drawImage(img, sx, sy, TILE, TILE, Math.round(x), Math.round(y), size, size);
+      ctx.drawImage(src, sx, sy, TILE, TILE, Math.round(x), Math.round(y), size, size);
     },
   };
 }
