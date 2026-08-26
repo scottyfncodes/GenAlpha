@@ -66,6 +66,68 @@ There are no quest markers by design; the line at the bottom of the screen names
 what you keep coming back to and where it is. Seven beats, eight scenes, ending
 at Pole 5-C with Heat at 12.
 
+## The town
+
+Bellhaven is 1600x1100 and reads as an exact 3x3 — two arterial pairs
+(`draw.ts`'s `ROAD_SEGMENTS`) cut it into nine cells, one district each:
+
+```
+  1 The Heights     2 Main Street      3 Civic Zone
+    Residential       Downtown           Government
+
+  4 Old Market      5 Liberty Park     6 The Works
+    The Strip         The Commons        Industrial
+
+  7 Southside       8 The Blocks       9 The Plaza
+    Transit           Housing            Commercial
+```
+
+Three things run *across* that grid rather than sitting inside one cell,
+and they are what the layout is actually for:
+
+**The surveillance gradient.** Camera count, plate scanners and security
+gates all climb toward the Civic Zone and fall away toward Liberty Park.
+A new save can walk The Heights and the park without passing a lens;
+by the end of the rollout (`world/escalation.ts`) there is nowhere left
+that's true of, and the last district to get covered is the commons.
+Camera radii are a solved set, not a taste — see the note on
+`coverageRadius` in `world/collectibles.ts` and the invariants in
+`systems/coverage.test.ts`.
+
+**The route layer.** Every district has road access on at least two sides,
+and every built-up one also has an `alley`-tier shortcut nothing is aimed
+down — planted at both mouths so `systems/pursuit.ts`'s `underTreeCover()`
+is real there. Liberty Park has four marked pedestrian entrances, one per
+side, which is what makes the middle cell a crossroads rather than an
+obstacle. Every security gate on the map has a way past it within a few
+metres; a route the player cannot take is set dressing, not a route.
+
+**What the player leaves behind.** Cameras carry a visible coverage wedge,
+so a dismantle removes a shape from the ground rather than a number from a
+bar, and a pole they've taken apart keeps its paint after SafeTrace puts a
+new lens on it (`draw.ts`'s `drawSabotageScar`, off `collectedNodes`, no
+new persistence). Five housings are already dark at the start of a new
+game (`DEAD_CAMERAS`) — not a mechanic, and that's the point: taking a
+camera down is a thing people here already do, before the player does
+anything.
+
+**And what other people leave behind.** The Gen A marks (`world/marks.ts`)
+run off the same day-driven rollout clock as the cameras, so the two
+multiply against each other: four half-drawn marks on day one, none of
+them anywhere public; the Civic Zone's first at stage 2; closed rings
+everywhere by stage 3. A symbol that is already everywhere on day one is
+wallpaper — it is only worth something if the player watches it spread,
+and by the end most of it is being put up by people they have never met.
+`world/marks.test.ts` asserts that curve, because it is the one piece of
+the world design that is *only* a curve.
+
+Placement is checked, not eyeballed. `node scripts/check-connectivity.mjs`
+flood-fills the map and fails on an unreachable cell, an overlapping rect
+or a sealed-off location; `world/nodeplacement.test.ts`,
+`world/junctionboxes.test.ts` and `world/npcs.test.ts` hold every point
+object and every npc wander line to the same rule the player is held to.
+Re-run all of them before moving anything.
+
 ## Architecture
 
 **One writer.** `GameContext` is the only thing that mutates the save.
@@ -208,7 +270,9 @@ src/
   content/     act1 · mentors/ · act2/ · act3/ · hacking · sabotage · economy
                · market · heist · safehouse · breather · tiers · skins · all
                ^ all authored data; `all.ts` is the scene list the overworld reads
-  world/       locations · Overworld · draw
+  world/       locations (9 districts, 35 places) · obstacles · Overworld
+               · draw · collectibles · junctionboxes · streethacks
+               · patrols · copwalk · drones · npcs · coverage · escalation
   ui/          SceneView · Market · Redistribution · Crew · GenAMark · Hud
                · SettingsPanel · RiskMeter · Glitch · TitleScreen
                minigames/ TraceMinigame · SabotageMission · MissionBriefing
@@ -222,6 +286,31 @@ src/
 production build. The Workbench launches both mechanics standalone at every tier
 and skin against live save state — that's where to verify Heat writes, tier
 nudges, hardening and cooldowns without playing through content.
+
+**The map inspector** is the same idea for the overworld: `npm run dev`, then
+open `/mapshot.html`. It calls the real `drawTown` with the real tables at any
+position, zoom, escalation stage and Heat tier, with buttons for each of the
+nine districts, a whole-town view, a "cameras down" toggle for what the map
+looks like after the player has been through it, and patrols on demand. Click
+the canvas to recentre. It is its own Vite entry rather than a panel inside the
+game, which is what keeps it out of players' hands for real: the production
+build only takes `index.html` as an input, so `mapshot.html` is served by the
+dev server and never lands in `dist/` at all.
+
+Every control writes itself into the query string, so a view is a URL — which
+is what lets `scripts/mapshot.mjs` screenshot all ten views without knowing
+anything about the page:
+
+```bash
+npm run dev                                   # one terminal
+npm i --no-save playwright                    # not a dependency, see the script
+npx tsx scripts/mapshot.mjs --out mapshots    # another terminal
+```
+
+`node scripts/check-connectivity.mjs` is the other half of that loop and the
+one that isn't optional: it flood-fills the map and fails on an unreachable
+cell, an overlapping rect or a sealed-off location. Run it after touching any
+coordinate in `world/`.
 
 ## Next
 

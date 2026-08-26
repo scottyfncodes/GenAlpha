@@ -6,11 +6,21 @@ import { backupNameFor, collidingCharacter, randomHandle } from '../systems/name
 import './title-screen.css';
 
 /**
- * The title screen, in its claimed state from the first frame — no
- * Language A veneer to rupture through, just the mark, the eye, and the
- * menu. (There used to be a two-stage clean-then-broken reveal here; it's
- * gone, along with the crack effect that went with it, in favour of
- * opening straight on the thing that mattered.)
+ * The title screen: a municipal camera is pointed at the player, and the
+ * game's name is underneath it.
+ *
+ * Composed as a real vertical stack rather than a pile of layers. The old
+ * version stretched the eye across the whole viewport and put the wordmark
+ * on top of it, which on a phone meant the one good idea on the screen —
+ * the thing watching you — was a pale ellipse hidden behind three-inch
+ * letters. Reading order is now the design order, top to bottom:
+ *
+ *   camera · GEN ALPHA · tagline · New game · Continue · feed metadata
+ *
+ * The surveillance framing (scanlines, viewfinder brackets, REC, the feed
+ * strip along the bottom) is chrome around that stack, never inside it.
+ * None of it is decoration for its own sake: the whole screen is one
+ * camera's output, and the player is what it is pointed at.
  */
 export function TitleScreen({
   onStart,
@@ -34,8 +44,7 @@ export function TitleScreen({
   const canStart = Boolean(name.trim());
 
   return (
-    <main className="title title--claimed">
-      <TitleEye visible />
+    <main className={`title title--claimed ${naming ? 'title--naming' : ''}`}>
       <div className="title__scanlines" aria-hidden="true" />
       <div className="title__viewfinder" aria-hidden="true">
         <span /><span /><span /><span />
@@ -45,6 +54,7 @@ export function TitleScreen({
       </p>
 
       <div className="title__content">
+        <TitleEye visible />
         {/*
           It's also literally the A in the game's own name — "Gen A" reads
           as Gen Alpha to the adult world (GenAMark.tsx's own framing) and
@@ -67,6 +77,16 @@ export function TitleScreen({
             lpha
           </span>
         </h1>
+
+        {/*
+          One line, and it is the game's argument rather than its plot. The
+          brief for this screen was explicit that the title should not try
+          to explain the ideology — a tagline can carry a thesis, it cannot
+          carry an essay. Set on a torn red bar because it is the one piece
+          of type on this screen that the resistance wrote rather than the
+          council.
+        */}
+        <p className="title__tagline">Privacy isn’t given. It’s taken back.</p>
 
         <div className="title__menu">
           {!naming ? (
@@ -126,6 +146,19 @@ export function TitleScreen({
             </div>
           )}
         </div>
+      </div>
+      {/*
+        The feed's own status strip, pinned to the bottom edge: the camera
+        ID in full, and a signal meter. Deliberately the last thing in the
+        reading order and the quietest thing on the screen — it is the
+        furniture of the surveillance frame, not a seventh thing competing
+        for attention with the six above it.
+      */}
+      <div className="title__feed" aria-hidden="true">
+        <span className="title__feed-id">CAM 04 · BELLHAVEN MUNICIPAL NETWORK</span>
+        <span className="title__signal">
+          <i /><i /><i /><i />
+        </span>
       </div>
     </main>
   );

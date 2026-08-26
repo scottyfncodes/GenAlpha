@@ -27,7 +27,7 @@ export interface PatrolRoute {
  * hierarchy (`ROAD_SEGMENTS`) — the major arterial pair, the secondary
  * pair, and each district's own local street — rather than the old uniform
  * grid, so a van driving the Downtown Crossroads reads as a different beat
- * from one circling the Warehouse District's own perimeter. Every waypoint
+ * from one circling The Works' own perimeter. Every waypoint
  * sits clear of every location and solid obstacle rect (checked the same
  * way `scripts/check-connectivity.mjs` checks everything else that has to
  * share the map with a building), so a van is never asked to drive through
@@ -35,59 +35,86 @@ export interface PatrolRoute {
  */
 export const PATROL_ROUTES: PatrolRoute[] = [
   {
-    // The major E-W arterial, straight across Downtown — the fastest,
-    // most watched route in town, and the one every other beat below is a
-    // quieter alternative to.
+    // The major E-W arterial, straight across Main Street and the Civic
+    // Zone — the fastest, most watched route in town, and the one every
+    // other beat below is a quieter alternative to.
     id: 'midtown_sweep',
     loop: false,
     points: [
       { x: 520, y: 364 },
-      { x: 1040, y: 364 },
+      { x: 1560, y: 364 },
     ],
   },
   {
-    // The major N-S spine, the length of Residential North and West End —
-    // the western half of town's own main street.
+    // The major N-S spine, the full height of the map: The Heights, Old
+    // Market, Southside. The western half of town's own main street.
     id: 'west_beat',
     loop: false,
     points: [
       { x: 500, y: 40 },
-      { x: 500, y: 700 },
+      { x: 500, y: 1060 },
     ],
   },
   {
-    // Downtown's own local street, School and Library's south flank, past
-    // the Marlow Street unit.
-    id: 'downtown_watch',
+    // A tight loop around Town Square itself — Main Street's own civic
+    // centre, circled from the road rather than the plaza.
+    id: 'crossroads_loop',
+    loop: true,
+    points: [
+      { x: 620, y: 196 },
+      { x: 820, y: 196 },
+      { x: 820, y: 364 },
+      { x: 620, y: 364 },
+    ],
+  },
+  {
+    // The Civic Zone's own street, City Hall to the Data Centre gate —
+    // the shortest beat on the map and the one driven most often, which
+    // is the district's whole character in one route.
+    id: 'civic_beat',
     loop: false,
     points: [
-      { x: 570, y: 230 },
-      { x: 1000, y: 230 },
+      { x: 1130, y: 190 },
+      { x: 1590, y: 190 },
     ],
   },
   {
-    // A tight loop around Town Square itself — the Downtown Crossroads'
-    // own civic centre, circled from the road rather than the plaza.
-    id: 'center_loop',
-    loop: true,
+    // The Works' own row, the Utility Yard to the Annex fence line.
+    id: 'works_beat',
+    loop: false,
     points: [
-      { x: 600, y: 220 },
-      { x: 790, y: 220 },
-      { x: 790, y: 300 },
-      { x: 600, y: 300 },
+      { x: 1140, y: 534 },
+      { x: 1584, y: 534 },
     ],
   },
   {
-    // A loop around the whole Warehouse District's own perimeter — the one
-    // district worth circling deliberately, since it's the one the story
-    // keeps warning is watched, and now the one with real depth to circle.
-    id: 'warehouse_loop',
-    loop: true,
+    // Main Street's own local street, the school run and the shopfronts.
+    id: 'main_street_watch',
+    loop: false,
     points: [
-      { x: 1140, y: 10 },
-      { x: 1590, y: 10 },
-      { x: 1590, y: 720 },
-      { x: 1140, y: 720 },
+      { x: 556, y: 190 },
+      { x: 1060, y: 190 },
+    ],
+  },
+  {
+    // The Plaza's lot frontage. Last of the district beats to come online
+    // and the one a player is most likely to be standing in a crowd for.
+    id: 'plaza_beat',
+    loop: false,
+    points: [
+      { x: 1140, y: 930 },
+      { x: 1584, y: 930 },
+    ],
+  },
+  {
+    // The southern secondary, edge to edge — Southside, The Blocks, The
+    // Plaza. Only ever active at the top of the escalation, which is the
+    // point: the last thing to get patrolled is where people live.
+    id: 'south_ring',
+    loop: false,
+    points: [
+      { x: 40, y: 756 },
+      { x: 1560, y: 756 },
     ],
   },
 ];

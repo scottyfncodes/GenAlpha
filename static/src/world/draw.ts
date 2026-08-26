@@ -8,6 +8,7 @@ import {
   type OverworldLocation,
 } from './locations';
 import type { Obstacle } from './obstacles';
+import type { WallMark } from './marks';
 import type { NpcKind } from './npcs';
 import type { ThresholdTier } from '../state/schema';
 import { mulberry32, seedFrom } from '../systems/rng';
@@ -163,6 +164,45 @@ const PALETTE = {
   crateBody: '#8a6a44',
   crateEdge: '#6e5334',
   barrelBody: '#9a5a2c',
+  // The Works' own per-location yard props (`drawWarehouseYardProps`)
+  // — a cable spool, a boxcar, a crane — none of it sprite-sourced, so it needs
+  // its own small palette rather than reusing sprite-derived tones.
+  spoolBody: '#7a5636',
+  spoolLine: '#4a3420',
+  boxcarBody: '#7a3a2e',
+  boxcarRoof: '#5c2c22',
+  boxcarLine: 'rgba(20, 14, 12, 0.4)',
+  boxcarRust: 'rgba(150, 96, 46, 0.55)',
+  boxcarWheel: '#1c1815',
+  craneBody: '#4a4a3e',
+  craneCable: 'rgba(20, 20, 16, 0.6)',
+  // Casey's House's own yard props (`drawHouseYardProps`) — a weathered
+  // realtor sign and a bare swing frame, both meant to read as slightly
+  // sun-bleached rather than freshly painted.
+  forSaleSign: '#c9c0a8',
+  forSaleText: '#5a5240',
+  swingFrame: '#5c6270',
+  swingChain: 'rgba(40, 44, 52, 0.7)',
+  swingSeat: '#3a4048',
+  // The SafeTrace Tower (`drawSafeTraceTower`) — Downtown's own landmark, and
+  // the one silhouette in Bellhaven that's deliberately cold and clean
+  // rather than warm and hand-built. Panels a shade of clinical off-white/
+  // steel-blue no other building in town uses, so it reads as "not one of
+  // ours" at a glance before the camera cluster or the mast ever register.
+  towerPanel: '#c7d2de',
+  towerPanelDark: '#98a6b6',
+  towerPanelShadow: '#6b7888',
+  towerMast: '#3a4048',
+  towerBeacon: '#e6402a',
+  towerScreenCalm: '#5b96ff',
+  towerScreenAlert: '#e6402a',
+  // The Plaza's billboard (`drawBillboard`) — the loudest single
+  // object in town on purpose, so its own palette leans bright rather than
+  // borrowing the dusk-muted set everything else on this canvas uses.
+  billboardFrame: '#232935',
+  billboardFace: '#f0e8d8',
+  billboardAccent: '#e8b23c',
+  billboardCorrection: '#e6402a',
   bgWall: '#3a4150',
   bgRoof: '#2a2f3a',
   bgWindow: 'rgba(240, 192, 122, 0.32)',
@@ -219,8 +259,14 @@ const PALETTE = {
   floodlight: '#e8dcc0',
   // The Green — a formal lawn rather than a playing field, so a softer,
   // lighter two-tone than the ballpark's own checker.
-  lawnBase: '#5a8f5c',
-  lawnAlt: '#548754',
+  // Muted well below a daylight green: Liberty Park is the centre cell of
+  // the map and the biggest single colour field on it, so at the old
+  // saturation it was the brightest thing in a town whose whole palette is
+  // "suburban dusk" and it fought every district around it. Still clearly
+  // grass, still clearly the one soft surface in Bellhaven, just lit by
+  // the same sky as everything else.
+  lawnBase: '#46705c',
+  lawnAlt: '#40684f',
   pathFill: '#c9b98a',
   pondWater: '#4fb5a8',
   // The treehouse — reuses the tree palette above for trunk/canopy, adds
@@ -243,6 +289,63 @@ const PALETTE = {
   droneLight: '#e84ac9',
   droneRing: 'rgba(232, 74, 201, 0.18)',
   droneShadow: 'rgba(0, 0, 0, 0.22)',
+  // The surveillance hardware the 3x3 redesign adds beside the cameras: a
+  // plate scanner's grey mast and its red read-light, and a security
+  // gate's yellow-and-black arm. Both deliberately share the camera's own
+  // cold blue for their lens/sensor face, so a player reads the whole
+  // network as one system wearing three different bodies.
+  scannerMast: '#4a5260',
+  scannerHead: '#2a3140',
+  scannerLens: '#3f7fe0',
+  scannerLight: '#e6402a',
+  // A working vehicle's paint, dusk-muted: a dirty off-white box body and
+  // a drab municipal green-grey, with a near-black cab under both.
+  truckPale: '#b9b3a2',
+  truckDrab: '#5d6a63',
+  truckCab: '#242a33',
+  gateArm: '#c9b23c',
+  gateArmDark: '#2a2620',
+  gatePost: '#3a4048',
+  // A camera's coverage wedge — how far and which way it actually looks,
+  // painted on the ground rather than left as a number in a coverage bar.
+  cameraCone: 'rgba(63, 127, 224, 0.10)',
+  cameraConeEdge: 'rgba(63, 127, 224, 0.20)',
+  cameraLive: '#e6402a',
+  // A camera somebody else already took down — dead housing, cable
+  // hanging, a sticker over the lens.
+  // The lens well, near-black so the red inside it is the brightest thing
+  // on a 16px housing — the same relationship the title camera's own lens
+  // has to its shell.
+  cameraLens: '#0d1118',
+  cameraDead: '#39404c',
+  cameraDeadCable: '#1d222b',
+  sticker: '#e8dcc0',
+  stickerInk: '#e6402a',
+  // City Hall, the Data Centre, MegaMart and the substation — the four
+  // silhouettes the nine-district map needed that nothing already here
+  // could stand in for.
+  civicStone: '#c2bda6',
+  civicStoneShade: '#9d9885',
+  civicRoof: '#5a5a4c',
+  civicDome: '#7d8a6e',
+  dataWall: '#4d5765',
+  dataWallDark: '#39414d',
+  dataVent: '#2a3038',
+  dataLight: '#5b96ff',
+  dataDish: '#b6c0cc',
+  bigBoxWall: '#c8c2b4',
+  bigBoxRoof: '#4a5057',
+  bigBoxSign: '#d4453a',
+  bigBoxSignText: '#f4ede0',
+  substationFrame: '#5b6470',
+  substationCoil: '#8d97a4',
+  substationHazard: '#e0c020',
+  substationYard: '#4e5361',
+  substationGravel: 'rgba(180, 186, 198, 0.14)',
+  // The Gen A mark, sprayed and stuck: the same red the resistance tags
+  // already use, plus the pale paper of a photocopied sticker.
+  genA: '#e6402a',
+  genAFade: 'rgba(230, 64, 42, 0.55)',
 } as const;
 
 const px = Math.round;
@@ -266,11 +369,19 @@ export function drawTown(
   sparklingObstacleIds: Set<string>,
   npcs: { x: number; y: number; kind: NpcKind; facing: 1 | -1; id: string }[],
   patrols: { x: number; y: number; radius: number }[],
-  cameraNodes: { x: number; y: number; dismantlable: boolean; damaged: boolean }[],
+  cameraNodes: { x: number; y: number; facing: number; dismantlable: boolean; damaged: boolean }[],
   hackNodes: { x: number; y: number; kind: 'atm' | 'phone' | 'building'; hackable: boolean; damaged: boolean }[],
   junctionBoxNodes: { x: number; y: number; tier: 1 | 2 | 3 | 4 | 5; crackable: boolean; damaged: boolean }[],
   drones: { x: number; y: number; radius: number; takeable: boolean }[],
   cops: { x: number; y: number; radius: number }[],
+  /** Poles the player has taken apart at least once — see
+   * `drawSabotageScar`. Authored positions, not live ones. */
+  scars: { x: number; y: number; tagged: boolean }[],
+  /** The Gen A marks standing today. Filtered by the caller against the
+   * rollout clock, the same way `obstacles` already is — see
+   * `world/marks.ts` for why they arrive over the course of the game
+   * rather than all at once. */
+  marks: WallMark[],
   moving: boolean,
   now: number,
   boardTier: number,
@@ -308,7 +419,7 @@ export function drawTown(
   for (const p of STREETLIGHT_POINTS) drawStreetlight(ctx, p);
 
   for (const obstacle of obstacles) {
-    drawObstacle(ctx, obstacle);
+    drawObstacle(ctx, obstacle, tier, now);
     if (sparklingObstacleIds.has(obstacle.id)) drawSparkle(ctx, obstacle, now);
   }
   for (const loc of locations) drawLocation(ctx, loc, here?.id === loc.id, tier, now);
@@ -317,6 +428,16 @@ export function drawTown(
   // a building still occludes them, and well before the player so nothing
   // ambient can ever render on top of the one figure that matters.
   for (const n of npcs) drawNpc(ctx, n.x, n.y, n.kind, n.facing, n.id, now);
+
+  // The player's own marks first, under everything: a scar is paint on a
+  // post, so a camera standing at the same spot has to occlude it.
+  for (const scar of scars) drawSabotageScar(ctx, scar);
+
+  // Cameras somebody else already took down, and the mark they left on
+  // the way past. Both are paint rather than mechanics — see their own
+  // tables above for why neither is a `CameraNode` or an `Obstacle`.
+  for (const c of DEAD_CAMERAS) drawDeadCamera(ctx, c);
+  for (const m of marks) drawGenAMark(ctx, m);
 
   // Ordinary cameras, worth taking apart — the same small box the story pole
   // renders as, so it reads as the same kind of object. `dismantlable` is
@@ -375,7 +496,7 @@ export function drawTown(
  * dispatches to one of four cheap, flat shapes, matching the sprite budget
  * everything else on this canvas keeps to.
  */
-function drawObstacle(ctx: CanvasRenderingContext2D, obstacle: Obstacle) {
+function drawObstacle(ctx: CanvasRenderingContext2D, obstacle: Obstacle, tier: ThresholdTier, now: number) {
   switch (obstacle.kind) {
     case 'tree':
       return drawTree(ctx, obstacle);
@@ -397,6 +518,274 @@ function drawObstacle(ctx: CanvasRenderingContext2D, obstacle: Obstacle) {
       return drawCrate(ctx, obstacle);
     case 'barrel':
       return drawBarrel(ctx, obstacle);
+    case 'tower':
+      return drawSafeTraceTower(ctx, obstacle, tier, now);
+    case 'billboard':
+      return drawBillboard(ctx, obstacle);
+    case 'scanner':
+      return drawPlateScanner(ctx, obstacle, now);
+    case 'gate':
+      return drawSecurityGate(ctx, obstacle);
+    case 'bench':
+      return drawParkBench(ctx, obstacle);
+    case 'playground':
+      return drawPlayground(ctx, obstacle);
+    case 'truck':
+      return drawTruck(ctx, obstacle);
+    case 'laundry':
+      return drawWashingLine(ctx, obstacle);
+  }
+}
+
+/**
+ * A washing line: two posts, a slack line, and a few things pegged to it,
+ * seen from above so the garments read as coloured slabs hanging off a
+ * string rather than as clothing shapes.
+ *
+ * The cheapest sentence on this map. Nobody hangs their laundry out in a
+ * place they are afraid of, so a street with a line across it is a street
+ * that has not been frightened yet — which makes it the one prop that can
+ * say what The Blocks is *for* without a word of text, and the one whose
+ * absence would say something too.
+ */
+function drawWashingLine(ctx: CanvasRenderingContext2D, o: Obstacle) {
+  const rand = noise(`laundry:${o.id}`);
+  const y = o.y + 3;
+
+  ctx.fillStyle = PALETTE.porchPost;
+  ctx.fillRect(px(o.x), px(o.y), 2, o.h);
+  ctx.fillRect(px(o.x + o.w - 2), px(o.y), 2, o.h);
+
+  // The line itself, sagging in the middle the way a loaded one does.
+  ctx.strokeStyle = 'rgba(236, 226, 208, 0.4)';
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(px(o.x + 1), px(y));
+  ctx.quadraticCurveTo(px(o.x + o.w / 2), px(y + 3), px(o.x + o.w - 1), px(y));
+  ctx.stroke();
+
+  // Four or five items, each its own faded colour and its own length —
+  // a line of identical rectangles reads as bunting, not washing.
+  const palette = [PALETTE.sticker, PALETTE.windowLit, PALETTE.lawnBase, PALETTE.parkedCarGlass, PALETTE.bench];
+  const count = 4 + Math.floor(rand() * 2);
+  for (let i = 0; i < count; i++) {
+    const t = (i + 0.5) / count;
+    const gx = o.x + 3 + t * (o.w - 6);
+    // Follows the sag, so nothing floats off the line.
+    const gy = y + Math.sin(t * Math.PI) * 3;
+    const gw = 4 + Math.floor(rand() * 3);
+    const gh = 5 + Math.floor(rand() * 5);
+    ctx.globalAlpha = 0.85;
+    ctx.fillStyle = palette[Math.floor(rand() * palette.length)];
+    ctx.fillRect(px(gx - gw / 2), px(gy), gw, gh);
+    ctx.globalAlpha = 1;
+  }
+}
+
+/**
+ * A bench, seen from above: a slatted seat, a back rail behind it, and two
+ * legs' worth of shadow. Oriented off the obstacle's own proportions — wide
+ * and flat faces the viewer (a bench along a path running left to right),
+ * tall and narrow turns side-on — so one prop serves a park path, a bus
+ * shelter and a plaza without a direction field to author.
+ */
+function drawParkBench(ctx: CanvasRenderingContext2D, o: Obstacle) {
+  const horizontal = o.w >= o.h;
+
+  ctx.fillStyle = 'rgba(0,0,0,0.22)';
+  ctx.fillRect(px(o.x), px(o.y + o.h - 1), o.w, 2);
+
+  ctx.fillStyle = PALETTE.bench;
+  if (horizontal) {
+    ctx.fillRect(px(o.x), px(o.y + o.h * 0.35), o.w, o.h * 0.55);
+    ctx.fillStyle = PALETTE.plankDark;
+    ctx.fillRect(px(o.x), px(o.y), o.w, o.h * 0.28);
+    for (let x = o.x + 3; x < o.x + o.w - 2; x += 5) {
+      ctx.fillRect(px(x), px(o.y + o.h * 0.35), 1, o.h * 0.55);
+    }
+  } else {
+    ctx.fillRect(px(o.x + o.w * 0.35), px(o.y), o.w * 0.55, o.h);
+    ctx.fillStyle = PALETTE.plankDark;
+    ctx.fillRect(px(o.x), px(o.y), o.w * 0.28, o.h);
+    for (let y = o.y + 3; y < o.y + o.h - 2; y += 5) {
+      ctx.fillRect(px(o.x + o.w * 0.35), px(y), o.w * 0.55, 1);
+    }
+  }
+}
+
+/**
+ * The playground: a swing frame, a slide and a roundabout, drawn to fill
+ * whatever rect it's given. Liberty Park's own argument for existing —
+ * "life, people, irregularity, community" is a design note until somebody
+ * has actually built something here for children, and the contrast with
+ * the Civic Zone's straight lines is the whole point of the district.
+ *
+ * Reuses `drawSwingSet`'s frame (Casey's own yard prop) rather than
+ * drawing a second one: it is the same object, and a town where the swing
+ * set in the park and the swing set behind the empty house are visibly the
+ * same swing set is saying something the map can't say twice.
+ */
+function drawPlayground(ctx: CanvasRenderingContext2D, o: Obstacle) {
+  // Wood-chip fall surface, so the equipment sits on a made ground rather
+  // than on the street's own paving.
+  ctx.fillStyle = PALETTE.plankDark;
+  ctx.fillRect(px(o.x), px(o.y), o.w, o.h);
+  const chip = noise(`playground:${o.id}`);
+  ctx.fillStyle = 'rgba(168, 148, 104, 0.35)';
+  for (let i = 0; i < Math.round((o.w * o.h) / 40); i++) {
+    ctx.fillRect(px(o.x + 1 + chip() * (o.w - 3)), px(o.y + 1 + chip() * (o.h - 2)), 2, 1);
+  }
+
+  const groundY = o.y + o.h - 4;
+  drawSwingSet(ctx, o.x + 4, groundY);
+
+  // The slide: a ladder, a platform and a chute running down toward the
+  // viewer, which is the one piece of playground equipment that reads
+  // instantly from above.
+  const slideX = o.x + o.w - 26;
+  ctx.strokeStyle = PALETTE.swingFrame;
+  ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  ctx.moveTo(px(slideX + 16), px(groundY));
+  ctx.lineTo(px(slideX + 16), px(groundY - 20));
+  ctx.stroke();
+  for (let i = 0; i < 4; i++) {
+    ctx.beginPath();
+    ctx.moveTo(px(slideX + 12), px(groundY - 4 - i * 5));
+    ctx.lineTo(px(slideX + 20), px(groundY - 4 - i * 5));
+    ctx.stroke();
+  }
+  ctx.fillStyle = PALETTE.swingSeat;
+  ctx.fillRect(px(slideX + 10), px(groundY - 23), 12, 4);
+  ctx.fillStyle = PALETTE.substationCoil;
+  ctx.beginPath();
+  ctx.moveTo(px(slideX + 4), px(groundY));
+  ctx.lineTo(px(slideX + 10), px(groundY - 20));
+  ctx.lineTo(px(slideX + 14), px(groundY - 20));
+  ctx.lineTo(px(slideX + 9), px(groundY));
+  ctx.closePath();
+  ctx.fill();
+}
+
+/**
+ * A box-body truck — the vehicle a district *works* with rather than
+ * commutes in. Longer and taller than `drawParkedCar`'s sprite and drawn
+ * procedurally rather than from the sheet, because neither pack has a
+ * lorry in it and a scaled-up car reads as a scaled-up car. A cab, a
+ * container body with a roof rib, and the shadow that sells the height.
+ */
+function drawTruck(ctx: CanvasRenderingContext2D, o: Obstacle) {
+  const vertical = o.h > o.w;
+  const cab = vertical ? o.h * 0.28 : o.w * 0.28;
+
+  ctx.fillStyle = 'rgba(0,0,0,0.28)';
+  ctx.fillRect(px(o.x - 1), px(o.y + o.h - 1), o.w + 2, 3);
+
+  // Two body colours, both pulled well down into the dusk palette. The
+  // first pass used the sticker's own near-white paper and the box read as
+  // a blank billboard lying in the road — nothing else on this canvas is
+  // that bright, and a parked lorry is the last thing that should be.
+  const rand = noise(`truck:${o.id}`);
+  const body = rand() > 0.5 ? PALETTE.truckPale : PALETTE.truckDrab;
+
+  if (vertical) {
+    ctx.fillStyle = body;
+    ctx.fillRect(px(o.x), px(o.y + cab), o.w, o.h - cab);
+    ctx.fillStyle = PALETTE.truckCab;
+    ctx.fillRect(px(o.x), px(o.y), o.w, cab);
+    ctx.fillStyle = PALETTE.parkedCarGlass;
+    ctx.fillRect(px(o.x + 2), px(o.y + 2), o.w - 4, cab * 0.45);
+    // Roof ribs, and the shadow line where the box meets the cab.
+    ctx.fillStyle = 'rgba(0,0,0,0.2)';
+    ctx.fillRect(px(o.x), px(o.y + cab), o.w, 2);
+    for (let y = o.y + cab + 6; y < o.y + o.h - 3; y += 6) ctx.fillRect(px(o.x + 1), px(y), o.w - 2, 1);
+    // Wheels, just proud of the body on both flanks.
+    ctx.fillStyle = PALETTE.boxcarWheel;
+    for (const wy of [o.y + cab + 3, o.y + o.h - 9]) {
+      ctx.fillRect(px(o.x - 1), px(wy), 2, 6);
+      ctx.fillRect(px(o.x + o.w - 1), px(wy), 2, 6);
+    }
+  } else {
+    ctx.fillStyle = body;
+    ctx.fillRect(px(o.x + cab), px(o.y), o.w - cab, o.h);
+    ctx.fillStyle = PALETTE.truckCab;
+    ctx.fillRect(px(o.x), px(o.y), cab, o.h);
+    ctx.fillStyle = PALETTE.parkedCarGlass;
+    ctx.fillRect(px(o.x + 2), px(o.y + 2), cab * 0.45, o.h - 4);
+    ctx.fillStyle = 'rgba(0,0,0,0.2)';
+    ctx.fillRect(px(o.x + cab), px(o.y), 2, o.h);
+    for (let x = o.x + cab + 6; x < o.x + o.w - 3; x += 6) ctx.fillRect(px(x), px(o.y + 1), 1, o.h - 2);
+    ctx.fillStyle = PALETTE.boxcarWheel;
+    for (const wx of [o.x + cab + 3, o.x + o.w - 9]) {
+      ctx.fillRect(px(wx), px(o.y - 1), 6, 2);
+      ctx.fillRect(px(wx), px(o.y + o.h - 1), 6, 2);
+    }
+  }
+
+  ctx.strokeStyle = PALETTE.outline;
+  ctx.lineWidth = 1;
+  ctx.strokeRect(px(o.x) - 0.5, px(o.y) - 0.5, o.w + 1, o.h + 1);
+}
+
+/**
+ * An automatic number-plate scanner: a mast on a small base with a sensor
+ * head canted out over the carriageway and a red read-light that blinks on
+ * its own slow cycle. Distinct from a camera on purpose — a camera watches
+ * a *place* and can be taken apart for parts; a scanner watches a *road*
+ * and is scenery, because there is nothing in one a kid with a screwdriver
+ * wants. What it is for is the point: the town knows which cars went where,
+ * and the player has no move against that except to not be in a car.
+ *
+ * Drawn from the obstacle's own rect (narrow and tall) rather than a fixed
+ * size, so the handful placed on wider verges read as bigger installations.
+ */
+function drawPlateScanner(ctx: CanvasRenderingContext2D, o: Obstacle, now: number) {
+  const cx = o.x + o.w / 2;
+  const baseY = o.y + o.h;
+  const headW = Math.max(8, o.w + 4);
+  const headH = 6;
+
+  ctx.fillStyle = 'rgba(0,0,0,0.22)';
+  ctx.fillRect(px(cx - o.w / 2 - 1), px(baseY - 1), o.w + 2, 2);
+
+  ctx.fillStyle = PALETTE.scannerMast;
+  ctx.fillRect(px(cx - 1.5), px(o.y + headH), 3, o.h - headH);
+
+  ctx.fillStyle = PALETTE.scannerHead;
+  ctx.fillRect(px(cx - headW / 2), px(o.y), headW, headH);
+  ctx.fillStyle = PALETTE.scannerLens;
+  ctx.fillRect(px(cx - headW / 2 + 1), px(o.y + 2), headW - 2, 2);
+
+  // The read-light: a slow, unhurried blink, offset per-obstacle so a
+  // street of them doesn't pulse in lockstep. Not an alarm — this is the
+  // light a machine shows when it is simply working.
+  const phase = noise(`scanner:${o.id}`)() * 3000;
+  const on = ((now + phase) % 2600) < 900;
+  ctx.fillStyle = on ? PALETTE.scannerLight : PALETTE.gateArmDark;
+  ctx.fillRect(px(cx + headW / 2 - 2), px(o.y + 1), 2, 2);
+}
+
+/**
+ * A security gate — a striped barrier arm on a post, drawn down (which is
+ * how every one of them on this map sits). Every gate here has a way past
+ * it within a few metres, so this is never a wall: it is the thing that
+ * makes the fence gap beside it worth noticing.
+ */
+function drawSecurityGate(ctx: CanvasRenderingContext2D, o: Obstacle) {
+  const armY = o.y + o.h / 2 - 2;
+
+  ctx.fillStyle = 'rgba(0,0,0,0.2)';
+  ctx.fillRect(px(o.x), px(o.y + o.h - 1), o.w, 2);
+
+  ctx.fillStyle = PALETTE.gatePost;
+  ctx.fillRect(px(o.x), px(o.y), 5, o.h);
+  ctx.fillRect(px(o.x + o.w - 4), px(o.y + o.h * 0.35), 4, o.h * 0.65);
+
+  ctx.fillStyle = PALETTE.gateArm;
+  ctx.fillRect(px(o.x + 4), px(armY), o.w - 6, 4);
+  ctx.fillStyle = PALETTE.gateArmDark;
+  for (let x = o.x + 7; x < o.x + o.w - 4; x += 10) {
+    ctx.fillRect(px(x), px(armY), 5, 4);
   }
 }
 
@@ -555,6 +944,162 @@ function drawDecorativeBuilding(ctx: CanvasRenderingContext2D, o: Obstacle) {
   }
 }
 
+/**
+ * Downtown's own landmark, and the physical shape of the thing the story
+ * keeps naming without ever showing (`content/feed.ts`'s "Groundbreaking
+ * held for SafeTrace Regional Data Center", the "SafeTrace Civic Safety"
+ * account `content/heist.ts` drains in Act 3). A singular, hand-placed
+ * obstacle rather than a location — this is scenery to get your bearings
+ * by, not a doorway, so it never competes with an actual interactive
+ * building for a tap.
+ *
+ * Every other building in town is warm, low, and hand-built out of the
+ * dusk palette; this is the one silhouette that's cold, tall, and clean —
+ * "the closer to the surveillance centre, the more sterile and controlled"
+ * per the map redesign brief, made literal in one object rather than a
+ * gradient. Heat-reactive on purpose: the belt screen partway up reads calm
+ * blue at `clear`/`watched` and switches to an alert red — pulsing at
+ * `hunted` — the same tier the HUD's own Heat chip already escalates on, so
+ * a player who never looks at the number can still look up and know.
+ */
+function drawSafeTraceTower(ctx: CanvasRenderingContext2D, o: Obstacle, tier: ThresholdTier, now: number) {
+  const baseH = o.h * 0.58;
+  const towerW = o.w * 0.62;
+  const towerX = o.x + (o.w - towerW) / 2;
+  const towerH = o.h - baseH;
+
+  ctx.fillStyle = 'rgba(0,0,0,0.22)';
+  ctx.fillRect(o.x - 3, o.y + o.h - 2, o.w + 6, 4);
+
+  // The base block — full footprint, the setback the tower proper rises out of.
+  ctx.fillStyle = PALETTE.towerPanelDark;
+  ctx.fillRect(o.x, o.y + towerH, o.w, baseH);
+  ctx.fillStyle = PALETTE.towerPanelShadow;
+  ctx.fillRect(o.x, o.y + towerH, o.w * 0.14, baseH); // one shaded edge, so the block reads as a volume, not a flat card
+
+  // The tower proper.
+  ctx.fillStyle = PALETTE.towerPanel;
+  ctx.fillRect(towerX, o.y, towerW, towerH);
+  ctx.fillStyle = PALETTE.towerPanelDark;
+  ctx.fillRect(towerX, o.y, towerW * 0.18, towerH);
+
+  // Panel seams — a grid of thin vertical lines, the one texture that says
+  // "curtain wall" rather than "flat-filled rectangle" at this scale.
+  ctx.strokeStyle = PALETTE.towerPanelShadow;
+  ctx.lineWidth = 1;
+  for (let x = towerX + 8; x < towerX + towerW; x += 8) {
+    ctx.beginPath();
+    ctx.moveTo(px(x), o.y + 2);
+    ctx.lineTo(px(x), o.y + towerH - 2);
+    ctx.stroke();
+  }
+
+  // The belt screen — the one Heat-reactive surface on the whole map.
+  const alert = tier === 'flagged' || tier === 'hunted';
+  const screenY = o.y + towerH * 0.42;
+  const screenH = Math.max(4, towerH * 0.08);
+  const pulse = tier === 'hunted' ? 0.55 + 0.45 * Math.sin(now / 260) : 1;
+  ctx.fillStyle = alert ? PALETTE.towerScreenAlert : PALETTE.towerScreenCalm;
+  ctx.globalAlpha = alert ? 0.55 + 0.35 * pulse : 0.5;
+  ctx.fillRect(towerX + 2, screenY, towerW - 4, screenH);
+  ctx.globalAlpha = 1;
+
+  // The mast and its beacon — the silhouette detail that reads from across
+  // the map, long before the panels or the screen resolve at all.
+  const mastX = towerX + towerW / 2;
+  const mastTopY = o.y - 22;
+  ctx.strokeStyle = PALETTE.towerMast;
+  ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  ctx.moveTo(px(mastX), o.y + 4);
+  ctx.lineTo(px(mastX), mastTopY);
+  ctx.stroke();
+  const beaconOn = Math.sin(now / 700) > -0.2;
+  if (beaconOn) {
+    ctx.fillStyle = PALETTE.towerBeacon;
+    ctx.beginPath();
+    ctx.arc(px(mastX), mastTopY, 2.4, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  // A small camera cluster flanking the upper tower — SafeTrace watching
+  // its own building, which is funnier the longer you look at it.
+  for (const side of [-1, 1]) {
+    const cx = mastX + side * (towerW / 2 - 4);
+    const cy = o.y + towerH * 0.16;
+    ctx.fillStyle = PALETTE.cameraDark;
+    ctx.beginPath();
+    ctx.arc(px(cx), cy, 3, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = PALETTE.camera;
+    ctx.beginPath();
+    ctx.arc(px(cx), cy, 1.6, 0, Math.PI * 2);
+    ctx.fill();
+  }
+}
+
+/**
+ * The Plaza's own landmark — a billboard on stilts, deliberately
+ * the loudest single object in town (map redesign brief: "3-4 dominant
+ * visual anchors... the district should feel intentionally overwhelming").
+ * The joke is the point, and it's the brief's own worked example: a
+ * pristine ad with a tiny hand-written correction underneath, discovered
+ * rather than announced — there's no dialogue anywhere that explains it.
+ */
+function drawBillboard(ctx: CanvasRenderingContext2D, o: Obstacle) {
+  const faceH = o.h * 0.68;
+  const legY = o.y + faceH;
+  const legH = o.h - faceH;
+
+  ctx.strokeStyle = PALETTE.billboardFrame;
+  ctx.lineWidth = 3;
+  ctx.beginPath();
+  ctx.moveTo(px(o.x + o.w * 0.18), legY);
+  ctx.lineTo(px(o.x + o.w * 0.18), legY + legH);
+  ctx.moveTo(px(o.x + o.w * 0.82), legY);
+  ctx.lineTo(px(o.x + o.w * 0.82), legY + legH);
+  ctx.stroke();
+
+  ctx.fillStyle = 'rgba(0,0,0,0.2)';
+  ctx.fillRect(o.x + o.w * 0.14, o.y - 2, o.w * 0.72, faceH + 4);
+  ctx.fillStyle = PALETTE.billboardFrame;
+  ctx.fillRect(o.x, o.y - 4, o.w, 5);
+  ctx.fillStyle = PALETTE.billboardFace;
+  ctx.fillRect(o.x + 3, o.y + 1, o.w - 6, faceH - 5);
+
+  // The ad itself — a bold accent band standing in for the "ridiculous
+  // promotional material" the brief asks for, not literal ad copy at a
+  // scale nobody could read anyway.
+  ctx.fillStyle = PALETTE.billboardAccent;
+  ctx.fillRect(o.x + 8, o.y + 6, o.w - 16, faceH * 0.32);
+  ctx.fillStyle = PALETTE.towerScreenCalm;
+  ctx.fillRect(o.x + 8, o.y + faceH * 0.5, o.w * 0.4, faceH * 0.18);
+  ctx.fillStyle = PALETTE.billboardFrame;
+  ctx.globalAlpha = 0.35;
+  for (let i = 0; i < 3; i++) {
+    ctx.fillRect(o.x + o.w * 0.55, o.y + faceH * 0.5 + i * 5, o.w * 0.32, 2);
+  }
+  ctx.globalAlpha = 1;
+
+  // The correction — a crooked, hand-written strip low on the face, in the
+  // resistance's own red rather than the ad's own palette, so it reads as
+  // graffiti on the sign rather than part of the sign.
+  const rand = noise(`billboard:${o.id}`);
+  ctx.strokeStyle = PALETTE.billboardCorrection;
+  ctx.lineWidth = 1.5;
+  ctx.save();
+  ctx.translate(px(o.x + o.w * 0.5), o.y + faceH * 0.86);
+  ctx.rotate(-0.04);
+  ctx.beginPath();
+  for (let i = 0; i < 3; i++) {
+    const sx = -o.w * 0.32 + i * (o.w * 0.24) + rand() * 4;
+    ctx.moveTo(sx, 0);
+    ctx.lineTo(sx + o.w * 0.14, 0);
+  }
+  ctx.stroke();
+  ctx.restore();
+}
+
 /** Chain-link, the one obstacle that reads as industrial rather than grown —
  * posts at each end and a diamond lattice between, standing in for the
  * fencing Act 1's Annex Fence ambient text already talks about. The one
@@ -650,7 +1195,7 @@ function drawBin(ctx: CanvasRenderingContext2D, o: Obstacle) {
   ctx.strokeRect(x - 0.5, y - 0.5, o.w + 1, o.h + 1);
 }
 
-/** Loose cargo for the Warehouse District's own yards — the city pack's
+/** Loose cargo for The Works' own yards — the city pack's
  * industrial debris, picked per-obstacle by id hash the same way
  * `drawParkedCar` varies `CAR_TILES`. Falls back to a plain crate box, since
  * the procedural shape only ever needs to read as "a box", not carry the
@@ -1042,13 +1587,27 @@ function drawGroundGrid(ctx: CanvasRenderingContext2D, camX: number, camY: numbe
     }
   }
 
-  // Each district's own accent colour, as a faint wash over the real
-  // texture now underneath it — same 12% strength `DISTRICT_GROUND_TINTS`
-  // blended into a flat fill before; a wash over a tile serves the same
-  // "this patch of pavement is its own neighbourhood" cue.
+  // Each district's own accent colour, as a wash over the real texture —
+  // a radial gradient from the district's own centre rather than a flat
+  // fill to its rect's hard edge. A flat-rect wash cuts off instantly at
+  // the boundary line, which is exactly the "District A → wall → District B"
+  // seam the map redesign brief calls out: architecture, signage and
+  // lighting are all supposed to change gradually, and the ground tint —
+  // the one ambient signal a walking player picks up constantly, everywhere
+  // — was the one place still doing a hard cut. Strongest at the centre
+  // (0.16, a touch more present than the old flat 0.12 now that it's not
+  // uniform) and fully transparent by the district's own edge, so two
+  // neighbouring washes blend into each other across the street between them
+  // instead of both stopping dead at their shared line.
   for (const d of DISTRICTS) {
-    ctx.fillStyle = d.color;
-    ctx.globalAlpha = 0.12;
+    const cx = d.x + d.w / 2;
+    const cy = d.y + d.h / 2;
+    const radius = Math.hypot(d.w, d.h) / 2;
+    const gradient = ctx.createRadialGradient(cx, cy, 0, cx, cy, radius);
+    gradient.addColorStop(0, d.color);
+    gradient.addColorStop(1, 'transparent');
+    ctx.fillStyle = gradient;
+    ctx.globalAlpha = 0.16;
     ctx.fillRect(d.x, d.y, d.w, d.h);
   }
   ctx.globalAlpha = 1;
@@ -1107,7 +1666,7 @@ function drawGround(ctx: CanvasRenderingContext2D, camX: number, camY: number, v
  *   flat, no centreline, and deliberately placed alongside the obstacle
  *   layer's own tree cover so cutting through one is the quiet route in
  *   more than just colour (`systems/pursuit.ts` `underTreeCover`).
- * - `path` — pedestrian paths through Riverside Park, connecting districts
+ * - `path` — pedestrian paths through Liberty Park, connecting districts
  *   the way a real park cut-through does. Thinnest, dotted, no fill mood
  *   at all — gravel, not asphalt.
  *
@@ -1133,37 +1692,66 @@ interface RoadSegment {
 const ROAD_WIDTH: Record<RoadTier, number> = { major: 44, secondary: 32, local: 20, alley: 11, path: 6 };
 
 const ROAD_SEGMENTS: RoadSegment[] = [
-  // The two majors — cross at (500,364), the Downtown Crossroads.
+  // The two majors — cross at (500,364), the Downtown Crossroads. Together
+  // with the secondary pair below they are the seams of the 3x3: nine
+  // district cells, every one of them bounded by a real road on at least
+  // two sides, which is where the layout brief's "every district has at
+  // least two entrances/exits" is actually satisfied. The alleys and paths
+  // further down are the third, fourth and fifth ways in.
   { x: 478, y: 0, w: ROAD_WIDTH.major, h: MAP_HEIGHT, tier: 'major' },
   { x: 0, y: 342, w: MAP_WIDTH, h: ROAD_WIDTH.major, tier: 'major' },
-  // The two secondaries — bound the Warehouse/Commercial column.
+  // The two secondaries — bound the Civic/Works/Plaza column and the
+  // southern row.
   { x: 1084, y: 0, w: ROAD_WIDTH.secondary, h: MAP_HEIGHT, tier: 'secondary' },
   { x: 0, y: 740, w: MAP_WIDTH, h: ROAD_WIDTH.secondary, tier: 'secondary' },
 
-  // Local streets — inside each district's own blocks.
-  { x: 0, y: 210, w: 440, h: ROAD_WIDTH.local, tier: 'local' }, // Residential North's own street
-  { x: 700, y: 220, w: 170, h: ROAD_WIDTH.local, tier: 'local' }, // Downtown, Square to Marlow Street
-  { x: 1128, y: 190, w: 472, h: ROAD_WIDTH.local, tier: 'local' }, // Warehouse Row 1
-  { x: 1128, y: 530, w: 472, h: ROAD_WIDTH.local, tier: 'local' }, // Warehouse Row 2
-  { x: 0, y: 520, w: 440, h: ROAD_WIDTH.local, tier: 'local' }, // West End
-  { x: 528, y: 920, w: 544, h: ROAD_WIDTH.local, tier: 'local' }, // South Residential
-  { x: 1128, y: 920, w: 472, h: ROAD_WIDTH.local, tier: 'local' }, // Commercial Strip
-  { x: 40, y: 960, w: 160, h: ROAD_WIDTH.local, tier: 'local' }, // Transit Hub — a stub, not a through
-  // Residential North's own cul-de-sac — a dead end off the district
-  // street above, one of the "occasional dead ends" the brief asked for.
+  // Local streets — one through the middle of each district's own block,
+  // splitting it into a north row of frontages and a south row.
+  { x: 0, y: 210, w: 440, h: ROAD_WIDTH.local, tier: 'local' }, // 1. The Heights
+  { x: 545, y: 180, w: 520, h: ROAD_WIDTH.local, tier: 'local' }, // 2. Main Street
+  { x: 1128, y: 180, w: 472, h: ROAD_WIDTH.local, tier: 'local' }, // 3. Civic Zone
+  { x: 0, y: 506, w: 440, h: ROAD_WIDTH.local, tier: 'local' }, // 4. Old Market
+  { x: 1128, y: 524, w: 472, h: ROAD_WIDTH.local, tier: 'local' }, // 6. The Works
+  { x: 0, y: 940, w: 440, h: ROAD_WIDTH.local, tier: 'local' }, // 7. Southside
+  { x: 528, y: 920, w: 544, h: ROAD_WIDTH.local, tier: 'local' }, // 8. The Blocks
+  { x: 1128, y: 920, w: 472, h: ROAD_WIDTH.local, tier: 'local' }, // 9. The Plaza
+  // The Heights' own cul-de-sac — a dead end off the district street
+  // above, one of the "occasional dead ends" the brief asked for.
   { x: 380, y: 230, w: ROAD_WIDTH.local, h: 90, tier: 'local' },
+  // The Plaza's own lot spine, running north from the strip's frontage to
+  // MegaMart's parking apron — the aisle the parking rows in
+  // `obstacles.ts` are drawn either side of.
+  { x: 1290, y: 790, w: ROAD_WIDTH.local, h: 130, tier: 'local' },
 
-  // Alleys — the shortcuts. See the tier comment above for why these matter
-  // more than their width suggests.
-  { x: 166, y: 430, w: 54, h: 90, tier: 'alley' }, // West End: Repair Shop <-> Wash & Fold, their own "cut through the laundromat"
-  { x: 1340, y: 410, w: ROAD_WIDTH.alley, h: 220, tier: 'alley' }, // Warehouse: a quiet cut behind Annex Fence
-  { x: 780, y: 164, w: ROAD_WIDTH.alley, h: 46, tier: 'alley' }, // Downtown: School's south side to Marlow Street, off the plaza
-  { x: 348, y: 40, w: ROAD_WIDTH.alley, h: 160, tier: 'alley' }, // Residential North: the rear yards behind Ellen's
+  /*
+   * Alleys — the shortcuts, one per built-up district now rather than four
+   * for the whole map. See the tier comment above for why these matter more
+   * than their width suggests: `systems/pursuit.ts`'s `underTreeCover()`
+   * concealment is authored around them, and every one of them is a way
+   * between two blocks that no camera in `world/collectibles.ts` is aimed
+   * down.
+   */
+  { x: 348, y: 40, w: ROAD_WIDTH.alley, h: 160, tier: 'alley' }, // 1. rear yards behind Ellen's
+  { x: 784, y: 30, w: 20, h: 150, tier: 'alley' }, // 2. School's east side to the Corner Market's yard
+  { x: 1336, y: 206, w: 24, h: 136, tier: 'alley' }, // 3. the service cut between Library and Records
+  { x: 292, y: 392, w: 26, h: 114, tier: 'alley' }, // 4. Repair Shop <-> Wash & Fold, the strip's own cut-through
+  { x: 1308, y: 392, w: 26, h: 300, tier: 'alley' }, // 6. the full-depth back cut through The Works
+  { x: 208, y: 822, w: 22, h: 118, tier: 'alley' }, // 7. the depot's own service lane
+  { x: 692, y: 784, w: 26, h: 130, tier: 'alley' }, // 8. between Casey's and the Vasquez house
+  { x: 854, y: 784, w: 26, h: 130, tier: 'alley' }, // 8. between the Vasquez house and Kestrel Row
+  { x: 1398, y: 784, w: 20, h: 138, tier: 'alley' }, // 9. MegaMart's goods-in lane, off the arcade end
 
-  // Pedestrian paths — Riverside Park's own connective tissue.
-  { x: 472, y: 500, w: ROAD_WIDTH.major + 56, h: ROAD_WIDTH.path, tier: 'path' }, // West End into the park
-  { x: 745, y: 500, w: 45, h: ROAD_WIDTH.path, tier: 'path' }, // Ballpark to the Green
-  { x: 780, y: 650, w: ROAD_WIDTH.path, h: 90, tier: 'path' }, // the park south, toward South Residential
+  /*
+   * Pedestrian paths — Liberty Park's own connective tissue, and the
+   * reason the middle cell of the 3x3 is a crossroads rather than an
+   * obstacle. Four marked entrances, one on each side, so the park can be
+   * entered from every district that touches it.
+   */
+  { x: 440, y: 560, w: 142, h: ROAD_WIDTH.path, tier: 'path' }, // west entrance, across the major from Old Market
+  { x: 686, y: 500, w: 20, h: ROAD_WIDTH.path, tier: 'path' }, // Ballpark to the Green
+  { x: 860, y: 386, w: ROAD_WIDTH.path, h: 20, tier: 'path' }, // north entrance, off the major
+  { x: 1020, y: 496, w: 110, h: ROAD_WIDTH.path, tier: 'path' }, // east entrance, across the secondary into The Works
+  { x: 780, y: 600, w: ROAD_WIDTH.path, h: 140, tier: 'path' }, // the park south, toward The Blocks
 ];
 
 /**
@@ -1185,11 +1773,11 @@ function drawDiagonalRoad(ctx: CanvasRenderingContext2D, cx: number, cy: number,
   ctx.restore();
 }
 
-/** One corner-cut, at the seam between Downtown and Riverside Park — the
- * "10-15% weird geometry" the build note asked for, spent in one place
- * rather than spread thin enough to disappear. */
+/** One corner-cut, across Liberty Park's south-west lawn toward the
+ * Crossroads — the "10-15% weird geometry" the build note asked for, spent
+ * in one place rather than spread thin enough to disappear. */
 const DIAGONAL_ROADS: { cx: number; cy: number; length: number; angleDeg: number }[] = [
-  { cx: 610, cy: 420, length: 130, angleDeg: -35 },
+  { cx: 596, cy: 648, length: 150, angleDeg: -32 },
 ];
 
 /** Streets, with a broken centre line on `major`/`secondary` tiers only —
@@ -1229,6 +1817,38 @@ function drawRoads(ctx: CanvasRenderingContext2D) {
     }
   }
   ctx.globalAlpha = 1;
+
+  /*
+   * Alleys, darkened. `drawGroundGrid` blits the same asphalt tile under
+   * every road tier, so once the sheet loads an alley and an arterial are
+   * the same surface at different widths — and width alone is a weak tell
+   * at this zoom for the one tier the route-choice design actually leans
+   * on. This is the overlay that puts it back: a shadow wash for the
+   * buildings either side, a grit speckle so it reads as unswept rather
+   * than merely dim, and no centreline, ever. Deliberately drawn for the
+   * sprite path *and* the flat-fill fallback, since the fallback's own
+   * `roadAlley` colour is already darker but not by enough.
+   */
+  for (const road of ROAD_SEGMENTS) {
+    if (road.tier !== 'alley') continue;
+    ctx.fillStyle = 'rgba(12, 15, 20, 0.34)';
+    ctx.fillRect(road.x, road.y, road.w, road.h);
+    const rand = noise(`alley:${road.x}:${road.y}`);
+    ctx.fillStyle = 'rgba(150, 156, 168, 0.10)';
+    const specks = Math.round((road.w * road.h) / 90);
+    for (let i = 0; i < specks; i++) {
+      ctx.fillRect(px(road.x + rand() * road.w), px(road.y + rand() * road.h), 2, 1);
+    }
+    // A darker lip where the walls come down on each long side.
+    ctx.fillStyle = 'rgba(8, 10, 14, 0.28)';
+    if (road.h >= road.w) {
+      ctx.fillRect(road.x, road.y, 2, road.h);
+      ctx.fillRect(road.x + road.w - 2, road.y, 2, road.h);
+    } else {
+      ctx.fillRect(road.x, road.y, road.w, 2);
+      ctx.fillRect(road.x, road.y + road.h - 2, road.w, 2);
+    }
+  }
 
   // Pedestrian paths get a dotted gravel tread instead of a centreline.
   ctx.fillStyle = PALETTE.curb;
@@ -1308,7 +1928,7 @@ function drawCracks(ctx: CanvasRenderingContext2D) {
 
 /**
  * The river along the west/south-west edge and the rail line along the
- * north edge into the Warehouse District — the geography that gives the
+ * north edge into The Works — the geography that gives the
  * town's own boundary a reason to be there, rather than the map just
  * stopping. Both are pure ground texture: neither carries collision
  * (Overworld.tsx's collision only ever checks `LOCATIONS`/solid
@@ -1317,7 +1937,7 @@ function drawCracks(ctx: CanvasRenderingContext2D) {
  * that was only ever asked to give the edge an identity, not to gate it.
  */
 function drawEdgeGeography(ctx: CanvasRenderingContext2D) {
-  // The river: West End and Transit Hub's own waterfront edge.
+  // The river: Old Market and Southside's own waterfront edge.
   const riverX = 0;
   const riverW = 36;
   const riverY = 392;
@@ -1331,14 +1951,21 @@ function drawEdgeGeography(ctx: CanvasRenderingContext2D) {
     ctx.fillRect(riverX + rand() * (riverW - w), y, w, 2);
   }
 
-  // The rail line: the north edge, continuing along the Warehouse
-  // District's own western flank down toward the Rail Spur.
+  /*
+   * The rail line: along the north edge, then down the map's own eastern
+   * margin to the Rail Spur's latitude in The Works. It used to run down
+   * x1128 — which was the old Warehouse District's western flank and is
+   * now the Civic Zone's frontage and a secondary road, so on the 3x3 it
+   * was a freight line through the middle of City Hall's street. The far
+   * edge is where a real one would be, and it still arrives exactly where
+   * the district's own dead siding is.
+   */
   ctx.fillStyle = PALETTE.rail;
   ctx.fillRect(0, 0, MAP_WIDTH, 18);
-  ctx.fillRect(1128, 18, 30, 420);
+  ctx.fillRect(1580, 18, 20, 640);
   ctx.fillStyle = PALETTE.railTie;
   for (let x = 8; x < MAP_WIDTH; x += 16) ctx.fillRect(x, 3, 4, 12);
-  for (let y = 26; y < 438; y += 16) ctx.fillRect(1132, y, 22, 4);
+  for (let y = 26; y < 658; y += 16) ctx.fillRect(1583, y, 14, 4);
 }
 
 /**
@@ -1348,20 +1975,34 @@ function drawEdgeGeography(ctx: CanvasRenderingContext2D) {
  * before buildings, so a building in front of one simply occludes it, the
  * same depth order everything else on this canvas already uses.
  */
-const STREETLIGHT_POINTS: { x: number; y: number }[] = [
+const STREETLIGHT_POINTS: { x: number; y: number; surveilled?: boolean }[] = [
   { x: 500, y: 364 }, // the Downtown Crossroads itself — the brightest corner in town
-  { x: 200, y: 220 }, // Residential North's own street
-  { x: 900, y: 100 }, // Downtown, between the school and the library
-  { x: 1300, y: 220 }, // Warehouse District, Row 1
-  { x: 1300, y: 720 }, // Warehouse District, Row 2
-  { x: 200, y: 540 }, // West End, near the Repair Shop/Wash & Fold alley
-  { x: 700, y: 500 }, // Riverside Park, the approach from the Ballpark
-  { x: 944, y: 494 }, // The Green, by the pond
-  { x: 200, y: 900 }, // Transit Hub
-  { x: 1300, y: 900 }, // Commercial Strip
+  { x: 200, y: 240 }, // 1. The Heights, the district street
+  { x: 900, y: 210 }, // 2. Main Street, between the market and the square
+  { x: 1128, y: 210 }, // 3. Civic Zone, the west approach
+  { x: 1480, y: 210 }, // 3. Civic Zone, the Data Centre gate
+  { x: 132, y: 536 }, // 4. Old Market, the strip's west end
+  { x: 380, y: 536 }, // 4. Old Market, the alley's south mouth
+  { x: 1200, y: 554 }, // 6. The Works, Row 1
+  { x: 1460, y: 720 }, // 6. The Works, the scrapyard end
+  { x: 120, y: 970 }, // 7. Southside, the depot
+  { x: 800, y: 950 }, // 8. The Blocks
+  { x: 1250, y: 950 }, // 9. The Plaza
+  /*
+   * Liberty Park's own two, and the one deliberately surveilled lamp on
+   * the map. The redesign brief's contrast note: "a peaceful area makes
+   * the surrounding dystopian elements more noticeable" — this is that,
+   * made as small and easy to miss as a real one would be, on the one
+   * lamppost in the park a player might otherwise never look twice at.
+   * Placed on open grass rather than at the fountain: everything within a
+   * few metres of the fountain gets painted over by `drawGreen`'s own
+   * path, hedging and basin, all drawn after streetlights.
+   */
+  { x: 640, y: 660, surveilled: true },
+  { x: 960, y: 646 },
 ];
 
-function drawStreetlight(ctx: CanvasRenderingContext2D, p: { x: number; y: number }) {
+function drawStreetlight(ctx: CanvasRenderingContext2D, p: { x: number; y: number; surveilled?: boolean }) {
   const x = px(p.x);
   const topY = px(p.y - 22);
 
@@ -1378,6 +2019,228 @@ function drawStreetlight(ctx: CanvasRenderingContext2D, p: { x: number; y: numbe
   ctx.beginPath();
   ctx.arc(x, topY, 3, 0, Math.PI * 2);
   ctx.fill();
+
+  if (p.surveilled) {
+    // A small camera unit on a short bracket, mounted just under the lamp
+    // head — the same dark housing/lens colours `drawCamera` uses, at a
+    // fraction of the size, so it reads as "also on this post" rather than
+    // as a second landmark competing with the lamp itself.
+    const armY = topY + 5;
+    ctx.strokeStyle = PALETTE.cameraDark;
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(x, armY);
+    ctx.lineTo(x + 6, armY + 2);
+    ctx.stroke();
+    ctx.fillStyle = PALETTE.cameraDark;
+    ctx.fillRect(x + 5, armY, 5, 3.5);
+    ctx.fillStyle = PALETTE.camera;
+    ctx.beginPath();
+    ctx.arc(x + 10, armY + 1.7, 1.1, 0, Math.PI * 2);
+    ctx.fill();
+  }
+}
+
+/**
+ * One mark: the A's two legs, its crossbar, and however much of the circle
+ * got drawn. Hand-cut rather than stencilled — each stroke is nudged by
+ * the mark's own seeded noise so no two are the same shape, which is the
+ * whole point of the `claiming` state in `ui/GenAMark.tsx`: it is being
+ * claimed in real time by different people who have each seen it once.
+ */
+function drawGenAMark(ctx: CanvasRenderingContext2D, m: WallMark) {
+  const rand = noise(`gena:${m.x}:${m.y}`);
+  const r = m.size / 2;
+  const cx = m.x;
+  const cy = m.y;
+  const jitter = () => (rand() - 0.5) * (m.size * 0.14);
+
+  if (m.sticker) {
+    // A photocopied sticker: pale paper, slightly askew, its corner lifted.
+    ctx.save();
+    ctx.translate(px(cx), px(cy));
+    ctx.rotate((rand() - 0.5) * 0.4);
+    ctx.fillStyle = PALETTE.sticker;
+    ctx.globalAlpha = 0.85;
+    ctx.fillRect(-r - 1, -r - 1, m.size + 2, m.size + 2);
+    ctx.globalAlpha = 1;
+    ctx.strokeStyle = PALETTE.stickerInk;
+    ctx.lineWidth = 1.2;
+    ctx.beginPath();
+    ctx.moveTo(0, -r + 1);
+    ctx.lineTo(-r + 1.5, r - 1);
+    ctx.moveTo(0, -r + 1);
+    ctx.lineTo(r - 1.5, r - 1);
+    ctx.moveTo(-r + 0.5, 0.5);
+    ctx.lineTo(r - 0.5, 0.5);
+    ctx.stroke();
+    if (m.closure > 0) {
+      ctx.beginPath();
+      ctx.arc(0, 0, r - 0.5, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * m.closure);
+      ctx.stroke();
+    }
+    ctx.restore();
+    return;
+  }
+
+  ctx.strokeStyle = m.closure >= 1 ? PALETTE.genA : PALETTE.genAFade;
+  ctx.lineWidth = Math.max(1.4, m.size * 0.16);
+  ctx.lineCap = 'round';
+
+  ctx.beginPath();
+  ctx.moveTo(px(cx + jitter()), px(cy - r));
+  ctx.lineTo(px(cx - r * 0.82 + jitter()), px(cy + r));
+  ctx.moveTo(px(cx + jitter()), px(cy - r));
+  ctx.lineTo(px(cx + r * 0.82 + jitter()), px(cy + r));
+  // The wide crossbar — the thing that actually reads as an anarchy A
+  // rather than a letter A in a circle, per `ui/GenAMark.tsx`'s own note.
+  ctx.moveTo(px(cx - r * 1.1), px(cy + r * 0.16 + jitter()));
+  ctx.lineTo(px(cx + r * 1.1), px(cy + r * 0.16 + jitter()));
+  ctx.stroke();
+
+  if (m.closure > 0) {
+    // The circle starts at the top-left and runs clockwise, so an
+    // unfinished one always has its gap where somebody got interrupted.
+    ctx.beginPath();
+    ctx.arc(px(cx), px(cy), r * 1.08, -Math.PI * 0.75, -Math.PI * 0.75 + Math.PI * 2 * Math.min(1, m.closure));
+    ctx.stroke();
+  }
+  ctx.lineCap = 'butt';
+}
+
+/**
+ * THE MARK THE PLAYER LEAVES.
+ *
+ * A sabotaged camera comes back: SafeTrace replaces the housing, the
+ * cooldown expires and the lens is live again. Which meant that until now
+ * the single most consequential thing a player does to this town left no
+ * trace at all a week later — the loop was invisible, and "walk through
+ * the place and see what you changed" was a design note with nothing
+ * behind it.
+ *
+ * This is that trace, and it costs no new persistence: `world.collectedNodes`
+ * already keeps a node's record *after* its respawn window closes (see
+ * `systems/materials.ts` — only a lockdown sweep's `repairNetwork` ever
+ * clears one). So the existence of a record, independent of whether the
+ * node is currently down, is a permanent "this one got taken apart" flag
+ * the save has always been carrying and nothing was reading.
+ *
+ * Drawn at the node's **authored** position rather than wherever a respawn
+ * has since moved it to (`world/relocate.ts`), because the paint is on the
+ * pole and the pole doesn't move. A camera that relocated away leaves a
+ * bare tagged post behind, which is the clearest possible read: they took
+ * the lens off this one.
+ *
+ * Kept deliberately small and dry — a tag and a sticker, not a mural. The
+ * Gen A mark is rare on this map on purpose (`world/marks.ts`), and a player
+ * who has worked over twenty poles should end up with a town that looks
+ * marked, not a town that looks vandalised.
+ */
+function drawSabotageScar(ctx: CanvasRenderingContext2D, scar: { x: number; y: number; tagged: boolean }) {
+  const baseY = scar.y + 8;
+  const rand = noise(`scar:${scar.x}:${scar.y}`);
+
+  // The post itself, still standing.
+  ctx.fillStyle = PALETTE.cameraDeadCable;
+  ctx.fillRect(px(scar.x - 1), px(baseY), 2, 10);
+
+  // Spray at the foot of it, half on the post and half on the pavement —
+  // the angle somebody actually paints at when they are in a hurry.
+  ctx.strokeStyle = PALETTE.genAFade;
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(px(scar.x - 5 + rand() * 2), px(baseY + 9));
+  ctx.lineTo(px(scar.x + 5 - rand() * 2), px(baseY + 4));
+  ctx.stroke();
+
+  // Every second one carries the mark rather than just paint — see the
+  // rarity note above.
+  if (scar.tagged) drawGenAMark(ctx, { x: scar.x + 7, y: baseY + 4, size: 8, closure: 0.6 + rand() * 0.4, stage: 0 });
+}
+
+/**
+ * Cameras somebody already dealt with, standing dark from the first frame
+ * of a new game.
+ *
+ * These are deliberately *not* `CameraNode`s: they carry no loot, no Heat
+ * price and no coverage, so they never touch `systems/coverage.ts`'s
+ * percentage or the sabotage economy. What they are for is the one thing
+ * the reference layout asks for that a mechanic can't say — that taking a
+ * camera down is a thing people here already do. A player who has never
+ * dismantled anything has still seen three housings with a bag over the
+ * lens, and knows what the town looks like after they start.
+ *
+ * `variant` is who got there first and how much trouble they took over
+ * it: a carrier bag and a zip tie, a sticker straight over the glass, or
+ * the cable cut and left swinging.
+ */
+const DEAD_CAMERAS: { x: number; y: number; variant: 'bagged' | 'tagged' | 'cut' }[] = [
+  // Old Market — the district whose whole business is not being recorded.
+  { x: 268, y: 540, variant: 'bagged' },
+  { x: 96, y: 690, variant: 'cut' },
+  // The Works, on the Annex fence line beside the gap.
+  { x: 1516, y: 620, variant: 'cut' },
+  // The Blocks — somebody's neighbour, on a stepladder, on a Sunday.
+  { x: 792, y: 908, variant: 'tagged' },
+  // Main Street, on the square's east corner: the most public one, and
+  // the one that keeps getting replaced.
+  { x: 806, y: 314, variant: 'tagged' },
+];
+
+/** A dead housing: no cone, no tally light, no revolving lens — and one
+ * of three tells for how it died. */
+function drawDeadCamera(ctx: CanvasRenderingContext2D, c: { x: number; y: number; variant: 'bagged' | 'tagged' | 'cut' }) {
+  const size = 14;
+  const x = px(c.x - size / 2);
+  const y = px(c.y - size / 2);
+
+  drawCameraPost(ctx, x + size / 2, y + size);
+
+  ctx.globalAlpha = 0.75;
+  ctx.fillStyle = PALETTE.cameraDead;
+  ctx.fillRect(x, y, size, size);
+  ctx.strokeStyle = PALETTE.cameraDeadCable;
+  ctx.lineWidth = 1;
+  ctx.strokeRect(x - 0.5, y - 0.5, size + 1, size + 1);
+  ctx.globalAlpha = 1;
+
+  if (c.variant === 'bagged') {
+    ctx.fillStyle = PALETTE.sticker;
+    ctx.globalAlpha = 0.55;
+    ctx.beginPath();
+    ctx.moveTo(x - 2, y - 1);
+    ctx.lineTo(x + size + 2, y - 1);
+    ctx.lineTo(x + size - 1, y + size + 3);
+    ctx.lineTo(x + 1, y + size + 3);
+    ctx.closePath();
+    ctx.fill();
+    ctx.globalAlpha = 1;
+    ctx.strokeStyle = PALETTE.cameraDeadCable;
+    ctx.beginPath();
+    ctx.moveTo(x, y + size);
+    ctx.lineTo(x + size, y + size);
+    ctx.stroke();
+  } else if (c.variant === 'tagged') {
+    ctx.fillStyle = PALETTE.stickerInk;
+    ctx.globalAlpha = 0.8;
+    ctx.fillRect(x + 2, y + 3, size - 4, size - 7);
+    ctx.globalAlpha = 1;
+    ctx.strokeStyle = PALETTE.tag;
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(x - 2, y + size + 1);
+    ctx.lineTo(x + size + 3, y - 2);
+    ctx.stroke();
+  } else {
+    // Cut: the housing hangs, and the feed cable is left swinging.
+    ctx.strokeStyle = PALETTE.cameraDeadCable;
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.moveTo(x + size / 2, y);
+    ctx.lineTo(x + size / 2 + 4, y - 7);
+    ctx.lineTo(x + size / 2 - 2, y - 12);
+    ctx.stroke();
+  }
 }
 
 /** A resistance place, warming the street it stands on. */
@@ -1421,7 +2284,7 @@ function drawLocation(ctx: CanvasRenderingContext2D, loc: OverworldLocation, isH
       drawPlaza(ctx, loc);
       break;
     case 'green':
-      drawGreen(ctx, loc);
+      drawGreen(ctx, loc, now);
       break;
     case 'warehouse':
       drawWarehouse(ctx, loc);
@@ -1446,6 +2309,18 @@ function drawLocation(ctx: CanvasRenderingContext2D, loc: OverworldLocation, isH
       break;
     case 'transit':
       drawTransit(ctx, loc);
+      break;
+    case 'civic':
+      drawCivic(ctx, loc, tier);
+      break;
+    case 'datacenter':
+      drawDataCenter(ctx, loc, now);
+      break;
+    case 'bigbox':
+      drawBigBox(ctx, loc, tier);
+      break;
+    case 'substation':
+      drawSubstation(ctx, loc, now);
       break;
     default:
       drawBuilding(ctx, loc, tier);
@@ -1522,6 +2397,7 @@ function drawRevolvingLens(ctx: CanvasRenderingContext2D, cx: number, cy: number
  * its own three kinds.
  */
 function drawSabotageDamage(ctx: CanvasRenderingContext2D, x: number, y: number, size: number, now: number) {
+  // Cut feed cable, hanging.
   ctx.strokeStyle = PALETTE.junctionDark;
   ctx.lineWidth = 1;
   ctx.beginPath();
@@ -1531,6 +2407,30 @@ function drawSabotageDamage(ctx: CanvasRenderingContext2D, x: number, y: number,
   ctx.moveTo(x + size * 0.68, y + size);
   ctx.lineTo(x + size * 0.8, y + size + 4);
   ctx.stroke();
+
+  /*
+   * Hazard tape across the housing, and the dead status light beside it.
+   *
+   * A dimmed box with a spark on it was the whole of "you took this apart"
+   * before, which is too quiet for the one action in the game that visibly
+   * changes the town. Tape is what actually appears on a broken municipal
+   * fitting within a day of it breaking — it isn't the player's mark, it's
+   * the *council's*, which is the better joke: the town tidies up after
+   * them and in doing so flags every place they've been.
+   */
+  ctx.save();
+  ctx.translate(px(x + size / 2), px(y + size / 2));
+  ctx.rotate(-0.32);
+  ctx.fillStyle = PALETTE.gateArm;
+  ctx.fillRect(-size * 0.85, -2.5, size * 1.7, 5);
+  ctx.fillStyle = PALETTE.gateArmDark;
+  for (let i = -size * 0.85; i < size * 0.85; i += 5) ctx.fillRect(px(i), -2.5, 2.5, 5);
+  ctx.restore();
+
+  // The tally light, off — the one detail a live housing has that this
+  // deliberately doesn't (see `drawRecordingLight`).
+  ctx.fillStyle = PALETTE.cameraDeadCable;
+  ctx.fillRect(px(x + size - 4), px(y + 2), 2, 2);
 
   // Same irregular double-flicker every other "this is live" tell on this
   // canvas uses (the title screen's REC dot, a camera's own status light) —
@@ -1848,6 +2748,91 @@ function drawHouse(ctx: CanvasRenderingContext2D, loc: OverworldLocation, tier: 
   ctx.fillRect(win.win2X, win.winY, win.winSize, win.winSize);
 
   drawGlitchTear(ctx, loc, tier, roofH);
+  drawHouseYardProps(ctx, loc);
+}
+
+/**
+ * `casey_house` is The Blocks' own story house in a district
+ * with real acreage to spare, and its own blurb already describes a scene
+ * ("For Sale sign. The swing set is still up.") that never made it past
+ * text — the one lone house in that whole district was reading as any
+ * other house instead of the specific abandoned one the writing means.
+ * Same id-keyed, collision-free approach as `drawWarehouseYardProps`.
+ */
+function drawHouseYardProps(ctx: CanvasRenderingContext2D, loc: OverworldLocation) {
+  if (loc.id !== 'casey_house') return;
+
+  drawForSaleSign(ctx, loc.x - 14, loc.y + loc.h - 4);
+  drawSwingSet(ctx, loc.x + loc.w + 20, loc.y + loc.h - 2);
+}
+
+/** A post-and-panel yard sign — two thin legs and a rectangle, small enough
+ * to read as signage rather than a second structure. */
+function drawForSaleSign(ctx: CanvasRenderingContext2D, x: number, groundY: number) {
+  const signW = 20;
+  const signH = 12;
+  const postH = 10;
+
+  ctx.strokeStyle = PALETTE.porchPost;
+  ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  ctx.moveTo(px(x + 4), px(groundY));
+  ctx.lineTo(px(x + 4), px(groundY - postH));
+  ctx.moveTo(px(x + signW - 4), px(groundY));
+  ctx.lineTo(px(x + signW - 4), px(groundY - postH));
+  ctx.stroke();
+
+  ctx.fillStyle = 'rgba(0,0,0,0.18)';
+  ctx.fillRect(px(x), px(groundY - postH - signH + 2), signW, signH);
+  ctx.fillStyle = PALETTE.forSaleSign;
+  ctx.fillRect(px(x - 1), px(groundY - postH - signH), signW, signH);
+  // Two scribbled lines standing in for the sign's own text — legible as
+  // "something is written here" without needing real type at this scale.
+  ctx.strokeStyle = PALETTE.forSaleText;
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(px(x + 3), px(groundY - postH - signH * 0.62));
+  ctx.lineTo(px(x + signW - 4), px(groundY - postH - signH * 0.62));
+  ctx.moveTo(px(x + 5), px(groundY - postH - signH * 0.3));
+  ctx.lineTo(px(x + signW - 7), px(groundY - postH - signH * 0.3));
+  ctx.stroke();
+}
+
+/** A swing set — an A-frame at each end, a crossbar, two hanging seats.
+ * Static, no one on it, per "the swing set is still up" — a detail that's
+ * doing the work of a family who isn't there any more. */
+function drawSwingSet(ctx: CanvasRenderingContext2D, x: number, groundY: number) {
+  const w = 34;
+  const barY = groundY - 22;
+
+  ctx.strokeStyle = PALETTE.swingFrame;
+  ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  // Left A-frame.
+  ctx.moveTo(px(x - 4), px(groundY));
+  ctx.lineTo(px(x + 5), px(barY));
+  ctx.lineTo(px(x + 14), px(groundY));
+  // Right A-frame.
+  ctx.moveTo(px(x + w - 14), px(groundY));
+  ctx.lineTo(px(x + w - 5), px(barY));
+  ctx.lineTo(px(x + w + 4), px(groundY));
+  // Crossbar.
+  ctx.moveTo(px(x + 5), px(barY));
+  ctx.lineTo(px(x + w - 5), px(barY));
+  ctx.stroke();
+
+  ctx.strokeStyle = PALETTE.swingChain;
+  ctx.lineWidth = 1;
+  for (const seatX of [x + w * 0.32, x + w * 0.68]) {
+    ctx.beginPath();
+    ctx.moveTo(px(seatX - 3), px(barY));
+    ctx.lineTo(px(seatX - 2), px(groundY - 5));
+    ctx.moveTo(px(seatX + 3), px(barY));
+    ctx.lineTo(px(seatX + 2), px(groundY - 5));
+    ctx.stroke();
+    ctx.fillStyle = PALETTE.swingSeat;
+    ctx.fillRect(px(seatX - 4), px(groundY - 6), 8, 2);
+  }
 }
 
 /**
@@ -2099,17 +3084,125 @@ function drawHedgeBorder(ctx: CanvasRenderingContext2D, x: number, y: number, w:
 }
 
 /**
- * The Green: a real formal garden rather than Town Square's civic plaza
- * reused with a different tint. A spine path runs from the west entrance
- * (where the Ballpark path already arrives, per `ROAD_SEGMENTS`'s own
- * comment) through a gazebo to a round pond, with two hedge-bordered lawn
- * panels — one north, one south — mirrored across that spine rather than
- * scattered. Every piece here is either the pond/path sprites verified
- * against the source sheet, or a shape (gazebo, hedge border, benches)
- * already proven elsewhere in this file, just arranged with an actual axis
- * of symmetry instead of by eye.
+ * The fountain. A stone kerb, water in the basin, a two-tier head, and a
+ * plume that rises and falls on a slow cycle — the one thing on this map
+ * that moves because it is pleasant rather than because it is watching
+ * something. Falls back to the sheet's own pond tile for the water when
+ * the sprites are loaded, so the basin matches every other water surface
+ * in town; the stonework and the head are drawn either way.
  */
-function drawGreen(ctx: CanvasRenderingContext2D, loc: OverworldLocation) {
+function drawFountain(ctx: CanvasRenderingContext2D, cx: number, cy: number, size: number, seed: string, now: number) {
+  const r = size / 2;
+
+  ctx.fillStyle = PALETTE.pavingDark;
+  ctx.beginPath();
+  ctx.ellipse(px(cx), px(cy), r + 4, r * 0.72 + 4, 0, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.fillStyle = PALETTE.pillar;
+  ctx.beginPath();
+  ctx.ellipse(px(cx), px(cy), r + 2, r * 0.72 + 2, 0, 0, Math.PI * 2);
+  ctx.fill();
+
+  if (spriteSheetReady()) {
+    drawSpriteTile(ctx, POND_TILE, cx, cy, size, size * 0.78);
+  } else {
+    ctx.fillStyle = PALETTE.pondWater;
+    ctx.beginPath();
+    ctx.ellipse(px(cx), px(cy), r, r * 0.72, 0, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  // The head: a plinth, a lower bowl, an upper bowl, and the plume.
+  ctx.fillStyle = PALETTE.pillarShade;
+  ctx.fillRect(px(cx - 3), px(cy - r * 0.5), 6, r * 0.6);
+  ctx.fillStyle = PALETTE.pillar;
+  ctx.beginPath();
+  ctx.ellipse(px(cx), px(cy - r * 0.5), r * 0.5, r * 0.2, 0, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.fillRect(px(cx - 2), px(cy - r * 1.0), 4, r * 0.5);
+  ctx.beginPath();
+  ctx.ellipse(px(cx), px(cy - r * 1.0), r * 0.28, r * 0.12, 0, 0, Math.PI * 2);
+  ctx.fill();
+
+  // Water. Two arcs off the upper bowl and a plume above it, all keyed to
+  // one slow shared cycle so the whole thing breathes rather than ticks.
+  const t = ((now + noise(`fountain:${seed}`)() * 1000) % 2400) / 2400;
+  const lift = 3 + Math.sin(t * Math.PI * 2) * 2;
+  ctx.strokeStyle = PALETTE.riverRipple;
+  ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  ctx.moveTo(px(cx), px(cy - r * 1.05 - lift));
+  ctx.lineTo(px(cx), px(cy - r * 1.05));
+  ctx.stroke();
+  ctx.strokeStyle = PALETTE.pondWater;
+  ctx.lineWidth = 1;
+  for (const dir of [-1, 1]) {
+    ctx.beginPath();
+    ctx.moveTo(px(cx), px(cy - r * 1.02));
+    ctx.quadraticCurveTo(px(cx + dir * r * 0.4), px(cy - r * 0.9 - lift), px(cx + dir * r * 0.55), px(cy - r * 0.45));
+    ctx.stroke();
+  }
+}
+
+/**
+ * COMMUNITY NOT SURVEILLANCE, strung between two posts across the park
+ * path. Three words on two lines, drawn at a size a 16px-tile town can
+ * actually carry: the canvas has no font stack of its own (the game keeps
+ * its type in the DOM), so this is the one place worth spending a real
+ * `fillText` call — a banner nobody can read is just a rectangle, and the
+ * whole reason the council keeps asking for it to come down is that people
+ * can read it.
+ */
+function drawCommonsBanner(ctx: CanvasRenderingContext2D, x0: number, x1: number, y: number) {
+  const w = x1 - x0;
+
+  ctx.fillStyle = PALETTE.bandstandPost;
+  ctx.fillRect(px(x0), px(y), 2, 30);
+  ctx.fillRect(px(x1), px(y), 2, 30);
+
+  // A slack line between the posts, and the cloth hanging off it.
+  ctx.strokeStyle = PALETTE.bandstandPost;
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(px(x0), px(y + 2));
+  ctx.quadraticCurveTo(px(x0 + w / 2), px(y + 6), px(x1), px(y + 2));
+  ctx.stroke();
+
+  ctx.fillStyle = PALETTE.banner;
+  ctx.fillRect(px(x0), px(y + 4), w, 18);
+  ctx.fillStyle = 'rgba(0,0,0,0.10)';
+  ctx.fillRect(px(x0), px(y + 20), w, 2);
+
+  ctx.save();
+  ctx.fillStyle = PALETTE.bannerText;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.font = '7px monospace';
+  ctx.fillText('COMMUNITY', px(x0 + w / 2), px(y + 10));
+  ctx.fillText('NOT SURVEILLANCE', px(x0 + w / 2), px(y + 18));
+  ctx.restore();
+}
+
+/**
+ * THE GREEN, and the fountain at the middle of the map.
+ *
+ * Liberty Park is the centre cell of the 3x3 and this is the centre of
+ * Liberty Park, which makes the fountain the thing a player orients the
+ * whole town by — so it is drawn as a real basin with a tiered head and
+ * moving water rather than the flat pond tile it used to be. Everything
+ * else is arranged around it: a spine path from the west entrance through
+ * a gazebo to the basin, two hedge-bordered lawn panels mirrored north and
+ * south, and the COMMUNITY NOT SURVEILLANCE banner strung across the path
+ * on the fountain's own axis.
+ *
+ * The banner is the one piece of lettering on this canvas that isn't a
+ * shape standing in for type, and it earns that: it is the only sentence
+ * anybody in Bellhaven has said out loud in public, and the council has
+ * asked twice to have it taken down (see the location's own blurb). It is
+ * drawn, never spoken — no scene explains it, the same rule the Gen A mark
+ * is held to.
+ */
+function drawGreen(ctx: CanvasRenderingContext2D, loc: OverworldLocation, now: number) {
   ctx.fillStyle = PALETTE.lawnBase;
   ctx.fillRect(loc.x, loc.y, loc.w, loc.h);
   ctx.fillStyle = PALETTE.lawnAlt;
@@ -2141,16 +3234,8 @@ function drawGreen(ctx: CanvasRenderingContext2D, loc: OverworldLocation) {
 
   drawGazebo(ctx, loc.x + loc.w * 0.14, spineY);
 
-  const pondCx = loc.x + loc.w * 0.62;
-  const pondSize = Math.min(loc.w, loc.h) * 0.28;
-  if (spriteSheetReady()) {
-    drawSpriteTile(ctx, POND_TILE, pondCx, spineY, pondSize, pondSize);
-  } else {
-    ctx.fillStyle = PALETTE.pondWater;
-    ctx.beginPath();
-    ctx.ellipse(pondCx, spineY, pondSize / 2, pondSize / 2, 0, 0, Math.PI * 2);
-    ctx.fill();
-  }
+  drawFountain(ctx, loc.x + loc.w * 0.62, spineY, Math.min(loc.w, loc.h) * 0.3, loc.id, now);
+  drawCommonsBanner(ctx, loc.x + loc.w * 0.22, loc.x + loc.w * 0.5, spineY - 30);
 
   ctx.fillStyle = PALETTE.bench;
   ctx.fillRect(px(panelX + panelW - 20), px(panelBottom - 6), 16, 4);
@@ -2204,9 +3289,51 @@ function drawWarehouse(ctx: CanvasRenderingContext2D, loc: OverworldLocation) {
   ctx.fillRect(px(loc.x + loc.w * 0.25), loc.y - 3, 5, 4);
   ctx.fillRect(px(loc.x + loc.w * 0.65), loc.y - 3, 5, 4);
 
+  /*
+   * A SERVICE DOOR at the building's own back corner, and a dock apron in
+   * front of the roll door.
+   *
+   * The route design asks that important buildings have an obvious way in
+   * *and* a less obvious one, and until now every warehouse in The Works
+   * had exactly one opening: a roll door the width of half its frontage,
+   * facing the street. A player could be told there was a back way in and
+   * see nothing on the building to back that up. This is the tell — a
+   * single person-width steel door, no canopy, no sign, tucked against the
+   * upper corner away from the roll door, with the step and the wall lamp
+   * that mark a door somebody actually uses.
+   *
+   * It alternates corners per location id so a row of yards doesn't read
+   * as one building repeated, and it's drawn *before* the roll door so a
+   * narrow building's two openings can never fight over the same pixels.
+   */
+  const serviceLeft = noise(`service:${loc.id}`)() > 0.5;
+  const svcW = 9;
+  const svcX = serviceLeft ? loc.x + 5 : loc.x + loc.w - svcW - 5;
+  const svcY = loc.y + roofH + 3;
+  ctx.fillStyle = PALETTE.vent;
+  ctx.fillRect(px(svcX), px(svcY), svcW, 13);
+  ctx.fillStyle = PALETTE.rollDoorLine;
+  ctx.fillRect(px(svcX + (serviceLeft ? svcW - 3 : 1)), px(svcY + 6), 2, 2); // the handle
+  ctx.fillStyle = PALETTE.curb;
+  ctx.fillRect(px(svcX - 1), px(svcY + 13), svcW + 2, 2); // the step
+  // A bulkhead lamp over it, lit — somebody comes and goes through here.
+  ctx.fillStyle = PALETTE.windowLit;
+  ctx.fillRect(px(svcX + svcW / 2 - 1), px(svcY - 2), 3, 2);
+  ctx.fillStyle = 'rgba(240, 192, 122, 0.14)';
+  ctx.beginPath();
+  ctx.arc(px(svcX + svcW / 2), px(svcY - 1), 9, 0, Math.PI * 2);
+  ctx.fill();
+
   const doorW = loc.w * 0.5;
   const doorH = loc.h - roofH - 10;
   const doorX = loc.x + loc.w / 2 - doorW / 2;
+  // The dock apron: a concrete lip the width of the roll door, standing
+  // proud of the wall, with the two bumpers a truck actually backs onto.
+  ctx.fillStyle = PALETTE.pavingDark;
+  ctx.fillRect(px(doorX - 3), px(loc.y + loc.h - 2), doorW + 6, 7);
+  ctx.fillStyle = PALETTE.gateArmDark;
+  ctx.fillRect(px(doorX + 2), px(loc.y + loc.h + 2), 6, 3);
+  ctx.fillRect(px(doorX + doorW - 8), px(loc.y + loc.h + 2), 6, 3);
   ctx.fillStyle = PALETTE.rollDoor;
   ctx.fillRect(px(doorX), loc.y + roofH + 4, doorW, doorH);
   ctx.strokeStyle = PALETTE.rollDoorLine;
@@ -2243,6 +3370,176 @@ function drawWarehouse(ctx: CanvasRenderingContext2D, loc: OverworldLocation) {
   ctx.fillRect(loc.x, loc.y + loc.h - 5, loc.w, 5);
 
   drawTag(ctx, loc, roofH);
+  drawWarehouseYardProps(ctx, loc);
+}
+
+/**
+ * Five industrial locations share `drawWarehouse`'s shell (same
+ * roll door, same corrugated roof) because they're the same *kind* of
+ * building — but each one's own blurb already describes a completely
+ * different yard (cable spools, three bins, a fence with a gap, a dead rail
+ * siding, a stacked-car scrapyard), and none of that ever reached the
+ * canvas. This is what makes five warehouses read as five different places
+ * instead of one shape repeated five times — a couple of id-keyed props in
+ * the yard, drawn with the same primitives the Obstacle system already
+ * uses (`drawFence`, `drawBin`, `drawCrate`, `drawBarrel`) but as pure
+ * decoration, never registered in `OBSTACLES`, so there's no collision or
+ * connectivity-graph risk to re-check.
+ */
+function drawWarehouseYardProps(ctx: CanvasRenderingContext2D, loc: OverworldLocation) {
+  const yardY = loc.y + loc.h + 4;
+
+  switch (loc.id) {
+    case 'deja_jobsite': {
+      // "Spools of cable" — two cable reels, concentric rings on their side,
+      // stacked near the gate rather than centred, the way real cable drums
+      // get dumped and left rather than arranged.
+      drawCableSpool(ctx, loc.x + 14, yardY + 10, 12);
+      drawCableSpool(ctx, loc.x + 32, yardY + 14, 9);
+      break;
+    }
+    case 'fenwick_lot': {
+      // "Three bins" — literally three, lined up along the front wall.
+      const binW = 12;
+      const binH = 14;
+      for (let i = 0; i < 3; i++) {
+        drawBin(ctx, { id: `${loc.id}-bin-${i}`, x: loc.x + 10 + i * (binW + 6), y: yardY, w: binW, h: binH, kind: 'bin' });
+      }
+      break;
+    }
+    case 'annex_fence': {
+      // "A fence with a gap somebody keeps re-opening" — two chain-link runs
+      // with a deliberate break between them, not one continuous line.
+      const fenceH = 20;
+      const gap = 14;
+      const run = (loc.w - gap) / 2;
+      drawFence(ctx, { id: `${loc.id}-fence-l`, x: loc.x, y: yardY, w: run, h: fenceH, kind: 'fence' });
+      drawFence(ctx, { id: `${loc.id}-fence-r`, x: loc.x + run + gap, y: yardY, w: run, h: fenceH, kind: 'fence' });
+      break;
+    }
+    case 'rail_spur': {
+      drawBoxcar(ctx, loc.x + loc.w / 2, yardY + 14, Math.min(loc.w - 20, 96));
+      break;
+    }
+    case 'scrapyard': {
+      // "Stacked cars, a crane" — two crate-shaped hulks offset to read as a
+      // stack rather than a row, plus a simple crane silhouette in the corner.
+      drawCrate(ctx, { id: `${loc.id}-stack-a`, x: loc.x + 8, y: yardY, w: 20, h: 14, kind: 'crate' });
+      drawCrate(ctx, { id: `${loc.id}-stack-b`, x: loc.x + 12, y: yardY - 9, w: 16, h: 11, kind: 'crate' });
+      drawBarrel(ctx, { id: `${loc.id}-barrel`, x: loc.x + 36, y: yardY + 2, w: 10, h: 10, kind: 'barrel' });
+      drawCrane(ctx, loc.x + loc.w - 30, loc.y + loc.h);
+      break;
+    }
+  }
+}
+
+/** A cable reel on its side — two concentric rings and a hub, the shape a
+ * spent spool of cable actually makes lying flat in a yard. */
+function drawCableSpool(ctx: CanvasRenderingContext2D, cx: number, cy: number, r: number) {
+  ctx.fillStyle = 'rgba(0,0,0,0.2)';
+  ctx.beginPath();
+  ctx.ellipse(px(cx), px(cy + r - 1), r, r * 0.35, 0, 0, Math.PI * 2);
+  ctx.fill();
+
+  ctx.fillStyle = PALETTE.spoolBody;
+  ctx.beginPath();
+  ctx.arc(px(cx), px(cy), r, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.strokeStyle = PALETTE.spoolLine;
+  ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  ctx.arc(px(cx), px(cy), r, 0, Math.PI * 2);
+  ctx.stroke();
+  ctx.beginPath();
+  ctx.arc(px(cx), px(cy), r * 0.55, 0, Math.PI * 2);
+  ctx.stroke();
+  ctx.fillStyle = PALETTE.spoolLine;
+  ctx.beginPath();
+  ctx.arc(px(cx), px(cy), r * 0.14, 0, Math.PI * 2);
+  ctx.fill();
+}
+
+/** One rusted boxcar on a short dead siding — two rail lines with ties
+ * running under it, so it reads as parked on a spur rather than floating
+ * in the yard. The Rail Spur's own one-boxcar landmark, per its blurb. */
+function drawBoxcar(ctx: CanvasRenderingContext2D, cx: number, topY: number, w: number) {
+  const h = 20;
+  const x = cx - w / 2;
+  const railY1 = topY + h + 3;
+  const railY2 = topY + h + 7;
+
+  ctx.strokeStyle = PALETTE.rail;
+  ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  ctx.moveTo(px(x - 10), px(railY1));
+  ctx.lineTo(px(x + w + 10), px(railY1));
+  ctx.moveTo(px(x - 10), px(railY2));
+  ctx.lineTo(px(x + w + 10), px(railY2));
+  ctx.stroke();
+  ctx.strokeStyle = PALETTE.railTie;
+  ctx.lineWidth = 1;
+  for (let tx = x - 10; tx <= x + w + 10; tx += 6) {
+    ctx.beginPath();
+    ctx.moveTo(px(tx), px(railY1 - 1));
+    ctx.lineTo(px(tx), px(railY2 + 1));
+    ctx.stroke();
+  }
+
+  ctx.fillStyle = 'rgba(0,0,0,0.22)';
+  ctx.fillRect(px(x), px(topY + h - 1), w, 2);
+
+  ctx.fillStyle = PALETTE.boxcarBody;
+  ctx.fillRect(px(x), px(topY), w, h);
+  ctx.fillStyle = PALETTE.boxcarRoof;
+  ctx.fillRect(px(x - 1), px(topY - 2), w + 2, 3);
+  ctx.strokeStyle = PALETTE.boxcarLine;
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(px(x + w * 0.42), px(topY + 2));
+  ctx.lineTo(px(x + w * 0.42), px(topY + h - 2));
+  ctx.moveTo(px(x + w * 0.58), px(topY + 2));
+  ctx.lineTo(px(x + w * 0.58), px(topY + h - 2));
+  ctx.stroke();
+  ctx.fillStyle = PALETTE.boxcarRust;
+  ctx.fillRect(px(x + w * 0.12), px(topY + h * 0.55), w * 0.14, h * 0.4);
+  ctx.fillRect(px(x + w * 0.78), px(topY + h * 0.3), w * 0.1, h * 0.3);
+
+  ctx.fillStyle = PALETTE.boxcarWheel;
+  ctx.beginPath();
+  ctx.arc(px(x + w * 0.18), px(topY + h), 3, 0, Math.PI * 2);
+  ctx.arc(px(x + w * 0.82), px(topY + h), 3, 0, Math.PI * 2);
+  ctx.fill();
+}
+
+/** A gantry crane, drawn as a mast and a boom rather than anything that
+ * moves — "hasn't moved in a year" per the Scrapyard's own blurb, so it's a
+ * silhouette, not a piece of machinery mid-lift. */
+function drawCrane(ctx: CanvasRenderingContext2D, x: number, groundY: number) {
+  const mastH = 46;
+  const boomLen = 34;
+  const topY = groundY - mastH;
+
+  ctx.strokeStyle = PALETTE.craneBody;
+  ctx.lineWidth = 3;
+  ctx.beginPath();
+  ctx.moveTo(px(x), px(groundY));
+  ctx.lineTo(px(x), px(topY));
+  ctx.lineTo(px(x - boomLen), px(topY + 6));
+  ctx.stroke();
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(px(x + 5), px(groundY));
+  ctx.lineTo(px(x + 3), px(topY + 8));
+  ctx.stroke();
+
+  ctx.strokeStyle = PALETTE.craneCable;
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(px(x - boomLen + 4), px(topY + 8));
+  ctx.lineTo(px(x - boomLen + 4), px(topY + 22));
+  ctx.stroke();
+  ctx.fillStyle = PALETTE.craneBody;
+  ctx.fillRect(px(x - boomLen), px(topY + 22), 8, 5);
 }
 
 /** The Repair Shop: a smaller warehouse — one roll-up door instead of a
@@ -2301,6 +3598,7 @@ function drawGarage(ctx: CanvasRenderingContext2D, loc: OverworldLocation) {
   ctx.fillRect(loc.x, loc.y + loc.h - 5, loc.w, 5);
 
   drawTag(ctx, loc, roofH);
+  if (loc.id === 'repair_shop') drawWestEndPosterWall(ctx, loc);
 }
 
 /** The Ballpark: a field, not a building — grass, a dirt diamond, a
@@ -2557,7 +3855,17 @@ function drawShop(ctx: CanvasRenderingContext2D, loc: OverworldLocation, tier: T
   ctx.fillStyle = loc.color;
   ctx.fillRect(loc.x - awningOverhang, loc.y + roofH, loc.w + awningOverhang * 2, awningDepth);
 
-  drawWindows(ctx, loc, false);
+  if (loc.id === 'laundromat') {
+    // "A dryer running with nothing in it" — round portholes instead of
+    // `drawWindows`' generic square grid, since a laundromat's whole visual
+    // signature is the row of machine doors, not its wall. `drawShop` is
+    // deliberately one shared shell for four different storefronts (the
+    // doc comment above); this is the one place a shop gets to look like
+    // the specific thing its own blurb describes instead of "a shop".
+    drawLaundryPortholes(ctx, loc);
+  } else {
+    drawWindows(ctx, loc, false);
+  }
 
   // A signboard over the door, plain — the name is what the blurb already
   // carries, this is just "a shop sign is here" at a glance.
@@ -2565,6 +3873,40 @@ function drawShop(ctx: CanvasRenderingContext2D, loc: OverworldLocation, tier: T
   ctx.fillRect(px(loc.x + loc.w * 0.32), loc.y + roofH + 8, loc.w * 0.36, 5);
 
   drawGlitchTear(ctx, loc, tier, roofH);
+}
+
+/** A row of front-loading machine doors — mostly dark, one lit and
+ * mid-cycle (a soft double-ring rather than a flat disc, standing in for a
+ * tumbling load), per the Wash & Fold's own "a dryer running with nothing
+ * in it" line. Seeded per-id like `drawWindows`, so it's fixed rather than
+ * flickering machine to machine every frame. */
+function drawLaundryPortholes(ctx: CanvasRenderingContext2D, loc: OverworldLocation) {
+  const rand = noise(`laundry:${loc.id}`);
+  const r = 6;
+  const gap = 6;
+  const count = Math.max(2, Math.floor((loc.w - gap) / (r * 2 + gap)));
+  const cy = loc.y + loc.h - 16;
+  const startX = loc.x + (loc.w - (count * (r * 2 + gap) - gap)) / 2 + r;
+  const runningIndex = Math.floor(rand() * count);
+
+  for (let i = 0; i < count; i++) {
+    const cx = startX + i * (r * 2 + gap);
+    const running = i === runningIndex;
+    ctx.fillStyle = PALETTE.doorColor;
+    ctx.beginPath();
+    ctx.arc(px(cx), cy, r, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.strokeStyle = running ? PALETTE.windowLit : PALETTE.rollDoorLine;
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.arc(px(cx), cy, r - 1.5, 0, Math.PI * 2);
+    ctx.stroke();
+    if (running) {
+      ctx.beginPath();
+      ctx.arc(px(cx), cy, r - 4, 0, Math.PI * 2);
+      ctx.stroke();
+    }
+  }
 }
 
 /**
@@ -2616,6 +3958,362 @@ function drawTransit(ctx: CanvasRenderingContext2D, loc: OverworldLocation) {
 }
 
 /**
+ * CITY HALL. The Library is already the town's one columned building, so
+ * this had to be grander without being the same trick twice: a wider stone
+ * frontage with a stepped entrance block projecting from it, a short
+ * cupola on the ridge, and a colonnade that runs the *whole* width rather
+ * than the Library's evenly spaced three or four. Municipal stone rather
+ * than brick — the only building in Bellhaven that doesn't share a wall
+ * kit with a house.
+ */
+function drawCivic(ctx: CanvasRenderingContext2D, loc: OverworldLocation, tier: ThresholdTier) {
+  const roofH = 12;
+  ctx.fillStyle = PALETTE.curb;
+  ctx.fillRect(loc.x - 3, loc.y + loc.h - 1, loc.w + 6, 4);
+
+  ctx.fillStyle = PALETTE.civicRoof;
+  ctx.fillRect(px(loc.x), px(loc.y), loc.w, roofH);
+  ctx.fillStyle = PALETTE.civicStone;
+  ctx.fillRect(px(loc.x), px(loc.y + roofH), loc.w, loc.h - roofH);
+  ctx.fillStyle = PALETTE.civicStoneShade;
+  ctx.fillRect(px(loc.x), px(loc.y + loc.h - 10), loc.w, 4);
+
+  /*
+   * The colonnade, full width — slim shafts rather than the Library's four
+   * fat ones, which is the whole difference in read between "a building
+   * that keeps books" and "a building that keeps decisions".
+   *
+   * The gaps between the shafts are painted in *first*, dark, so the
+   * colonnade reads as a row of columns standing in front of a shaded
+   * loggia. Drawing pale shafts straight onto the pale stone (which is
+   * what this did at first) left the whole frontage as one cream block
+   * with the columns invisible from more than a few tiles away — the
+   * loudest thing in the Civic Zone rendering as a blank rectangle.
+   */
+  const bodyTop = loc.y + roofH;
+  const bodyH = loc.h - roofH;
+  const rand = noise(`civic:${loc.id}`);
+
+  // A single course of tall windows in the upper stone, the way a chamber
+  // floor actually glazes: two-thirds of them lit, none of them full
+  // height. This is the half that keeps the building warm — a colonnade
+  // over a dark loggia with nothing above it reads as a ruin.
+  const winY = bodyTop + 6;
+  const winH = Math.max(6, bodyH * 0.28);
+  const winCount = Math.max(4, Math.floor(loc.w / 26));
+  for (let i = 0; i < winCount; i++) {
+    const wx = loc.x + ((i + 0.5) * loc.w) / winCount;
+    ctx.fillStyle = rand() > 0.34 ? PALETTE.windowLit : PALETTE.windowDark;
+    ctx.fillRect(px(wx - 4), px(winY), 8, winH);
+    ctx.fillStyle = PALETTE.civicStoneShade;
+    ctx.fillRect(px(wx - 5), px(winY + winH), 10, 2);
+  }
+
+  /*
+   * The colonnade, full width, along the lower half of the frontage — a
+   * portico is a band across the front of a building, not a screen over
+   * the whole of it, and the gaps between the shafts are painted in first,
+   * dark, so the row reads as columns standing in front of a shaded
+   * loggia. Drawing pale shafts straight onto the pale stone (which is
+   * what this did at first) left the whole frontage as one cream block
+   * with the columns invisible from more than a few tiles away.
+   */
+  const colTop = bodyTop + bodyH * 0.46;
+  const colH = loc.y + loc.h - 12 - colTop;
+  ctx.fillStyle = PALETTE.windowDark;
+  ctx.fillRect(px(loc.x + 3), px(colTop), loc.w - 6, colH);
+  const cols = Math.max(8, Math.floor(loc.w / 16));
+  ctx.fillStyle = PALETTE.pillar;
+  for (let i = 0; i < cols; i++) {
+    const cx = loc.x + ((i + 0.5) * loc.w) / cols;
+    ctx.fillRect(px(cx - 3), px(colTop), 6, colH);
+  }
+  ctx.fillStyle = PALETTE.civicStoneShade;
+  ctx.fillRect(px(loc.x), px(colTop - 3), loc.w, 3);
+  ctx.fillStyle = PALETTE.pillarShade;
+  ctx.fillRect(px(loc.x), px(colTop + colH), loc.w, 3);
+
+  // The projecting entrance block and its steps.
+  const entW = Math.max(40, loc.w * 0.3);
+  const entX = loc.x + loc.w / 2 - entW / 2;
+  ctx.fillStyle = PALETTE.pediment;
+  ctx.beginPath();
+  ctx.moveTo(px(entX - 6), px(loc.y + roofH));
+  ctx.lineTo(px(loc.x + loc.w / 2), px(loc.y - 4));
+  ctx.lineTo(px(entX + entW + 6), px(loc.y + roofH));
+  ctx.closePath();
+  ctx.fill();
+  ctx.fillStyle = PALETTE.civicStone;
+  ctx.fillRect(px(entX), px(loc.y + roofH), entW, loc.h - roofH - 6);
+  ctx.fillStyle = PALETTE.windowLit;
+  ctx.fillRect(px(loc.x + loc.w / 2 - 12), px(loc.y + roofH + 8), 24, 10);
+  ctx.fillStyle = PALETTE.doorColor;
+  ctx.fillRect(px(loc.x + loc.w / 2 - 7), px(loc.y + loc.h - 22), 14, 16);
+  ctx.fillStyle = PALETTE.civicStoneShade;
+  for (let i = 0; i < 3; i++) {
+    ctx.fillRect(px(entX - i * 3), px(loc.y + loc.h - 6 + i * 2), entW + i * 6, 2);
+  }
+
+  // The cupola — small, off the ridge's centre by nothing, and the one
+  // vertical this building gets. A dome would read as a state capitol; a
+  // squat lantern reads as a town that once had money.
+  const cupX = loc.x + loc.w / 2;
+  ctx.fillStyle = PALETTE.civicDome;
+  ctx.fillRect(px(cupX - 7), px(loc.y - 16), 14, 12);
+  ctx.beginPath();
+  ctx.moveTo(px(cupX - 9), px(loc.y - 16));
+  ctx.lineTo(px(cupX), px(loc.y - 24));
+  ctx.lineTo(px(cupX + 9), px(loc.y - 16));
+  ctx.closePath();
+  ctx.fill();
+  ctx.fillStyle = PALETTE.windowLit;
+  ctx.fillRect(px(cupX - 3), px(loc.y - 13), 6, 5);
+
+  drawGlitchTear(ctx, loc, tier, roofH);
+}
+
+/**
+ * THE DATA CENTRE. Everything else on this canvas is warm and lit from
+ * inside because somebody is in it (`draw.ts`'s opening note: windows lit,
+ * streets empty). This building has no windows at all, which is the whole
+ * point of drawing it: it is the one place in Bellhaven where the light
+ * comes *out* of the machinery rather than out of a life.
+ *
+ * A blank slab, a louvre band where a window course would be, roof
+ * chillers, a dish array, and a single cold status light that never blinks
+ * out of step because nothing here is waiting for anybody.
+ */
+function drawDataCenter(ctx: CanvasRenderingContext2D, loc: OverworldLocation, now: number) {
+  ctx.fillStyle = PALETTE.curb;
+  ctx.fillRect(loc.x - 3, loc.y + loc.h - 1, loc.w + 6, 4);
+
+  const roofH = 12;
+  ctx.fillStyle = PALETTE.dataWallDark;
+  ctx.fillRect(px(loc.x), px(loc.y), loc.w, roofH);
+  ctx.fillStyle = PALETTE.dataWall;
+  ctx.fillRect(px(loc.x), px(loc.y + roofH), loc.w, loc.h - roofH);
+
+  // Precast panel joints, evenly spaced — a blank wall still has to read
+  // as built rather than as a fill colour.
+  ctx.fillStyle = PALETTE.dataWallDark;
+  for (let x = loc.x + 18; x < loc.x + loc.w - 4; x += 18) ctx.fillRect(px(x), px(loc.y + roofH), 1, loc.h - roofH);
+
+  // The louvre band, where every other building on this map has windows.
+  const louvreY = loc.y + loc.h * 0.45;
+  ctx.fillStyle = PALETTE.dataVent;
+  ctx.fillRect(px(loc.x + 8), px(louvreY), loc.w - 16, 10);
+  ctx.fillStyle = PALETTE.dataWallDark;
+  for (let y = louvreY + 2; y < louvreY + 10; y += 3) ctx.fillRect(px(loc.x + 9), px(y), loc.w - 18, 1);
+
+  // Roof chillers — three boxes and their shadow, the noise the blurb
+  // says you can hear from the street.
+  for (let i = 0; i < 3; i++) {
+    const bx = loc.x + 14 + i * ((loc.w - 34) / 3);
+    ctx.fillStyle = 'rgba(0,0,0,0.2)';
+    ctx.fillRect(px(bx + 1), px(loc.y + 3), 20, 9);
+    ctx.fillStyle = PALETTE.dataVent;
+    ctx.fillRect(px(bx), px(loc.y + 1), 20, 9);
+    ctx.fillStyle = PALETTE.dataDish;
+    ctx.fillRect(px(bx + 2), px(loc.y + 3), 16, 2);
+  }
+
+  // A dish array on the east end, angled off the roofline.
+  const dishX = loc.x + loc.w - 14;
+  ctx.strokeStyle = PALETTE.towerMast;
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(px(dishX), px(loc.y + 6));
+  ctx.lineTo(px(dishX), px(loc.y - 14));
+  ctx.stroke();
+  ctx.fillStyle = PALETTE.dataDish;
+  ctx.beginPath();
+  ctx.ellipse(px(dishX + 3), px(loc.y - 13), 7, 5, -0.4, 0, Math.PI * 2);
+  ctx.fill();
+
+  // The doorway plate — a unit number and nothing else, per the blurb.
+  ctx.fillStyle = PALETTE.dataVent;
+  ctx.fillRect(px(loc.x + loc.w / 2 - 9), px(loc.y + loc.h - 20), 18, 18);
+  ctx.fillStyle = PALETTE.dataDish;
+  ctx.fillRect(px(loc.x + loc.w / 2 + 12), px(loc.y + loc.h - 16), 8, 4);
+
+  // One cold status light, breathing on a long cycle. Blue rather than
+  // the resistance red or the patrol's warning red: this is not warning
+  // anybody about anything, it is simply on.
+  const pulse = 0.55 + 0.45 * Math.sin((now % 4200) / 4200 * Math.PI * 2);
+  ctx.globalAlpha = pulse;
+  ctx.fillStyle = PALETTE.dataLight;
+  ctx.fillRect(px(loc.x + 6), px(loc.y + loc.h - 12), 3, 3);
+  ctx.fillRect(px(loc.x + loc.w - 9), px(loc.y + loc.h - 12), 3, 3);
+  ctx.globalAlpha = 1;
+}
+
+/**
+ * MEGAMART. A big box is mostly roof and sign, which is exactly what makes
+ * it read at this scale: a wide low slab, a full-width sign band in a red
+ * nothing else in town wears, an entrance canopy with the doors under it,
+ * and a rooftop plant deck. The Plaza's anchor, and the reason the
+ * district's parking rows have anywhere to point at.
+ */
+function drawBigBox(ctx: CanvasRenderingContext2D, loc: OverworldLocation, tier: ThresholdTier) {
+  ctx.fillStyle = PALETTE.curb;
+  ctx.fillRect(loc.x - 3, loc.y + loc.h - 1, loc.w + 6, 4);
+
+  const roofH = 16;
+  ctx.fillStyle = PALETTE.bigBoxRoof;
+  ctx.fillRect(px(loc.x), px(loc.y), loc.w, roofH);
+  ctx.fillStyle = PALETTE.bigBoxWall;
+  ctx.fillRect(px(loc.x), px(loc.y + roofH), loc.w, loc.h - roofH);
+
+  // Rooftop plant — four units in a row, the visual shorthand for a
+  // building whose roof is bigger than its frontage.
+  ctx.fillStyle = PALETTE.dataVent;
+  for (let i = 0; i < 4; i++) ctx.fillRect(px(loc.x + 10 + i * ((loc.w - 24) / 4)), px(loc.y + 3), 14, 8);
+
+  // The sign band, full width, and the paler bar standing in for the
+  // wordmark. Deliberately unlettered — every other sign in this game is
+  // a shape rather than type, and MEGAMART reading as a colour and a
+  // proportion is truer to the pixel budget than four-pixel letters.
+  const signY = loc.y + roofH + 6;
+  ctx.fillStyle = PALETTE.bigBoxSign;
+  ctx.fillRect(px(loc.x + 8), px(signY), loc.w - 16, 14);
+  ctx.fillStyle = PALETTE.bigBoxSignText;
+  ctx.fillRect(px(loc.x + 16), px(signY + 4), loc.w - 32, 6);
+
+  /*
+   * The glazed frontage: a shallow band of window low on the wall, not a
+   * full-height curtain wall. The first pass ran lit glass from the sign
+   * down to the pavement and the result read as a barcode — a big box is
+   * mostly *blank* wall with a strip of glass at the bottom, and getting
+   * that proportion right is the whole difference between this and a
+   * warehouse with a sign on it.
+   */
+  const glassH = 14;
+  const glassY = loc.y + loc.h - glassH - 8;
+  ctx.fillStyle = PALETTE.windowDark;
+  ctx.fillRect(px(loc.x + 10), px(glassY), loc.w - 20, glassH);
+  ctx.fillStyle = PALETTE.windowLit;
+  ctx.fillRect(px(loc.x + 12), px(glassY + 2), loc.w - 24, glassH - 4);
+  ctx.fillStyle = PALETTE.bigBoxRoof;
+  for (let x = loc.x + 22; x < loc.x + loc.w - 12; x += 20) ctx.fillRect(px(x), px(glassY), 2, glassH);
+
+  // The entrance: two dark door leaves centred in the glass, under a
+  // canopy that projects past the wall the way every other shopfront in
+  // town does (`drawShop`'s own awning trick).
+  /*
+   * THE SCREEN ABOVE THE DOOR. MegaMart's own blurb has always said it
+   * "plays the safety-grant advert on a loop with the sound off", and
+   * there was nothing on the building to back that up — the same gap the
+   * Works' back doors had.
+   *
+   * It matters more than a detail: this district's surveillance is
+   * *commercial*, not municipal, and the point the map is making is that
+   * the player cannot tell the difference from the pavement. A retailer's
+   * advertising screen and the council's safety campaign are the same
+   * hardware showing the same message, and this is where those two things
+   * are visibly one thing.
+   */
+  const scrW = loc.w * 0.26;
+  const scrX = loc.x + loc.w / 2 - scrW / 2;
+  const scrY = signY + 17;
+  ctx.fillStyle = PALETTE.billboardFrame;
+  ctx.fillRect(px(scrX - 2), px(scrY - 2), scrW + 4, 14);
+  // Cycling between the advert's two frames on a slow, silent loop.
+  const advert = Math.floor(Date.now() / 3200) % 2 === 0;
+  ctx.fillStyle = advert ? PALETTE.dataLight : PALETTE.bigBoxSign;
+  ctx.fillRect(px(scrX), px(scrY), scrW, 10);
+  ctx.fillStyle = 'rgba(244, 237, 224, 0.75)';
+  ctx.fillRect(px(scrX + 3), px(scrY + 2), scrW - 6, 2);
+  ctx.fillRect(px(scrX + 3), px(scrY + 6), scrW * (advert ? 0.5 : 0.7), 2);
+
+  const canW = loc.w * 0.3;
+  const canX = loc.x + loc.w / 2 - canW / 2;
+  ctx.fillStyle = PALETTE.windowDark;
+  ctx.fillRect(px(canX + 4), px(glassY + 1), canW - 8, glassH - 2);
+  ctx.fillStyle = PALETTE.bigBoxSignText;
+  ctx.fillRect(px(loc.x + loc.w / 2 - 1), px(glassY + 1), 2, glassH - 2);
+  ctx.fillStyle = 'rgba(0,0,0,0.18)';
+  ctx.fillRect(px(canX - 2), px(loc.y + loc.h - 5), canW + 4, 3);
+  ctx.fillStyle = PALETTE.bigBoxSign;
+  ctx.fillRect(px(canX), px(loc.y + loc.h - 9), canW, 6);
+
+  drawGlitchTear(ctx, loc, tier, roofH);
+}
+
+/**
+ * SUBSTATION 9. Not a building — a fenced yard with transformers in it,
+ * which is why it gets its own shape rather than another warehouse box:
+ * the thing that makes an electrical compound legible from above is the
+ * gantry frame and the coil stacks, not a roof. Southside's half of the
+ * "transit *and* infrastructure" brief, and the reason the district's own
+ * Tier 5 junction box is somewhere the fiction agrees with.
+ */
+function drawSubstation(ctx: CanvasRenderingContext2D, loc: OverworldLocation, now: number) {
+  ctx.fillStyle = PALETTE.curb;
+  ctx.fillRect(px(loc.x), px(loc.y), loc.w, loc.h);
+  // A compacted-gravel yard rather than the map's own base ground: this is
+  // a surface somebody laid, and reading it as bare earth made the whole
+  // compound look like a hole in the street rather than a hardstanding.
+  ctx.fillStyle = PALETTE.substationYard;
+  ctx.fillRect(px(loc.x + 3), px(loc.y + 3), loc.w - 6, loc.h - 6);
+  const grit = noise(`subyard:${loc.id}`);
+  ctx.fillStyle = PALETTE.substationGravel;
+  for (let i = 0; i < 90; i++) {
+    ctx.fillRect(px(loc.x + 4 + grit() * (loc.w - 9)), px(loc.y + 4 + grit() * (loc.h - 9)), 2, 1);
+  }
+
+  // The gantry: two horizontal bus rails on uprights, the silhouette that
+  // says "high voltage" before any hazard triangle does.
+  ctx.strokeStyle = PALETTE.substationFrame;
+  ctx.lineWidth = 3;
+  for (const gy of [loc.y + loc.h * 0.28, loc.y + loc.h * 0.5]) {
+    ctx.beginPath();
+    ctx.moveTo(px(loc.x + 8), px(gy));
+    ctx.lineTo(px(loc.x + loc.w - 8), px(gy));
+    ctx.stroke();
+  }
+  for (let i = 0; i < 4; i++) {
+    const ux = loc.x + 14 + i * ((loc.w - 28) / 3);
+    ctx.beginPath();
+    ctx.moveTo(px(ux), px(loc.y + 10));
+    ctx.lineTo(px(ux), px(loc.y + loc.h * 0.58));
+    ctx.stroke();
+  }
+
+  // Three transformer cans along the south half, each with its cooling
+  // fins and a porcelain bushing on top.
+  for (let i = 0; i < 3; i++) {
+    const bx = loc.x + 16 + i * ((loc.w - 40) / 3);
+    const by = loc.y + loc.h * 0.6;
+    ctx.fillStyle = PALETTE.substationFrame;
+    ctx.fillRect(px(bx), px(by), 26, 22);
+    ctx.fillStyle = PALETTE.substationCoil;
+    for (let f = 0; f < 4; f++) ctx.fillRect(px(bx + 3 + f * 6), px(by + 3), 3, 16);
+    ctx.fillStyle = PALETTE.substationCoil;
+    ctx.fillRect(px(bx + 11), px(by - 5), 4, 5);
+  }
+
+  // The hazard plate on the gate side, faded to the point of being a
+  // suggestion — the blurb's line, drawn.
+  ctx.globalAlpha = 0.6;
+  ctx.fillStyle = PALETTE.substationHazard;
+  ctx.beginPath();
+  ctx.moveTo(px(loc.x + loc.w - 18), px(loc.y + loc.h - 20));
+  ctx.lineTo(px(loc.x + loc.w - 10), px(loc.y + loc.h - 6));
+  ctx.lineTo(px(loc.x + loc.w - 26), px(loc.y + loc.h - 6));
+  ctx.closePath();
+  ctx.fill();
+  ctx.globalAlpha = 1;
+
+  // A slow flicker on one insulator — the hum you feel in your teeth,
+  // given something to look at.
+  const t = ((now + noise(`sub:${loc.id}`)() * 2000) % 3000) / 3000;
+  if (t < 0.06) {
+    ctx.fillStyle = PALETTE.windowLit;
+    ctx.fillRect(px(loc.x + loc.w * 0.5), px(loc.y + loc.h * 0.28 - 3), 3, 3);
+  }
+}
+
+/**
  * A camera: a fixed 2x2-tile blue box on its post, nothing more — per the
  * build note, a camera is a post with a lens on it, not a building with a
  * different paint job. Drawn at a fixed size centred in the location's own
@@ -2662,24 +4360,49 @@ function drawCameraPost(ctx: CanvasRenderingContext2D, cx: number, boxBottomY: n
  * the housing itself. Kept to single pixels at this scale (a 16px box has
  * no room for more) so it reads as detail rather than clutter. */
 function drawCameraDetail(ctx: CanvasRenderingContext2D, x: number, y: number, size: number) {
-  ctx.strokeStyle = PALETTE.cameraDark;
-  ctx.lineWidth = 1;
-  ctx.beginPath();
-  ctx.moveTo(x + 1, y + size * 0.6);
-  ctx.lineTo(x + size - 1, y + size * 0.6);
-  ctx.stroke();
+  /*
+   * A HOOD AND A RED LENS — the two cues that make this the same object as
+   * the one on the title screen.
+   *
+   * The title camera (`ui/TitleEye.tsx`) is a dark hooded shell with a red
+   * eye in it; this was a flat blue box with a seam line and four corner
+   * rivets. Both were fine on their own and together they read as two
+   * different games. The fix is not to redraw either at the other's scale
+   * — it is to carry the two silhouette cues that survive being 16 pixels
+   * wide: the visor projecting over the lens, and the fact that the thing
+   * looking at you is red.
+   *
+   * The blue body stays. It is how a player finds a camera at a glance
+   * against a dusk palette, and no amount of family resemblance is worth
+   * trading that for.
+   */
+  const hoodH = Math.max(2, Math.round(size * 0.22));
 
+  // The visor, overhanging a pixel each side the way the title's does.
   ctx.fillStyle = PALETTE.cameraDark;
-  ctx.globalAlpha = 0.7;
-  for (const [bx, by] of [
-    [x + 1.5, y + 1.5],
-    [x + size - 2.5, y + 1.5],
-    [x + 1.5, y + size - 2.5],
-    [x + size - 2.5, y + size - 2.5],
-  ]) {
-    ctx.fillRect(px(bx), px(by), 1, 1);
-  }
-  ctx.globalAlpha = 1;
+  ctx.fillRect(px(x - 1), px(y), size + 2, hoodH);
+  ctx.fillStyle = 'rgba(0, 0, 0, 0.22)';
+  ctx.fillRect(px(x - 1), px(y + hoodH), size + 2, 1);
+
+  // The lens: a dark well under the hood with a red centre and a single
+  // pale glint, which is the title camera's own stack at 1/8 the size.
+  const cx = x + size / 2;
+  const cy = y + hoodH + (size - hoodH) * 0.45;
+  const lensR = Math.max(2.5, (size - hoodH) * 0.34);
+  ctx.fillStyle = PALETTE.cameraLens;
+  ctx.beginPath();
+  ctx.arc(px(cx), px(cy), lensR, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.fillStyle = PALETTE.cameraLive;
+  ctx.beginPath();
+  ctx.arc(px(cx), px(cy), Math.max(1, lensR * 0.5), 0, Math.PI * 2);
+  ctx.fill();
+  ctx.fillStyle = PALETTE.sticker;
+  ctx.fillRect(px(cx - lensR * 0.55), px(cy - lensR * 0.55), 1, 1);
+
+  // The mounting seam along the bottom, where the housing meets its arm.
+  ctx.fillStyle = PALETTE.cameraDark;
+  ctx.fillRect(px(x + 2), px(y + size - 2), size - 4, 1);
 }
 
 /**
@@ -2692,9 +4415,36 @@ function drawCameraDetail(ctx: CanvasRenderingContext2D, x: number, y: number, s
  * proximity alone (Overworld.tsx) — the object has to actually read as
  * something worth touching, not just circled.
  */
+/**
+ * The coverage wedge a live camera actually paints on the ground: a short
+ * cone in the direction the housing points, drawn under everything at
+ * street level. The coverage bar in the HUD has always been able to say
+ * "38% of the town" and never been able to say *which* 38% — this is that,
+ * as a shape the player can walk around instead of a number they have to
+ * take on trust. Deliberately short (a fraction of the node's real
+ * `coverageRadius`, which is a scoring number rather than a sight line)
+ * and very faint, so nine of them on one block reads as pressure rather
+ * than as a light show.
+ */
+function drawCameraCone(ctx: CanvasRenderingContext2D, cx: number, cy: number, facingDeg: number) {
+  const reach = 56;
+  const half = (30 * Math.PI) / 180;
+  const a = (facingDeg * Math.PI) / 180;
+
+  ctx.beginPath();
+  ctx.moveTo(px(cx), px(cy));
+  ctx.arc(px(cx), px(cy), reach, a - half, a + half);
+  ctx.closePath();
+  ctx.fillStyle = PALETTE.cameraCone;
+  ctx.fill();
+  ctx.strokeStyle = PALETTE.cameraConeEdge;
+  ctx.lineWidth = 1;
+  ctx.stroke();
+}
+
 function drawSabotageCamera(
   ctx: CanvasRenderingContext2D,
-  node: { x: number; y: number },
+  node: { x: number; y: number; facing: number },
   dismantlable: boolean,
   damaged: boolean,
   now: number,
@@ -2703,11 +4453,16 @@ function drawSabotageCamera(
   const x = px(node.x - size / 2);
   const y = px(node.y - size / 2);
 
+  // A dark camera casts no cone. That is the whole feedback loop for a
+  // dismantle: the shape on the ground goes away and comes back when
+  // SafeTrace does.
+  if (!damaged) drawCameraCone(ctx, node.x, node.y, node.facing);
+
   if (dismantlable) drawPulseGlow(ctx, x + size / 2, y + size / 2, size / 2, now);
 
   drawCameraPost(ctx, x + size / 2, y + size);
   ctx.globalAlpha = damaged ? 0.6 : 1;
-  ctx.fillStyle = PALETTE.camera;
+  ctx.fillStyle = damaged ? PALETTE.cameraDead : PALETTE.camera;
   ctx.fillRect(x, y, size, size);
   ctx.strokeStyle = PALETTE.cameraDark;
   ctx.lineWidth = 1;
@@ -2715,8 +4470,26 @@ function drawSabotageCamera(
   if (!damaged) drawCameraDetail(ctx, x, y, size);
   ctx.globalAlpha = 1;
 
-  if (damaged) drawSabotageDamage(ctx, x, y, size, now);
-  else drawRevolvingLens(ctx, x + size / 2, y - 3, now);
+  if (damaged) {
+    drawSabotageDamage(ctx, x, y, size, now);
+  } else {
+    drawRevolvingLens(ctx, x + size / 2, y - 3, now);
+    drawRecordingLight(ctx, x + size - 4, y + 2, now);
+  }
+}
+
+/**
+ * The red tally light on a live housing — the single detail that makes a
+ * camera read as *recording* rather than as a blue box on a post, and the
+ * one the reference layout asks for by name. On a slow, per-node offset
+ * blink so a cluster doesn't strobe in unison.
+ */
+function drawRecordingLight(ctx: CanvasRenderingContext2D, x: number, y: number, now: number) {
+  const on = (now % 1800) < 1100;
+  ctx.globalAlpha = on ? 1 : 0.35;
+  ctx.fillStyle = PALETTE.cameraLive;
+  ctx.fillRect(px(x), px(y), 2, 2);
+  ctx.globalAlpha = 1;
 }
 
 /**
@@ -2881,6 +4654,104 @@ function drawTag(ctx: CanvasRenderingContext2D, loc: OverworldLocation, roofH: n
     ctx.lineTo(px(sx + slant), px(sy + len));
     ctx.stroke();
   }
+}
+
+/**
+ * Old Market's own signature — "a photocopied punk flyer became an actual
+ * neighbourhood" per the map redesign brief. `drawTag`'s spray strokes
+ * already read as resistance markings everywhere in town; this is the
+ * richer, West-End-specific layer the brief asks for: an actual board of
+ * overlapping posters, standing beside the building rather than fighting
+ * `drawGarage`'s own door and sign panel for wall space. Newest on top,
+ * each one rotated its own small amount, so the stack reads as accumulated
+ * over time rather than placed once — graffiti covering older graffiti,
+ * an official notice crossed out rather than removed, the Gen A mark as
+ * one hand-cut tag among several rather than a stamped logo. Nothing here
+ * is a new interactive location or a collision obstacle — it's drawn as
+ * part of `repair_shop`'s own render call, so there's no connectivity or
+ * overlap risk to re-check the way a new `Obstacle` entry would carry.
+ */
+function drawWestEndPosterWall(ctx: CanvasRenderingContext2D, loc: OverworldLocation) {
+  const boardX = loc.x - 22;
+  const boardTop = loc.y + loc.h - 46;
+  const rand = noise(`posterwall:${loc.id}`);
+
+  // The board itself — two thin posts and a backing panel, standing in for
+  // whatever a real neighbourhood staples flyers to (a utility board, a
+  // fence panel) rather than the building's own wall.
+  ctx.strokeStyle = PALETTE.porchPost;
+  ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  ctx.moveTo(px(boardX + 2), loc.y + loc.h);
+  ctx.lineTo(px(boardX + 2), boardTop);
+  ctx.moveTo(px(boardX + 16), loc.y + loc.h);
+  ctx.lineTo(px(boardX + 16), boardTop);
+  ctx.stroke();
+
+  const posters: { dx: number; dy: number; w: number; h: number; rot: number; fill: string }[] = [
+    { dx: 0, dy: 6, w: 15, h: 20, rot: -0.12, fill: PALETTE.forSaleSign },
+    { dx: 3, dy: 0, w: 13, h: 17, rot: 0.08, fill: '#cdb896' },
+    { dx: -1, dy: 10, w: 12, h: 15, rot: -0.05, fill: PALETTE.billboardFace },
+  ];
+  for (const p of posters) {
+    ctx.save();
+    ctx.translate(px(boardX + 9 + p.dx), boardTop + p.dy);
+    ctx.rotate(p.rot);
+    ctx.fillStyle = 'rgba(0,0,0,0.18)';
+    ctx.fillRect(-p.w / 2 + 1, 1, p.w, p.h);
+    ctx.fillStyle = p.fill;
+    ctx.fillRect(-p.w / 2, 0, p.w, p.h);
+    ctx.restore();
+  }
+
+  // One poster, crossed out — an official notice the neighbourhood already
+  // answered, not removed, just struck through. Drawn over the back-most
+  // poster specifically, in the resistance's own red rather than a generic
+  // mark, so it reads as "we saw this" rather than plain vandalism.
+  const back = posters[1];
+  ctx.save();
+  ctx.translate(px(boardX + 9 + back.dx), boardTop + back.dy);
+  ctx.rotate(back.rot);
+  ctx.strokeStyle = PALETTE.billboardCorrection;
+  ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  ctx.moveTo(-back.w / 2 + 1, -back.h / 2 + 2);
+  ctx.lineTo(back.w / 2 - 1, back.h / 2 - 2);
+  ctx.stroke();
+  ctx.restore();
+
+  // One hand-cut circled-A, small, on the front-most poster — evidence of
+  // the movement rather than its logo: a wobbly ring built from a handful
+  // of short strokes instead of a true arc, exactly the "unfinished,
+  // gap at the top-left" read `GenAMark`'s own `claiming` state uses,
+  // approximated here in flat canvas strokes since this is a texture on a
+  // wall, not the UI mark itself.
+  const front = posters[0];
+  ctx.save();
+  ctx.translate(px(boardX + 9 + front.dx), boardTop + front.dy + 3);
+  ctx.rotate(front.rot + 0.03);
+  ctx.strokeStyle = PALETTE.billboardCorrection;
+  ctx.lineWidth = 1.2;
+  const r = 4.2;
+  const gapStart = -0.35; // radians — where the ring's own gap opens, top-left
+  ctx.beginPath();
+  for (let a = gapStart + 0.5; a < Math.PI * 2 + gapStart; a += 0.5) {
+    const jx = (rand() - 0.5) * 0.6;
+    const jy = (rand() - 0.5) * 0.6;
+    const px1 = Math.cos(a) * r + jx;
+    const py1 = Math.sin(a) * r + jy;
+    if (a === gapStart + 0.5) ctx.moveTo(px1, py1);
+    else ctx.lineTo(px1, py1);
+  }
+  ctx.stroke();
+  ctx.beginPath();
+  ctx.moveTo(-2, 3);
+  ctx.lineTo(0, -3.4);
+  ctx.lineTo(2, 3);
+  ctx.moveTo(-1, 0.6);
+  ctx.lineTo(1, 0.6);
+  ctx.stroke();
+  ctx.restore();
 }
 
 /**

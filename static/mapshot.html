@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="robots" content="noindex" />
+    <title>Bellhaven · map inspector</title>
+    <style>
+      html,
+      body,
+      #root {
+        margin: 0;
+        height: 100%;
+        background: #10131a;
+      }
+    </style>
+  </head>
+  <!--
+    Dev scaffolding. Vite's production build only takes `index.html` as an
+    input, so this page is served by `npm run dev` and never lands in
+    `dist/` — see `src/dev/MapShot.tsx` for what it does and why it lives
+    out here rather than inside the game.
+  -->
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/dev/main.tsx"></script>
+  </body>
+</html>
