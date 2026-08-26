@@ -14,14 +14,37 @@
  * own `position: fixed; inset: 0` sizes itself to the phone body instead of
  * the viewport. No change to Market's own CSS required.
  */
+/*
+ * This is the crew's own hardware, not a manufacturer's device — every app
+ * behind it (Silk Road, Shadow, Leads, Feed) already commits fully to
+ * Language B (red border-bottom headers, stencil eyebrows, riso grain), but
+ * the launcher around them was never given the same treatment: a smooth
+ * 32px-radius shell, a cool blue-grey gradient closer to Language A's own
+ * palette than B's, translucent pill-shaped icons — a generic phone mockup
+ * standing in front of a set of hand-built resistance tools. Cut corners, a
+ * red edge, and the same halftone grain every other Language B surface
+ * carries brings the case itself into the same object as what's running on
+ * it.
+ */
 .phone__body {
   position: relative;
   transform: scale(1);
   width: min(380px, 92vw);
-  height: min(720px, 88vh);
-  background: #0b0d10;
-  border: 3px solid #262b32;
-  border-radius: 32px;
+  /* Shorter than the old 720px/88vh shell — five apps in a 2-column grid
+     don't fill that, and a phone screen trailing off into a few hundred
+     empty px reads the same as any other unfinished-looking void. Apps this
+     doesn't fit still scroll inside their own `overflow-y: auto` (Market,
+     Salvage, Shadow, Leads, Feed all already have it). */
+  height: min(600px, 80vh);
+  background: var(--b-ink);
+  background-image:
+    radial-gradient(var(--b-red) 0.5px, transparent 0.6px),
+    radial-gradient(var(--b-spot) 0.5px, transparent 0.6px);
+  background-size: 4px 4px, 4px 4px;
+  background-position: 0 0, 1px 1px;
+  background-blend-mode: soft-light, soft-light;
+  border: 2px solid var(--b-red);
+  border-radius: 20px;
   overflow: hidden;
   box-shadow: 0 24px 60px rgba(0, 0, 0, 0.5);
 }
@@ -30,7 +53,6 @@
   height: 100%;
   display: flex;
   flex-direction: column;
-  background: linear-gradient(180deg, #141a22 0%, #0b0d10 100%);
   color: var(--b-paper);
 }
 
@@ -41,14 +63,18 @@
   padding: 14px 18px 6px;
   font-family: var(--font-mono);
   font-size: 13px;
-  opacity: 0.8;
+  letter-spacing: 0.06em;
+  border-bottom: 1px solid rgba(236, 226, 208, 0.18);
+  margin: 0 var(--step) var(--step);
+  padding-bottom: 10px;
+  opacity: 0.85;
 }
 
 .phone__power {
   background: none;
-  border: 1px solid rgba(236, 226, 208, 0.35);
+  border: 1px solid var(--b-red);
   color: inherit;
-  border-radius: 50%;
+  border-radius: 0;
   width: 26px;
   height: 26px;
   font-size: 13px;
@@ -61,7 +87,7 @@
   grid-template-columns: repeat(2, 1fr);
   gap: var(--step);
   align-content: start;
-  padding: calc(var(--step) * 2);
+  padding: 0 calc(var(--step) * 1.5) calc(var(--step) * 2);
 }
 
 .phone__app {
@@ -69,13 +95,20 @@
   flex-direction: column;
   align-items: center;
   gap: 8px;
-  background: rgba(236, 226, 208, 0.06);
-  border: 1px solid rgba(236, 226, 208, 0.18);
-  border-radius: 18px;
+  background: rgba(236, 226, 208, 0.05);
+  border: 2px solid rgba(236, 226, 208, 0.35);
+  border-radius: 0;
   padding: calc(var(--step) * 1.5) var(--step);
   color: inherit;
-  font-family: var(--font-a);
-  font-size: 13px;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.phone__app:hover,
+.phone__app:focus-visible {
+  border-color: var(--b-red);
 }
 
 .phone__app-icon {
