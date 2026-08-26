@@ -1152,6 +1152,28 @@ export function Overworld() {
 
       const npcDraw = NPCS.map((npc) => ({ ...wanderPos(npc, now), kind: npc.kind, id: npc.id }));
 
+      /*
+       * Every pole the player has ever taken apart, whether or not it is
+       * currently down. `world.collectedNodes` keeps a node's record after
+       * its respawn window closes (only a lockdown sweep clears one), so
+       * the record's mere existence is a permanent "this got hit" flag the
+       * save has always carried and nothing was reading — see
+       * `draw.ts`'s `drawSabotageScar`.
+       *
+       * Read off the authored node tables rather than the live draw lists
+       * because the paint is on the post and the post doesn't move when a
+       * respawn relocates the lens. Hidden bushes are excluded: pulling a
+       * battery out of a shrub is not an act of sabotage and shouldn't
+       * leave a mark on the town.
+       */
+      const scarDraw: { x: number; y: number; tagged: boolean }[] = [];
+      for (const node of [...CAMERA_NODES, ...JUNCTION_BOX_NODES, ...STREET_HACK_NODES]) {
+        if (!saveRef.current.world.collectedNodes.some((c) => c.nodeId === node.id)) continue;
+        // Alternating rather than random, so the mix of plain paint and
+        // full marks is stable across frames and reloads.
+        scarDraw.push({ x: node.x, y: node.y, tagged: scarDraw.length % 2 === 0 });
+      }
+
       drawTown(
         ctx,
         canvas,
@@ -1171,6 +1193,7 @@ export function Overworld() {
         junctionBoxDraw,
         droneDraw,
         copDraw,
+        scarDraw,
         moving,
         now,
         boardTierRef.current,

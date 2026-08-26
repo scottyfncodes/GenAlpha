@@ -369,6 +369,9 @@ export function drawTown(
   junctionBoxNodes: { x: number; y: number; tier: 1 | 2 | 3 | 4 | 5; crackable: boolean; damaged: boolean }[],
   drones: { x: number; y: number; radius: number; takeable: boolean }[],
   cops: { x: number; y: number; radius: number }[],
+  /** Poles the player has taken apart at least once — see
+   * `drawSabotageScar`. Authored positions, not live ones. */
+  scars: { x: number; y: number; tagged: boolean }[],
   moving: boolean,
   now: number,
   boardTier: number,
@@ -415,6 +418,10 @@ export function drawTown(
   // a building still occludes them, and well before the player so nothing
   // ambient can ever render on top of the one figure that matters.
   for (const n of npcs) drawNpc(ctx, n.x, n.y, n.kind, n.facing, n.id, now);
+
+  // The player's own marks first, under everything: a scar is paint on a
+  // post, so a camera standing at the same spot has to occlude it.
+  for (const scar of scars) drawSabotageScar(ctx, scar);
 
   // Cameras somebody else already took down, and the mark they left on
   // the way past. Both are paint rather than mechanics — see their own
@@ -2115,6 +2122,56 @@ function drawGenAMark(ctx: CanvasRenderingContext2D, m: WallMark) {
 }
 
 /**
+ * THE MARK THE PLAYER LEAVES.
+ *
+ * A sabotaged camera comes back: SafeTrace replaces the housing, the
+ * cooldown expires and the lens is live again. Which meant that until now
+ * the single most consequential thing a player does to this town left no
+ * trace at all a week later — the loop was invisible, and "walk through
+ * the place and see what you changed" was a design note with nothing
+ * behind it.
+ *
+ * This is that trace, and it costs no new persistence: `world.collectedNodes`
+ * already keeps a node's record *after* its respawn window closes (see
+ * `systems/materials.ts` — only a lockdown sweep's `repairNetwork` ever
+ * clears one). So the existence of a record, independent of whether the
+ * node is currently down, is a permanent "this one got taken apart" flag
+ * the save has always been carrying and nothing was reading.
+ *
+ * Drawn at the node's **authored** position rather than wherever a respawn
+ * has since moved it to (`world/relocate.ts`), because the paint is on the
+ * pole and the pole doesn't move. A camera that relocated away leaves a
+ * bare tagged post behind, which is the clearest possible read: they took
+ * the lens off this one.
+ *
+ * Kept deliberately small and dry — a tag and a sticker, not a mural. The
+ * Gen A mark is rare on this map on purpose (`GEN_A_MARKS`), and a player
+ * who has worked over twenty poles should end up with a town that looks
+ * marked, not a town that looks vandalised.
+ */
+function drawSabotageScar(ctx: CanvasRenderingContext2D, scar: { x: number; y: number; tagged: boolean }) {
+  const baseY = scar.y + 8;
+  const rand = noise(`scar:${scar.x}:${scar.y}`);
+
+  // The post itself, still standing.
+  ctx.fillStyle = PALETTE.cameraDeadCable;
+  ctx.fillRect(px(scar.x - 1), px(baseY), 2, 10);
+
+  // Spray at the foot of it, half on the post and half on the pavement —
+  // the angle somebody actually paints at when they are in a hurry.
+  ctx.strokeStyle = PALETTE.genAFade;
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(px(scar.x - 5 + rand() * 2), px(baseY + 9));
+  ctx.lineTo(px(scar.x + 5 - rand() * 2), px(baseY + 4));
+  ctx.stroke();
+
+  // Every second one carries the mark rather than just paint — see the
+  // rarity note above.
+  if (scar.tagged) drawGenAMark(ctx, { x: scar.x + 7, y: baseY + 4, size: 8, closure: 0.6 + rand() * 0.4 });
+}
+
+/**
  * Cameras somebody already dealt with, standing dark from the first frame
  * of a new game.
  *
@@ -2353,6 +2410,7 @@ function drawRevolvingLens(ctx: CanvasRenderingContext2D, cx: number, cy: number
  * its own three kinds.
  */
 function drawSabotageDamage(ctx: CanvasRenderingContext2D, x: number, y: number, size: number, now: number) {
+  // Cut feed cable, hanging.
   ctx.strokeStyle = PALETTE.junctionDark;
   ctx.lineWidth = 1;
   ctx.beginPath();
@@ -2362,6 +2420,30 @@ function drawSabotageDamage(ctx: CanvasRenderingContext2D, x: number, y: number,
   ctx.moveTo(x + size * 0.68, y + size);
   ctx.lineTo(x + size * 0.8, y + size + 4);
   ctx.stroke();
+
+  /*
+   * Hazard tape across the housing, and the dead status light beside it.
+   *
+   * A dimmed box with a spark on it was the whole of "you took this apart"
+   * before, which is too quiet for the one action in the game that visibly
+   * changes the town. Tape is what actually appears on a broken municipal
+   * fitting within a day of it breaking — it isn't the player's mark, it's
+   * the *council's*, which is the better joke: the town tidies up after
+   * them and in doing so flags every place they've been.
+   */
+  ctx.save();
+  ctx.translate(px(x + size / 2), px(y + size / 2));
+  ctx.rotate(-0.32);
+  ctx.fillStyle = PALETTE.gateArm;
+  ctx.fillRect(-size * 0.85, -2.5, size * 1.7, 5);
+  ctx.fillStyle = PALETTE.gateArmDark;
+  for (let i = -size * 0.85; i < size * 0.85; i += 5) ctx.fillRect(px(i), -2.5, 2.5, 5);
+  ctx.restore();
+
+  // The tally light, off — the one detail a live housing has that this
+  // deliberately doesn't (see `drawRecordingLight`).
+  ctx.fillStyle = PALETTE.cameraDeadCable;
+  ctx.fillRect(px(x + size - 4), px(y + 2), 2, 2);
 
   // Same irregular double-flicker every other "this is live" tell on this
   // canvas uses (the title screen's REC dot, a camera's own status light) —

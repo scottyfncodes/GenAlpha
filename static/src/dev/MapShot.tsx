@@ -161,6 +161,11 @@ export function MapShot() {
           takeable: false,
         })),
         head(COP_ROUTES, copCount, copTuning(v.tier, v.stage).detectionRadius),
+        // "Cameras down" also stands in for "the player has been here":
+        // every pole carries the scar it would carry after a sabotage, so
+        // the toggle answers both halves of the same question — what does
+        // the town look like once somebody has worked it over.
+        v.damaged ? cameras.map((c, i) => ({ x: c.x, y: c.y, tagged: i % 2 === 0 })) : [],
         false,
         now,
         0,
