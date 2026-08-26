@@ -73,7 +73,7 @@ export const NPCS: Npc[] = [
 
   // 5. Liberty Park — the most populated ground on the map, on purpose.
   // The commons is only a commons if somebody is on it.
-  { id: 'npc_8', kind: 'person', x: 640, y: 630, direction: 0, wanderRadius: 26, periodMs: 9500 },
+  { id: 'npc_8', kind: 'person', x: 600, y: 700, direction: 0, wanderRadius: 26, periodMs: 9500 },
   { id: 'npc_11', kind: 'person', x: 900, y: 620, direction: 0, wanderRadius: 22, periodMs: 7200 },
   { id: 'npc_park_1', kind: 'person', x: 760, y: 636, direction: 0, wanderRadius: 24, periodMs: 8100 },
   { id: 'npc_park_2', kind: 'person', x: 528, y: 470, direction: 90, wanderRadius: 26, periodMs: 8900 },
@@ -84,9 +84,9 @@ export const NPCS: Npc[] = [
 
   // 6. The Works — workers, not passers-by, and fewer of them than any
   // district this size would have if anybody still had the contract.
-  { id: 'npc_4', kind: 'person', x: 1176, y: 572, direction: 0, wanderRadius: 20, periodMs: 6500 },
+  { id: 'npc_4', kind: 'person', x: 1300, y: 700, direction: 0, wanderRadius: 20, periodMs: 6500 },
   { id: 'npc_5', kind: 'person', x: 1348, y: 568, direction: 0, wanderRadius: 24, periodMs: 7500 },
-  { id: 'npc_7', kind: 'person', x: 1560, y: 620, direction: 90, wanderRadius: 16, periodMs: 7800 },
+  { id: 'npc_7', kind: 'person', x: 1420, y: 730, direction: 0, wanderRadius: 16, periodMs: 7800 },
   { id: 'npc_bird_3', kind: 'bird', x: 1480, y: 640, direction: 45, wanderRadius: 65, periodMs: 5600 },
 
   // 7. Southside — the whole district is people passing through.

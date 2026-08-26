@@ -73,16 +73,22 @@ export const HIDDEN_PICKUP_OBSTACLE_IDS = new Set(HIDDEN_PICKUPS.map((p) => p.ob
  * housings, a graphics card) is the reason to actually do the sabotage
  * instead of just walking around.
  *
- * `coverageRadius` is authored, not eyeballed: `systems/coverage.test.ts`
- * asserts that the full rollout reaches exactly 100%, that each stage rises
- * on the one before it, and that more than half of the standing cameras are
- * still individually worth taking down at full coverage. That last one is
- * the constraint that actually decides the numbers — a camera whose whole
- * disc sits inside its neighbours' owns no ground, and a district where
- * every camera is like that has a decorative sabotage loop. So the dense
- * Civic Zone cluster runs *short* lenses that tile one block between them,
- * and the isolated ones out at the map's edges run long. Re-run that test
- * after moving any node here; the radii are a solved set, not a taste.
+ * `coverageRadius` is a *solved* set, not a taste. Three assertions in
+ * `systems/coverage.test.ts` decide every number in this column together:
+ * the full rollout reaches exactly 100%, each stage rises on the one
+ * before it, and more than half of the standing cameras are still
+ * individually worth taking down at full coverage.
+ *
+ * That last one is the constraint that actually does the work. A camera
+ * whose whole disc sits inside its neighbours' owns no ground, so cutting
+ * it changes nothing and the sabotage loop goes decorative — and a
+ * clustered network is exactly the shape that produces those. The radii
+ * that satisfy all three don't line up with any per-district rule of
+ * thumb; they are what they are because of where the poles ended up.
+ *
+ * Which means: **move a node here and the whole column needs re-solving.**
+ * Don't hand-nudge one radius to taste and assume the rest still hold —
+ * run the coverage test, and expect it to fail until the set is re-fitted.
  *
  * `itemId`/`respawnDays`/`heatCost` describe the *dismantle* action — the
  * middle of the three risk/reward tiers `sabotageActionsFor` derives from a
@@ -146,41 +152,53 @@ export const CAMERA_NODES: CameraNode[] = [
   // Stage 0 — the Civic Zone's own ring, four lenses on one block: the
   // approach from the secondary road, City Hall's street frontage, the
   // service cut between Library and Records, and the Data Centre gate.
-  { id: 'camera_dismantle_1', x: 1122, y: 60, itemId: 'cracked_chipset', respawnDays: 5, heatCost: 4, coverageRadius: 170, stage: 0, facing: 0 },
-  { id: 'camera_dismantle_2', x: 1200, y: 216, itemId: 'hard_drive', respawnDays: 4, heatCost: 3, coverageRadius: 183, stage: 0, facing: 90 },
-  { id: 'camera_dismantle_3', x: 1348, y: 216, itemId: 'cracked_chipset', respawnDays: 5, heatCost: 4, coverageRadius: 267, stage: 0, facing: 90 },
-  { id: 'camera_dismantle_4', x: 1512, y: 216, itemId: 'graphics_card', respawnDays: 6, heatCost: 5, coverageRadius: 223, stage: 0, facing: 270 },
+  { id: 'camera_dismantle_1', x: 1122, y: 60, itemId: 'cracked_chipset', respawnDays: 5, heatCost: 4, coverageRadius: 350, stage: 0, facing: 0 },
+  { id: 'camera_dismantle_2', x: 1200, y: 216, itemId: 'hard_drive', respawnDays: 4, heatCost: 3, coverageRadius: 360, stage: 0, facing: 90 },
+  { id: 'camera_dismantle_3', x: 1348, y: 216, itemId: 'cracked_chipset', respawnDays: 5, heatCost: 4, coverageRadius: 230, stage: 0, facing: 90 },
+  { id: 'camera_dismantle_4', x: 1512, y: 216, itemId: 'graphics_card', respawnDays: 6, heatCost: 5, coverageRadius: 280, stage: 0, facing: 270 },
   // Stage 0 — Main Street's two, the Crossroads corner and the shopfronts.
-  { id: 'camera_dismantle_5', x: 614, y: 196, itemId: 'cracked_chipset', respawnDays: 5, heatCost: 4, coverageRadius: 252, stage: 0, facing: 180 },
-  { id: 'camera_dismantle_6', x: 950, y: 190, itemId: 'hard_drive', respawnDays: 4, heatCost: 3, coverageRadius: 244, stage: 0, facing: 0 },
+  { id: 'camera_dismantle_5', x: 614, y: 196, itemId: 'cracked_chipset', respawnDays: 5, heatCost: 4, coverageRadius: 243, stage: 0, facing: 180 },
+  { id: 'camera_dismantle_6', x: 950, y: 190, itemId: 'hard_drive', respawnDays: 4, heatCost: 3, coverageRadius: 223, stage: 0, facing: 0 },
   // Stage 0 — The Plaza's lot, which the story has always said is better
   // covered than the school, and The Works' own row.
-  { id: 'camera_dismantle_7', x: 1240, y: 948, itemId: 'cracked_chipset', respawnDays: 5, heatCost: 4, coverageRadius: 229, stage: 0, facing: 90 },
-  { id: 'camera_dismantle_8', x: 1500, y: 780, itemId: 'logic_board', respawnDays: 4, heatCost: 3, coverageRadius: 275, stage: 0, facing: 90 },
-  { id: 'camera_dismantle_9', x: 1330, y: 552, itemId: 'graphics_card', respawnDays: 6, heatCost: 5, coverageRadius: 290, stage: 0, facing: 0 },
+  { id: 'camera_dismantle_7', x: 1240, y: 948, itemId: 'cracked_chipset', respawnDays: 5, heatCost: 4, coverageRadius: 284, stage: 0, facing: 90 },
+  { id: 'camera_dismantle_8', x: 1560, y: 780, itemId: 'logic_board', respawnDays: 4, heatCost: 3, coverageRadius: 204, stage: 0, facing: 90 },
+  { id: 'camera_dismantle_9', x: 1330, y: 552, itemId: 'graphics_card', respawnDays: 6, heatCost: 5, coverageRadius: 261, stage: 0, facing: 0 },
   // Stage 1 (day 4) — Old Market, Southside and the Annex fence line: the
   // working districts get their first lens each, closing the widest gaps
   // stage 0 left.
-  { id: 'camera_dismantle_10', x: 224, y: 550, itemId: 'cracked_chipset', respawnDays: 5, heatCost: 4, coverageRadius: 323, stage: 1, facing: 180 },
-  { id: 'camera_dismantle_11', x: 220, y: 976, itemId: 'hard_drive', respawnDays: 4, heatCost: 3, coverageRadius: 263, stage: 1, facing: 0 },
-  { id: 'camera_dismantle_12', x: 1540, y: 500, itemId: 'cracked_chipset', respawnDays: 5, heatCost: 4, coverageRadius: 360, stage: 1, facing: 180 },
-  { id: 'camera_dismantle_13', x: 1400, y: 930, itemId: 'logic_board', respawnDays: 4, heatCost: 3, coverageRadius: 220, stage: 1, facing: 180 },
+  { id: 'camera_dismantle_10', x: 224, y: 550, itemId: 'cracked_chipset', respawnDays: 5, heatCost: 4, coverageRadius: 308, stage: 1, facing: 180 },
+  { id: 'camera_dismantle_11', x: 220, y: 976, itemId: 'hard_drive', respawnDays: 4, heatCost: 3, coverageRadius: 229, stage: 1, facing: 0 },
+  { id: 'camera_dismantle_12', x: 1540, y: 500, itemId: 'cracked_chipset', respawnDays: 5, heatCost: 4, coverageRadius: 230, stage: 1, facing: 180 },
+  { id: 'camera_dismantle_13', x: 1400, y: 930, itemId: 'logic_board', respawnDays: 4, heatCost: 3, coverageRadius: 259, stage: 1, facing: 180 },
   // Stage 2 (day 9) — the residential blocks. The Heights gets its first
   // camera in the whole game here, which is the beat: the district the
   // player started in stops being the one nobody watches.
-  { id: 'camera_dismantle_14', x: 170, y: 256, itemId: 'logic_board', respawnDays: 4, heatCost: 3, coverageRadius: 272, stage: 2, facing: 270 },
-  { id: 'camera_dismantle_15', x: 404, y: 246, itemId: 'hard_drive', respawnDays: 4, heatCost: 3, coverageRadius: 290, stage: 2, facing: 180 },
-  { id: 'camera_dismantle_16', x: 706, y: 952, itemId: 'cracked_chipset', respawnDays: 5, heatCost: 4, coverageRadius: 293, stage: 2, facing: 0 },
-  { id: 'camera_dismantle_17', x: 1000, y: 952, itemId: 'graphics_card', respawnDays: 6, heatCost: 5, coverageRadius: 267, stage: 2, facing: 180 },
-  { id: 'camera_dismantle_18', x: 1554, y: 216, itemId: 'cracked_chipset', respawnDays: 5, heatCost: 4, coverageRadius: 343, stage: 2, facing: 180 },
-  // Stage 3 (day 15) — Liberty Park, last and most. With these standing
-  // there is no unwatched ground left in Bellhaven, which is the point:
-  // past here, doing nothing is what loses ground.
-  { id: 'camera_dismantle_19', x: 696, y: 468, itemId: 'cracked_chipset', respawnDays: 5, heatCost: 4, coverageRadius: 210, stage: 3, facing: 0 },
-  { id: 'camera_dismantle_20', x: 1064, y: 560, itemId: 'graphics_card', respawnDays: 6, heatCost: 5, coverageRadius: 129, stage: 3, facing: 180 },
-  { id: 'camera_dismantle_21', x: 820, y: 640, itemId: 'cracked_chipset', respawnDays: 5, heatCost: 4, coverageRadius: 214, stage: 3, facing: 270 },
-  { id: 'camera_dismantle_22', x: 350, y: 700, itemId: 'logic_board', respawnDays: 4, heatCost: 3, coverageRadius: 307, stage: 3, facing: 90 },
-  { id: 'camera_dismantle_23', x: 1130, y: 1000, itemId: 'graphics_card', respawnDays: 6, heatCost: 5, coverageRadius: 156, stage: 3, facing: 0 },
+  { id: 'camera_dismantle_14', x: 170, y: 256, itemId: 'logic_board', respawnDays: 4, heatCost: 3, coverageRadius: 285, stage: 2, facing: 270 },
+  { id: 'camera_dismantle_15', x: 404, y: 246, itemId: 'hard_drive', respawnDays: 4, heatCost: 3, coverageRadius: 271, stage: 2, facing: 180 },
+  { id: 'camera_dismantle_16', x: 706, y: 952, itemId: 'cracked_chipset', respawnDays: 5, heatCost: 4, coverageRadius: 261, stage: 2, facing: 0 },
+  { id: 'camera_dismantle_17', x: 1000, y: 952, itemId: 'graphics_card', respawnDays: 6, heatCost: 5, coverageRadius: 309, stage: 2, facing: 180 },
+  { id: 'camera_dismantle_18', x: 1554, y: 216, itemId: 'cracked_chipset', respawnDays: 5, heatCost: 4, coverageRadius: 220, stage: 2, facing: 180 },
+  /*
+   * Stage 3 (day 15) — Liberty Park last, because taking the commons is
+   * the point. Exactly ONE of these stands inside the park: `_21`, on the
+   * lawn's south edge, on the fountain's own axis and pointed straight up
+   * it. The other two watch the park's *approaches* from the west gate and
+   * the east gate — they are street cameras that happen to border a park,
+   * and from anywhere on the grass you can see one lens and only one.
+   *
+   * That restraint is the whole beat. A thicket of cameras over a park
+   * reads as set dressing; one camera on a pole over a fountain, in a
+   * district with a playground and a banner and people on the grass, reads
+   * as somebody deciding this place needed watching. With these standing
+   * there is no unwatched ground left in Bellhaven — past here, doing
+   * nothing is what loses ground.
+   */
+  { id: 'camera_dismantle_19', x: 528, y: 396, itemId: 'cracked_chipset', respawnDays: 5, heatCost: 4, coverageRadius: 247, stage: 3, facing: 0 },
+  { id: 'camera_dismantle_20', x: 1074, y: 520, itemId: 'graphics_card', respawnDays: 6, heatCost: 5, coverageRadius: 329, stage: 3, facing: 180 },
+  { id: 'camera_dismantle_21', x: 900, y: 616, itemId: 'cracked_chipset', respawnDays: 5, heatCost: 4, coverageRadius: 260, stage: 3, facing: 270 },
+  { id: 'camera_dismantle_22', x: 350, y: 700, itemId: 'logic_board', respawnDays: 4, heatCost: 3, coverageRadius: 296, stage: 3, facing: 90 },
+  { id: 'camera_dismantle_23', x: 1130, y: 1000, itemId: 'graphics_card', respawnDays: 6, heatCost: 5, coverageRadius: 219, stage: 3, facing: 0 },
 ];
 
 export type SabotageActionId = 'tamper' | 'dismantle' | 'overload';

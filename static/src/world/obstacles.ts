@@ -33,6 +33,16 @@
  * deliberately rather than by the noise-seeded variety the rest of this file
  * uses.
  *
+ * `'bench'`, `'playground'` and `'truck'` are the world-life layer: the
+ * three props the district brief names that nothing already here could
+ * stand in for. A bench is the cheapest possible "somebody sits here" and
+ * turns up wherever people wait (the park, the square, the depot); a
+ * playground is Liberty Park's own argument for existing — the commons has
+ * to be a place children are taken, not a lawn with a fountain on it; a
+ * truck is the vehicle a district works with rather than commutes in, so
+ * it reads as a delivery on Main Street, a shipment in The Works and a
+ * maintenance crew in Southside without three separate sprites.
+ *
  * `'scanner'` and `'gate'` are the surveillance layer the 3x3 redesign adds
  * on top of the camera network (`world/collectibles.ts`). A camera watches
  * a place; a plate scanner watches a *road*, which is why they only ever
@@ -63,7 +73,10 @@ export type ObstacleKind =
   | 'tower'
   | 'billboard'
   | 'scanner'
-  | 'gate';
+  | 'gate'
+  | 'bench'
+  | 'playground'
+  | 'truck';
 
 export interface Obstacle {
   id: string;
@@ -161,7 +174,7 @@ export const OBSTACLES: Obstacle[] = [
    * ================================================================ */
   { id: 'filler_33', x: 534, y: 60, w: 22, h: 42, kind: 'tree' }, // School, entrance planting (west)
   { id: 'filler_147', x: 534, y: 112, w: 22, h: 42, kind: 'tree' },
-  { id: 'filler_150', x: 936, y: 46, w: 20, h: 40, kind: 'tree' }, // between the market and the café
+  { id: 'filler_150', x: 940, y: 20, w: 20, h: 40, kind: 'tree' }, // between the market and the café
   { id: 'filler_151', x: 806, y: 130, w: 20, h: 40, kind: 'tree' }, // the alley's south mouth, market side
   { id: 'filler_152', x: 1064, y: 44, w: 18, h: 36, kind: 'tree' }, // the alley's south mouth, school side
   { id: 'main_bin_1', x: 786, y: 40, w: 16, h: 16, kind: 'bin' }, // the alley itself — the shops' bins
@@ -171,7 +184,10 @@ export const OBSTACLES: Obstacle[] = [
   { id: 'main_car_3', x: 828, y: 204, w: 18, h: 12, kind: 'car' },
   { id: 'main_car_4', x: 980, y: 204, w: 18, h: 12, kind: 'car' },
   { id: 'main_car_5', x: 1012, y: 204, w: 18, h: 12, kind: 'car' },
-  { id: 'main_hedge_1', x: 966, y: 128, w: 94, h: 8, kind: 'hedge' }, // the café's own terrace boundary
+  { id: 'main_hedge_1', x: 966, y: 128, w: 94, h: 8, kind: 'hedge' },
+  { id: 'main_truck_1', x: 980, y: 150, w: 40, h: 22, kind: 'truck' }, // a delivery at the market's back
+  { id: 'main_bench_1', x: 690, y: 168, w: 22, h: 8, kind: 'bench' },
+  { id: 'main_bench_2', x: 736, y: 320, w: 22, h: 8, kind: 'bench' }, // the café's own terrace boundary
   { id: 'filler_27', x: 990, y: 226, w: 22, h: 42, kind: 'tree' },
   { id: 'filler_31', x: 836, y: 292, w: 22, h: 42, kind: 'tree' },
   // Main Street's own block-corner unit, unlit and unnamed — the shutter
@@ -294,13 +310,28 @@ export const OBSTACLES: Obstacle[] = [
   { id: 'filler_65', x: 744, y: 690, w: 16, h: 24, kind: 'bush' },
   { id: 'filler_66', x: 796, y: 664, w: 16, h: 24, kind: 'bush' },
   { id: 'filler_67', x: 1040, y: 556, w: 16, h: 24, kind: 'bush' },
-  { id: 'filler_68', x: 592, y: 616, w: 16, h: 24, kind: 'bush' },
+  { id: 'filler_68', x: 556, y: 600, w: 16, h: 24, kind: 'bush' },
   { id: 'filler_69', x: 556, y: 720, w: 16, h: 24, kind: 'bush' },
   { id: 'filler_71', x: 700, y: 640, w: 26, h: 22, kind: 'rock' },
   { id: 'filler_72', x: 856, y: 632, w: 26, h: 22, kind: 'rock' },
-  { id: 'filler_73', x: 1000, y: 672, w: 26, h: 22, kind: 'rock' },
+  { id: 'filler_73', x: 1044, y: 700, w: 26, h: 22, kind: 'rock' },
   { id: 'park_bench_hedge', x: 706, y: 612, w: 74, h: 8, kind: 'hedge' },
   { id: 'park_bin_1', x: 866, y: 608, w: 16, h: 16, kind: 'bin' },
+  /*
+   * The playground, and the reason this district is called the commons
+   * rather than the lawn: Liberty Park only argues against the Civic Zone
+   * if it is somewhere people bring children. Sited on the open ground
+   * between the Ballpark and the Treehouse, off the Green's own formal
+   * axis — a park's play area is never on the ornamental garden's
+   * centreline, it's round the side where the noise doesn't matter.
+   */
+  { id: 'park_playground', x: 596, y: 626, w: 76, h: 48, kind: 'playground' },
+  { id: 'park_bench_1', x: 700, y: 604, w: 22, h: 8, kind: 'bench' },
+  { id: 'park_bench_2', x: 830, y: 604, w: 22, h: 8, kind: 'bench' },
+  { id: 'park_bench_3', x: 770, y: 704, w: 22, h: 8, kind: 'bench' },
+  { id: 'park_bench_4', x: 1064, y: 612, w: 8, h: 22, kind: 'bench' },
+  { id: 'park_bin_2', x: 676, y: 690, w: 16, h: 16, kind: 'bin' },
+  { id: 'park_bin_3', x: 1006, y: 604, w: 16, h: 16, kind: 'bin' },
 
   /* ================================================================ *
    * 6. THE WORKS — fenced and industrial, the one district where the
@@ -333,10 +364,18 @@ export const OBSTACLES: Obstacle[] = [
   { id: 'filler_125', x: 1348, y: 546, w: 16, h: 16, kind: 'crate' },
   { id: 'filler_126', x: 1372, y: 546, w: 16, h: 16, kind: 'crate' },
   { id: 'filler_127', x: 1396, y: 546, w: 16, h: 16, kind: 'barrel' },
-  { id: 'filler_128', x: 1470, y: 712, w: 16, h: 16, kind: 'crate' },
+  { id: 'filler_128', x: 1552, y: 600, w: 16, h: 16, kind: 'crate' },
   { id: 'filler_129', x: 1552, y: 700, w: 16, h: 16, kind: 'crate' },
-  { id: 'filler_130', x: 1400, y: 712, w: 16, h: 16, kind: 'barrel' },
-  { id: 'filler_131', x: 1424, y: 712, w: 16, h: 16, kind: 'crate' },
+  { id: 'filler_130', x: 1544, y: 620, w: 16, h: 16, kind: 'barrel' },
+  { id: 'filler_131', x: 1496, y: 700, w: 16, h: 16, kind: 'crate' },
+  // Employee parking along the district street, and the trucks the docks
+  // exist for — backed onto the Utility Yard's and the Scrapyard's own
+  // aprons rather than parked decoratively in open ground.
+  { id: 'works_truck_1', x: 1200, y: 548, w: 40, h: 22, kind: 'truck' },
+  { id: 'works_truck_2', x: 1430, y: 700, w: 40, h: 22, kind: 'truck' },
+  { id: 'works_pallet_1', x: 1290, y: 428, w: 16, h: 16, kind: 'crate' },
+  { id: 'works_pallet_2', x: 1290, y: 450, w: 16, h: 16, kind: 'crate' },
+  { id: 'works_pallet_3', x: 1290, y: 660, w: 16, h: 16, kind: 'crate' },
   { id: 'works_alley_tree_n', x: 1290, y: 392, w: 16, h: 32, kind: 'tree' },
   { id: 'works_alley_tree_s', x: 1290, y: 616, w: 16, h: 32, kind: 'tree' },
   { id: 'scanner_works_gate', x: 1330, y: 398, w: 10, h: 16, kind: 'scanner' },
@@ -362,6 +401,12 @@ export const OBSTACLES: Obstacle[] = [
   { id: 'sub_gate', x: 244, y: 922, w: 44, h: 12, kind: 'gate' },
   { id: 'sub_fence_s1', x: 296, y: 922, w: 50, h: 8, kind: 'fence' },
   { id: 'sub_fence_s2', x: 356, y: 922, w: 52, h: 8, kind: 'fence' },
+  // The maintenance fleet — the vehicles that keep the transit and utility
+  // systems running, which is the half of this district's identity a bus
+  // depot on its own never carried.
+  { id: 'southside_truck_1', x: 236, y: 968, w: 40, h: 22, kind: 'truck' },
+  { id: 'southside_truck_2', x: 300, y: 992, w: 22, h: 40, kind: 'truck' },
+  { id: 'southside_bench_1', x: 210, y: 856, w: 8, h: 22, kind: 'bench' },
   { id: 'sub_barrel_1', x: 420, y: 850, w: 16, h: 16, kind: 'barrel' },
   { id: 'sub_crate_1', x: 420, y: 874, w: 16, h: 16, kind: 'crate' },
   { id: 'filler_98', x: 60, y: 990, w: 120, h: 16, kind: 'fence' },
@@ -426,6 +471,7 @@ export const OBSTACLES: Obstacle[] = [
   { id: 'plaza_car_7', x: 1496, y: 944, w: 18, h: 12, kind: 'car' },
   { id: 'plaza_car_8', x: 1514, y: 944, w: 18, h: 12, kind: 'car' },
   { id: 'plaza_corral', x: 1440, y: 952, w: 40, h: 10, kind: 'fence' }, // the cart corral
+  { id: 'plaza_truck_1', x: 1470, y: 782, w: 40, h: 22, kind: 'truck' }, // MegaMart, goods in
   { id: 'filler_116', x: 1424, y: 786, w: 16, h: 16, kind: 'bin' },
   { id: 'filler_117', x: 1448, y: 786, w: 16, h: 16, kind: 'bin' }, // MegaMart's goods-in bins
   { id: 'filler_118', x: 1290, y: 1074, w: 16, h: 16, kind: 'bin' },

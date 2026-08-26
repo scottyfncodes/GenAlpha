@@ -297,6 +297,11 @@ const PALETTE = {
   scannerHead: '#2a3140',
   scannerLens: '#3f7fe0',
   scannerLight: '#e6402a',
+  // A working vehicle's paint, dusk-muted: a dirty off-white box body and
+  // a drab municipal green-grey, with a near-black cab under both.
+  truckPale: '#b9b3a2',
+  truckDrab: '#5d6a63',
+  truckCab: '#242a33',
   gateArm: '#c9b23c',
   gateArmDark: '#2a2620',
   gatePost: '#3a4048',
@@ -504,7 +509,158 @@ function drawObstacle(ctx: CanvasRenderingContext2D, obstacle: Obstacle, tier: T
       return drawPlateScanner(ctx, obstacle, now);
     case 'gate':
       return drawSecurityGate(ctx, obstacle);
+    case 'bench':
+      return drawParkBench(ctx, obstacle);
+    case 'playground':
+      return drawPlayground(ctx, obstacle);
+    case 'truck':
+      return drawTruck(ctx, obstacle);
   }
+}
+
+/**
+ * A bench, seen from above: a slatted seat, a back rail behind it, and two
+ * legs' worth of shadow. Oriented off the obstacle's own proportions — wide
+ * and flat faces the viewer (a bench along a path running left to right),
+ * tall and narrow turns side-on — so one prop serves a park path, a bus
+ * shelter and a plaza without a direction field to author.
+ */
+function drawParkBench(ctx: CanvasRenderingContext2D, o: Obstacle) {
+  const horizontal = o.w >= o.h;
+
+  ctx.fillStyle = 'rgba(0,0,0,0.22)';
+  ctx.fillRect(px(o.x), px(o.y + o.h - 1), o.w, 2);
+
+  ctx.fillStyle = PALETTE.bench;
+  if (horizontal) {
+    ctx.fillRect(px(o.x), px(o.y + o.h * 0.35), o.w, o.h * 0.55);
+    ctx.fillStyle = PALETTE.plankDark;
+    ctx.fillRect(px(o.x), px(o.y), o.w, o.h * 0.28);
+    for (let x = o.x + 3; x < o.x + o.w - 2; x += 5) {
+      ctx.fillRect(px(x), px(o.y + o.h * 0.35), 1, o.h * 0.55);
+    }
+  } else {
+    ctx.fillRect(px(o.x + o.w * 0.35), px(o.y), o.w * 0.55, o.h);
+    ctx.fillStyle = PALETTE.plankDark;
+    ctx.fillRect(px(o.x), px(o.y), o.w * 0.28, o.h);
+    for (let y = o.y + 3; y < o.y + o.h - 2; y += 5) {
+      ctx.fillRect(px(o.x + o.w * 0.35), px(y), o.w * 0.55, 1);
+    }
+  }
+}
+
+/**
+ * The playground: a swing frame, a slide and a roundabout, drawn to fill
+ * whatever rect it's given. Liberty Park's own argument for existing —
+ * "life, people, irregularity, community" is a design note until somebody
+ * has actually built something here for children, and the contrast with
+ * the Civic Zone's straight lines is the whole point of the district.
+ *
+ * Reuses `drawSwingSet`'s frame (Casey's own yard prop) rather than
+ * drawing a second one: it is the same object, and a town where the swing
+ * set in the park and the swing set behind the empty house are visibly the
+ * same swing set is saying something the map can't say twice.
+ */
+function drawPlayground(ctx: CanvasRenderingContext2D, o: Obstacle) {
+  // Wood-chip fall surface, so the equipment sits on a made ground rather
+  // than on the street's own paving.
+  ctx.fillStyle = PALETTE.plankDark;
+  ctx.fillRect(px(o.x), px(o.y), o.w, o.h);
+  const chip = noise(`playground:${o.id}`);
+  ctx.fillStyle = 'rgba(168, 148, 104, 0.35)';
+  for (let i = 0; i < Math.round((o.w * o.h) / 40); i++) {
+    ctx.fillRect(px(o.x + 1 + chip() * (o.w - 3)), px(o.y + 1 + chip() * (o.h - 2)), 2, 1);
+  }
+
+  const groundY = o.y + o.h - 4;
+  drawSwingSet(ctx, o.x + 4, groundY);
+
+  // The slide: a ladder, a platform and a chute running down toward the
+  // viewer, which is the one piece of playground equipment that reads
+  // instantly from above.
+  const slideX = o.x + o.w - 26;
+  ctx.strokeStyle = PALETTE.swingFrame;
+  ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  ctx.moveTo(px(slideX + 16), px(groundY));
+  ctx.lineTo(px(slideX + 16), px(groundY - 20));
+  ctx.stroke();
+  for (let i = 0; i < 4; i++) {
+    ctx.beginPath();
+    ctx.moveTo(px(slideX + 12), px(groundY - 4 - i * 5));
+    ctx.lineTo(px(slideX + 20), px(groundY - 4 - i * 5));
+    ctx.stroke();
+  }
+  ctx.fillStyle = PALETTE.swingSeat;
+  ctx.fillRect(px(slideX + 10), px(groundY - 23), 12, 4);
+  ctx.fillStyle = PALETTE.substationCoil;
+  ctx.beginPath();
+  ctx.moveTo(px(slideX + 4), px(groundY));
+  ctx.lineTo(px(slideX + 10), px(groundY - 20));
+  ctx.lineTo(px(slideX + 14), px(groundY - 20));
+  ctx.lineTo(px(slideX + 9), px(groundY));
+  ctx.closePath();
+  ctx.fill();
+}
+
+/**
+ * A box-body truck — the vehicle a district *works* with rather than
+ * commutes in. Longer and taller than `drawParkedCar`'s sprite and drawn
+ * procedurally rather than from the sheet, because neither pack has a
+ * lorry in it and a scaled-up car reads as a scaled-up car. A cab, a
+ * container body with a roof rib, and the shadow that sells the height.
+ */
+function drawTruck(ctx: CanvasRenderingContext2D, o: Obstacle) {
+  const vertical = o.h > o.w;
+  const cab = vertical ? o.h * 0.28 : o.w * 0.28;
+
+  ctx.fillStyle = 'rgba(0,0,0,0.28)';
+  ctx.fillRect(px(o.x - 1), px(o.y + o.h - 1), o.w + 2, 3);
+
+  // Two body colours, both pulled well down into the dusk palette. The
+  // first pass used the sticker's own near-white paper and the box read as
+  // a blank billboard lying in the road — nothing else on this canvas is
+  // that bright, and a parked lorry is the last thing that should be.
+  const rand = noise(`truck:${o.id}`);
+  const body = rand() > 0.5 ? PALETTE.truckPale : PALETTE.truckDrab;
+
+  if (vertical) {
+    ctx.fillStyle = body;
+    ctx.fillRect(px(o.x), px(o.y + cab), o.w, o.h - cab);
+    ctx.fillStyle = PALETTE.truckCab;
+    ctx.fillRect(px(o.x), px(o.y), o.w, cab);
+    ctx.fillStyle = PALETTE.parkedCarGlass;
+    ctx.fillRect(px(o.x + 2), px(o.y + 2), o.w - 4, cab * 0.45);
+    // Roof ribs, and the shadow line where the box meets the cab.
+    ctx.fillStyle = 'rgba(0,0,0,0.2)';
+    ctx.fillRect(px(o.x), px(o.y + cab), o.w, 2);
+    for (let y = o.y + cab + 6; y < o.y + o.h - 3; y += 6) ctx.fillRect(px(o.x + 1), px(y), o.w - 2, 1);
+    // Wheels, just proud of the body on both flanks.
+    ctx.fillStyle = PALETTE.boxcarWheel;
+    for (const wy of [o.y + cab + 3, o.y + o.h - 9]) {
+      ctx.fillRect(px(o.x - 1), px(wy), 2, 6);
+      ctx.fillRect(px(o.x + o.w - 1), px(wy), 2, 6);
+    }
+  } else {
+    ctx.fillStyle = body;
+    ctx.fillRect(px(o.x + cab), px(o.y), o.w - cab, o.h);
+    ctx.fillStyle = PALETTE.truckCab;
+    ctx.fillRect(px(o.x), px(o.y), cab, o.h);
+    ctx.fillStyle = PALETTE.parkedCarGlass;
+    ctx.fillRect(px(o.x + 2), px(o.y + 2), cab * 0.45, o.h - 4);
+    ctx.fillStyle = 'rgba(0,0,0,0.2)';
+    ctx.fillRect(px(o.x + cab), px(o.y), 2, o.h);
+    for (let x = o.x + cab + 6; x < o.x + o.w - 3; x += 6) ctx.fillRect(px(x), px(o.y + 1), 1, o.h - 2);
+    ctx.fillStyle = PALETTE.boxcarWheel;
+    for (const wx of [o.x + cab + 3, o.x + o.w - 9]) {
+      ctx.fillRect(px(wx), px(o.y - 1), 6, 2);
+      ctx.fillRect(px(wx), px(o.y + o.h - 1), 6, 2);
+    }
+  }
+
+  ctx.strokeStyle = PALETTE.outline;
+  ctx.lineWidth = 1;
+  ctx.strokeRect(px(o.x) - 0.5, px(o.y) - 0.5, o.w + 1, o.h + 1);
 }
 
 /**
@@ -3064,9 +3220,51 @@ function drawWarehouse(ctx: CanvasRenderingContext2D, loc: OverworldLocation) {
   ctx.fillRect(px(loc.x + loc.w * 0.25), loc.y - 3, 5, 4);
   ctx.fillRect(px(loc.x + loc.w * 0.65), loc.y - 3, 5, 4);
 
+  /*
+   * A SERVICE DOOR at the building's own back corner, and a dock apron in
+   * front of the roll door.
+   *
+   * The route design asks that important buildings have an obvious way in
+   * *and* a less obvious one, and until now every warehouse in The Works
+   * had exactly one opening: a roll door the width of half its frontage,
+   * facing the street. A player could be told there was a back way in and
+   * see nothing on the building to back that up. This is the tell — a
+   * single person-width steel door, no canopy, no sign, tucked against the
+   * upper corner away from the roll door, with the step and the wall lamp
+   * that mark a door somebody actually uses.
+   *
+   * It alternates corners per location id so a row of yards doesn't read
+   * as one building repeated, and it's drawn *before* the roll door so a
+   * narrow building's two openings can never fight over the same pixels.
+   */
+  const serviceLeft = noise(`service:${loc.id}`)() > 0.5;
+  const svcW = 9;
+  const svcX = serviceLeft ? loc.x + 5 : loc.x + loc.w - svcW - 5;
+  const svcY = loc.y + roofH + 3;
+  ctx.fillStyle = PALETTE.vent;
+  ctx.fillRect(px(svcX), px(svcY), svcW, 13);
+  ctx.fillStyle = PALETTE.rollDoorLine;
+  ctx.fillRect(px(svcX + (serviceLeft ? svcW - 3 : 1)), px(svcY + 6), 2, 2); // the handle
+  ctx.fillStyle = PALETTE.curb;
+  ctx.fillRect(px(svcX - 1), px(svcY + 13), svcW + 2, 2); // the step
+  // A bulkhead lamp over it, lit — somebody comes and goes through here.
+  ctx.fillStyle = PALETTE.windowLit;
+  ctx.fillRect(px(svcX + svcW / 2 - 1), px(svcY - 2), 3, 2);
+  ctx.fillStyle = 'rgba(240, 192, 122, 0.14)';
+  ctx.beginPath();
+  ctx.arc(px(svcX + svcW / 2), px(svcY - 1), 9, 0, Math.PI * 2);
+  ctx.fill();
+
   const doorW = loc.w * 0.5;
   const doorH = loc.h - roofH - 10;
   const doorX = loc.x + loc.w / 2 - doorW / 2;
+  // The dock apron: a concrete lip the width of the roll door, standing
+  // proud of the wall, with the two bumpers a truck actually backs onto.
+  ctx.fillStyle = PALETTE.pavingDark;
+  ctx.fillRect(px(doorX - 3), px(loc.y + loc.h - 2), doorW + 6, 7);
+  ctx.fillStyle = PALETTE.gateArmDark;
+  ctx.fillRect(px(doorX + 2), px(loc.y + loc.h + 2), 6, 3);
+  ctx.fillRect(px(doorX + doorW - 8), px(loc.y + loc.h + 2), 6, 3);
   ctx.fillStyle = PALETTE.rollDoor;
   ctx.fillRect(px(doorX), loc.y + roofH + 4, doorW, doorH);
   ctx.strokeStyle = PALETTE.rollDoorLine;
