@@ -1,8 +1,9 @@
 /*
- * The cyberdeck's own shell — same fixed-overlay/rounded-body shape as
- * `phone.css`, deliberately re-skinned in the terminal palette
- * (`--term-*`, tokens.css) every Trace/Cipher screen already uses: the
- * phone is glass and rounded corners, this is the thing built by hand.
+ * The cyberdeck's own shell — same fixed-overlay body shape as `phone.css`,
+ * re-skinned in the terminal palette (`--term-*`, tokens.css) every
+ * Trace/Cipher screen already uses: the phone is the crew's own Language B
+ * hardware (red-cut, riso-grained), this is the raw terminal rig underneath
+ * it — sharp corners, CRT green, nothing printed on it.
  */
 .cyberdeck {
   position: fixed;
@@ -17,11 +18,16 @@
 /* Same load-bearing `position: relative` phone.css's own body comment
    explains — the briefing/minigame stage rendered inside (`.scene__stage`,
    `position: absolute`) needs a positioned ancestor to fill instead of the
-   viewport. */
+   viewport. Shorter than a flat 720px/88vh for the same reason phone.css's
+   own shell got shortened: two apps in this grid fill even less of that
+   than the phone's five did. Not shrunk as far, though — unlike the phone's
+   scrolling text lists, this body also hosts the Trace/Cipher/drone
+   minigames full-screen (`.scene__stage` inset:0 inside it), and those
+   want the room. */
 .cyberdeck__body {
   position: relative;
   width: min(380px, 92vw);
-  height: min(720px, 88vh);
+  height: min(620px, 82vh);
   background: var(--term-bg);
   border: 3px solid var(--term-dim);
   border-radius: 6px;
