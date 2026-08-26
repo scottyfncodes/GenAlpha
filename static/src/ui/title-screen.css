@@ -38,7 +38,7 @@
 
 .title--claimed .title__word {
   font-family: var(--font-b);
-  font-size: clamp(46px, 17vw, 128px);
+  font-size: clamp(52px, 21vw, 144px);
   letter-spacing: -0.02em;
   margin: 0;
   color: var(--b-paper);
@@ -104,6 +104,27 @@
   font-weight: 700;
   letter-spacing: 0.1em;
   color: rgba(236, 226, 208, 0.6);
+  pointer-events: none;
+}
+
+/* The REC light's opposite corner, low rather than high — a camera feed's
+   own ID burn-in, the same faint mono label a real security monitor prints
+   over its footage. Deliberately quieter than `.title__rec` (no dot, lower
+   opacity): this is a background detail to notice, not a second focal
+   point competing with the eye or the wordmark. */
+.title__camid {
+  position: absolute;
+  bottom: calc(var(--step) * 2.5);
+  /* Clear of the viewfinder bracket's own corner stroke, which sits at the
+     same base inset (`.title__viewfinder`'s `inset`) this would otherwise
+     start flush against. */
+  left: calc(var(--step) * 4.5);
+  z-index: 0;
+  margin: 0;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  color: rgba(236, 226, 208, 0.35);
   pointer-events: none;
 }
 

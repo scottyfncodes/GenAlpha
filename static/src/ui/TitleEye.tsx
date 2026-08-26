@@ -27,7 +27,7 @@ export function TitleEye({ visible }: { visible: boolean }) {
       preserveAspectRatio="none"
       aria-hidden="true"
     >
-      <Camera cx={150} cy={225} rx={104} ry={68} lensR={40} irisR={22} pupilR={10} />
+      <Camera cx={150} cy={230} rx={128} ry={88} lensR={48} irisR={27} pupilR={12} />
     </svg>
   );
 }

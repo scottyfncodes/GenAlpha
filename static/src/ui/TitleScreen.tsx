@@ -43,6 +43,13 @@ export function TitleScreen({
       <p className="title__rec" aria-hidden="true">
         <span className="title__rec-dot" /> REC
       </p>
+      {/* The REC light's opposite corner — a camera's own on-screen ID
+          burn-in, the other half-a-joke Bellhaven's surveillance framing
+          earns for free. Fills the title screen's own dead lower margin
+          with something in-world rather than more UI. */}
+      <p className="title__camid" aria-hidden="true">
+        CAM 04 · BELLHAVEN MUNI
+      </p>
 
       <div className="title__content">
         {/*

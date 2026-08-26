@@ -2832,7 +2832,17 @@ function drawShop(ctx: CanvasRenderingContext2D, loc: OverworldLocation, tier: T
   ctx.fillStyle = loc.color;
   ctx.fillRect(loc.x - awningOverhang, loc.y + roofH, loc.w + awningOverhang * 2, awningDepth);
 
-  drawWindows(ctx, loc, false);
+  if (loc.id === 'laundromat') {
+    // "A dryer running with nothing in it" — round portholes instead of
+    // `drawWindows`' generic square grid, since a laundromat's whole visual
+    // signature is the row of machine doors, not its wall. `drawShop` is
+    // deliberately one shared shell for four different storefronts (the
+    // doc comment above); this is the one place a shop gets to look like
+    // the specific thing its own blurb describes instead of "a shop".
+    drawLaundryPortholes(ctx, loc);
+  } else {
+    drawWindows(ctx, loc, false);
+  }
 
   // A signboard over the door, plain — the name is what the blurb already
   // carries, this is just "a shop sign is here" at a glance.
@@ -2840,6 +2850,40 @@ function drawShop(ctx: CanvasRenderingContext2D, loc: OverworldLocation, tier: T
   ctx.fillRect(px(loc.x + loc.w * 0.32), loc.y + roofH + 8, loc.w * 0.36, 5);
 
   drawGlitchTear(ctx, loc, tier, roofH);
+}
+
+/** A row of front-loading machine doors — mostly dark, one lit and
+ * mid-cycle (a soft double-ring rather than a flat disc, standing in for a
+ * tumbling load), per the Wash & Fold's own "a dryer running with nothing
+ * in it" line. Seeded per-id like `drawWindows`, so it's fixed rather than
+ * flickering machine to machine every frame. */
+function drawLaundryPortholes(ctx: CanvasRenderingContext2D, loc: OverworldLocation) {
+  const rand = noise(`laundry:${loc.id}`);
+  const r = 6;
+  const gap = 6;
+  const count = Math.max(2, Math.floor((loc.w - gap) / (r * 2 + gap)));
+  const cy = loc.y + loc.h - 16;
+  const startX = loc.x + (loc.w - (count * (r * 2 + gap) - gap)) / 2 + r;
+  const runningIndex = Math.floor(rand() * count);
+
+  for (let i = 0; i < count; i++) {
+    const cx = startX + i * (r * 2 + gap);
+    const running = i === runningIndex;
+    ctx.fillStyle = PALETTE.doorColor;
+    ctx.beginPath();
+    ctx.arc(px(cx), cy, r, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.strokeStyle = running ? PALETTE.windowLit : PALETTE.rollDoorLine;
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.arc(px(cx), cy, r - 1.5, 0, Math.PI * 2);
+    ctx.stroke();
+    if (running) {
+      ctx.beginPath();
+      ctx.arc(px(cx), cy, r - 4, 0, Math.PI * 2);
+      ctx.stroke();
+    }
+  }
 }
 
 /**
