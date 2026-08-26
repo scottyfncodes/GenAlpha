@@ -157,6 +157,13 @@
   left: 50%;
   bottom: calc(var(--step) * 20);
   transform: translateX(-50%);
+  /* 44px minimum: this is the button the whole overworld exists to have
+     the player press, and at 43px it was a pixel under what a thumb is
+     reliably given. */
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   background: var(--b-paper);
   color: var(--b-ink);
   border: 2px solid var(--b-ink);
@@ -165,6 +172,8 @@
   font-family: var(--font-a);
   font-weight: 700;
   white-space: nowrap;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
 }
 
 /* One flex-stacked column for the location prompt and everything that can
@@ -391,7 +400,13 @@
 .overworld__hint {
   position: absolute;
   left: var(--step);
-  bottom: 4px;
+  /* Lifted clear of the home indicator. `viewport-fit=cover` puts the true
+     bottom of the viewport underneath it, and at `bottom: 4px` the one line
+     that tells the player where they're supposed to be going was half
+     underneath the swipe bar on every modern iPhone. */
+  bottom: calc(env(safe-area-inset-bottom, 0px) + 10px);
+  /* Never runs under the joystick, which owns the bottom-right corner. */
+  max-width: min(60ch, calc(100% - var(--step) * 2 - 140px));
   margin: 0;
   color: #ece2d0;
   opacity: 0.55;
@@ -403,7 +418,7 @@
 .overworld__dronemenu {
   position: absolute;
   left: var(--step);
-  bottom: calc(var(--step) * 6);
+  bottom: calc(env(safe-area-inset-bottom, 0px) + var(--step) * 6);
   display: flex;
   flex-direction: column;
   align-items: flex-start;
@@ -440,7 +455,7 @@
 .joystick {
   position: absolute;
   right: calc(var(--step) * 3);
-  bottom: calc(var(--step) * 6);
+  bottom: calc(env(safe-area-inset-bottom, 0px) + var(--step) * 6);
   width: 96px;
   height: 96px;
   border-radius: 50%;
