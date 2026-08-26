@@ -1,120 +1,215 @@
+/* THE CAMERA. See `TitleEye.tsx` for what it is and why.
+
+   Sized as a block in the title's own vertical flow rather than stretched
+   across the whole screen — the old version was `inset: 0` with
+   `preserveAspectRatio: none`, which on a phone pulled a 300x500 viewBox
+   into a portrait smear behind the wordmark, and you could not find the
+   lens. It is now a fixed-aspect unit at the top of the stack, the largest
+   single thing on the screen, with the title underneath it. */
 .title__eye {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  z-index: 0;
+  display: block;
+  width: min(440px, 88vw);
+  /* Never so tall that it pushes the menu off a short screen — the eye
+     wins the composition, but not at the cost of the buttons. */
+  max-height: 38vh;
+  margin: 0 auto;
+  overflow: visible;
   opacity: 0;
   pointer-events: none;
   transition: opacity 900ms ease-out;
 }
 
-/* A slow fade rather than the crack's hard cut — the crack is glass
-   breaking, this is something noticing it's been seen looking. Unsettling
-   reads slower, not faster. */
+/* A slow fade in — this is something noticing it has been seen looking.
+   Unsettling reads slower, not faster. */
 .title__eye.is-open {
   opacity: 1;
 }
 
-.title__eye-housing {
-  fill: rgba(20, 17, 15, 0.55);
-  stroke: var(--b-paper);
+.title__eye-mount,
+.title__eye-shell {
+  fill: #1b1e24;
+  stroke: rgba(236, 226, 208, 0.5);
   stroke-width: 2;
-  opacity: 0.85;
+}
+
+.title__eye-visor {
+  fill: #12151a;
+  stroke: rgba(236, 226, 208, 0.42);
+  stroke-width: 2;
+  stroke-linejoin: round;
+}
+
+.title__eye-arm {
+  stroke: rgba(236, 226, 208, 0.45);
+  stroke-width: 7;
+  stroke-linecap: round;
+}
+
+.title__eye-seam {
+  stroke: rgba(236, 226, 208, 0.16);
+  stroke-width: 2;
+}
+
+.title__eye-plate {
+  fill: rgba(236, 226, 208, 0.14);
+  stroke: rgba(236, 226, 208, 0.3);
+  stroke-width: 1;
+}
+
+.title__eye-plate-line {
+  stroke: rgba(236, 226, 208, 0.55);
+  stroke-width: 2;
 }
 
 .title__eye-bezel {
-  fill: rgba(20, 17, 15, 0.75);
-  stroke: var(--b-paper);
-  stroke-width: 1.6;
-  opacity: 0.8;
+  fill: #0e1014;
+  stroke: rgba(236, 226, 208, 0.38);
+  stroke-width: 3;
+}
+
+.title__eye-barrel {
+  fill: #07080a;
+  stroke: rgba(236, 226, 208, 0.2);
+  stroke-width: 2;
+}
+
+/* The lens well — near-black, so the red inside it is the only bright
+   thing in the middle of the screen. */
+.title__eye-well {
+  fill: #050607;
 }
 
 .title__eye-iris {
   fill: var(--b-red);
-  opacity: 0.62;
+  opacity: 0.9;
 }
 
 .title__eye-pupil {
-  fill: var(--b-ink);
-  opacity: 0.95;
+  fill: #170302;
+}
+
+/* The hot centre — the point of light that makes it read as a lens with a
+   sensor behind it rather than a painted circle. */
+.title__eye-hot {
+  fill: #ffd9c8;
+  opacity: 0.9;
 }
 
 .title__eye-glint {
   fill: var(--b-paper);
-  opacity: 0.7;
+  opacity: 0.45;
 }
 
-/* Nefarious eyelids — heavy, hooded, narrowing the lens down to a watching
-   slit rather than a wide-open stare. Solid and nearly opaque on purpose:
-   these have to actually read as covering the iris underneath, not just
-   tint it, or the "hooded" read collapses back into an open eye with some
-   dark shapes near it. */
+/* Heavy hooded lids, narrowing the lens to a watching slit. Solid and
+   nearly opaque on purpose: these have to actually read as covering the
+   iris, not tinting it, or "hooded" collapses back into an open eye with
+   some dark shapes near it. */
 .title__eye-lid {
-  fill: rgba(12, 10, 9, 0.94);
+  fill: #0a0c0f;
 }
 
-/* Squinting further shut in sync with `.title__eye-gaze`'s own animation
-   below — same 11s cycle, same six held positions, so the lids visibly
-   tighten every time the gaze stops to look somewhere and only relax back
-   to their baseline hood at the two centre-rest points. Opposite signs on
-   purpose (upper lid down, lower lid up) so the gap between them actually
-   narrows rather than both sliding the same direction. */
+/* Somebody's mark on the housing. Faint — it is old, and it has been
+   painted over at least once. */
+.title__eye-tag {
+  fill: none;
+  stroke: var(--b-red);
+  stroke-width: 2.5;
+  stroke-linecap: round;
+  opacity: 0.5;
+}
+
+/* ── The gaze ─────────────────────────────────────────────────────────
+   Three behaviours share one element. The scan is a CSS animation; the
+   blink is a second animation on the lids at a deliberately un-round
+   period so it never lands on the same beat twice running; tracking is an
+   inline custom property that overrides both.                          */
+
+.title__eye-gaze {
+  animation: title-eye-scan 11s ease-in-out infinite;
+  transform-origin: 150px 118px;
+}
+
+/* Tracking the pointer: the animation is dropped for a direct transform,
+   with a transition slow enough to read as a motor turning rather than a
+   cursor being mirrored. */
+.title__eye.is-tracking .title__eye-gaze {
+  animation: none;
+  transform: translate(var(--gaze-x, 0), var(--gaze-y, 0));
+  transition: transform 320ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+@keyframes title-eye-scan {
+  /* Two of the six holds are dead centre — looking straight out at
+     whoever is reading the menu. That is the one the whole animation
+     exists for; the other four are what make it land. */
+  0%, 7% { transform: translate(0, 0); }
+  15%, 23% { transform: translate(-12px, 5px); }
+  31%, 39% { transform: translate(11px, -6px); }
+  47%, 58% { transform: translate(0, 0); }
+  64%, 72% { transform: translate(-7px, -8px); }
+  80%, 88% { transform: translate(9px, 7px); }
+  96%, 100% { transform: translate(0, 0); }
+}
+
+/* The lids do two jobs at once: a slow squint that tightens whenever the
+   gaze stops somewhere, and a fast full blink twice a cycle. The 13s
+   period is deliberately coprime-ish with the scan's 11s, so a blink
+   never lands at the same point of the sweep twice in a row. */
 .title__eye-lid--upper {
-  animation: title-eye-squint-upper 11s ease-in-out infinite;
+  animation: title-eye-lid-upper 13s ease-in-out infinite;
 }
 
 .title__eye-lid--lower {
-  animation: title-eye-squint-lower 11s ease-in-out infinite;
+  animation: title-eye-lid-lower 13s ease-in-out infinite;
 }
 
-@keyframes title-eye-squint-upper {
-  0%, 6% { transform: translateY(0); }
-  14%, 22% { transform: translateY(3px); }
-  30%, 38% { transform: translateY(2.5px); }
-  46%, 54% { transform: translateY(3.5px); }
-  62%, 70% { transform: translateY(2px); }
-  78%, 86% { transform: translateY(1.5px); }
-  94%, 100% { transform: translateY(0); }
+@keyframes title-eye-lid-upper {
+  0%, 20% { transform: translateY(0); }
+  /* blink */
+  22% { transform: translateY(26px); }
+  24% { transform: translateY(0); }
+  40%, 58% { transform: translateY(3px); }
+  /* blink */
+  60% { transform: translateY(26px); }
+  62.5% { transform: translateY(0); }
+  78%, 92% { transform: translateY(2px); }
+  100% { transform: translateY(0); }
 }
 
-@keyframes title-eye-squint-lower {
-  0%, 6% { transform: translateY(0); }
-  14%, 22% { transform: translateY(-2px); }
-  30%, 38% { transform: translateY(-1.5px); }
-  46%, 54% { transform: translateY(-2.5px); }
-  62%, 70% { transform: translateY(-1.5px); }
-  78%, 86% { transform: translateY(-1px); }
-  94%, 100% { transform: translateY(0); }
+@keyframes title-eye-lid-lower {
+  0%, 20% { transform: translateY(0); }
+  22% { transform: translateY(-26px); }
+  24% { transform: translateY(0); }
+  40%, 58% { transform: translateY(-2px); }
+  60% { transform: translateY(-26px); }
+  62.5% { transform: translateY(0); }
+  78%, 92% { transform: translateY(-1.5px); }
+  100% { transform: translateY(0); }
 }
 
-/* The housing never moves — only the gaze inside it does, the way a real
-   dome camera pans its lens without turning the shell. Held positions with
-   a jump between them, not a smooth sweep: this is scanning for something,
-   not admiring the view. Constrained well inside the bezel's own radius so
-   the "eyeball" never visually leaves its lens. */
-.title__eye-gaze {
-  animation: title-eye-look 11s ease-in-out infinite;
-  transform-origin: 150px 220px;
+/* The status LED — the camera's own "I am on", separate from the REC dot
+   in the screen's corner, and slower. */
+.title__eye-led {
+  fill: var(--b-red);
+  animation: title-eye-led 3.4s steps(1, end) infinite;
 }
 
-@keyframes title-eye-look {
-  0%, 6% { transform: translate(0, 0); }
-  14%, 22% { transform: translate(-11px, 4px); }
-  30%, 38% { transform: translate(10px, -5px); }
-  46%, 54% { transform: translate(-6px, -7px); }
-  62%, 70% { transform: translate(8px, 6px); }
-  78%, 86% { transform: translate(-3px, 2px); }
-  94%, 100% { transform: translate(0, 0); }
+@keyframes title-eye-led {
+  0%, 78% { opacity: 1; }
+  80%, 100% { opacity: 0.15; }
 }
 
 @media (prefers-reduced-motion: reduce) {
+  /* No sweep, no blink, no fade — but the lens still tracks a pointer,
+     because that is a direct response to input rather than ambient
+     motion, and losing it would cost the screen its one real idea. */
   .title__eye {
     transition: none;
   }
   .title__eye-gaze,
   .title__eye-lid--upper,
-  .title__eye-lid--lower {
+  .title__eye-lid--lower,
+  .title__eye-led {
     animation: none;
   }
 }

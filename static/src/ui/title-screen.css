@@ -11,17 +11,26 @@
   transition: background-color 260ms steps(3, end), color 260ms steps(3, end);
 }
 
-/* Everything a player actually reads, above the veneer/crack/surveillance
-   layers (all `position: absolute`, painted first in source order so this
-   z-index is the only thing keeping them underneath). */
+/* THE STACK. Camera, title, tagline, menu — in that order, which is both
+   the reading order and the design order (see `TitleScreen.tsx`). Sits
+   above the surveillance chrome, which is all `position: absolute` and
+   painted first in source order.
+
+   Vertically centred but with the bottom padding cleared for the feed
+   strip and the phone's own home indicator, so nothing in the stack can
+   ever end up underneath either. */
 .title__content {
   position: relative;
   z-index: 1;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: calc(var(--step) * 2);
-  padding: calc(var(--step) * 3);
+  gap: calc(var(--step) * 1.5);
+  width: 100%;
+  max-width: 520px;
+  padding: calc(var(--step) * 3) calc(var(--step) * 2);
+  padding-bottom: calc(var(--step) * 7 + env(safe-area-inset-bottom, 0px));
+  padding-top: calc(var(--step) * 3 + env(safe-area-inset-top, 0px));
 }
 
 /* LANGUAGE B: cut by hand, printed badly, urgent — and darker at the edges
@@ -38,12 +47,57 @@
 
 .title--claimed .title__word {
   font-family: var(--font-b);
-  font-size: clamp(52px, 21vw, 144px);
+  /* Sized off the container rather than the viewport now that it sits in
+     a stack under the camera: at 21vw the two lines ate a phone screen and
+     left nothing for the menu. */
+  font-size: clamp(44px, 15vw, 104px);
+  line-height: 0.92;
   letter-spacing: -0.02em;
   margin: 0;
   color: var(--b-paper);
   text-shadow: 3px 3px 0 var(--b-red), -2px -1px 0 var(--b-spot); /* misregistration */
   transform: rotate(-1.2deg);
+}
+
+/*
+ * COMPACT MODE. The naming panel adds a label, a text field, a handle
+ * row and a Start button to the same stack — on a 667px phone that is
+ * more than the full-height camera can share a screen with, and the
+ * Start button ended up sitting on the feed strip. So the camera stands
+ * down while the player is typing: it is still watching, just no longer
+ * the thing being looked at. The wordmark gives up a little with it.
+ */
+.title--naming .title__eye {
+  max-height: 20vh;
+  width: min(300px, 62vw);
+}
+
+.title--naming .title--claimed .title__word,
+.title--claimed.title--naming .title__word {
+  font-size: clamp(34px, 11vw, 72px);
+}
+
+.title--naming .title__content {
+  gap: var(--step);
+}
+
+/* The one line the resistance wrote rather than the council, on a torn red
+   bar to say so. Slightly over-rotated against the wordmark's own tilt, so
+   the two read as separately applied rather than set together. */
+.title__tagline {
+  margin: 0;
+  padding: 5px 14px;
+  background: var(--b-red);
+  color: var(--b-paper);
+  font-family: var(--font-a);
+  font-weight: 700;
+  font-size: clamp(11px, 3.4vw, 15px);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  transform: rotate(-0.7deg);
+  /* A torn edge rather than a clean rectangle — cheap, and it stops the
+     bar reading as a UI chip. */
+  clip-path: polygon(0 6%, 100% 0, 99% 94%, 1% 100%);
 }
 
 /* The surveillance underneath — a CCTV-grain scanline field, only once
@@ -92,8 +146,11 @@
    isn't an alarm, it's a status light that's simply always been on. */
 .title__rec {
   position: absolute;
-  top: calc(var(--step) * 2);
-  right: calc(var(--step) * 2);
+  top: calc(env(safe-area-inset-top, 0px) + var(--step) * 2);
+  /* Clear of the viewfinder's own top-right bracket, which sits at the
+     same base inset and was cropping the C. Same gutter the feed strip
+     uses along the bottom, so the two corners agree. */
+  right: calc(var(--step) * 4.5);
   z-index: 0;
   margin: 0;
   display: flex;
@@ -107,26 +164,61 @@
   pointer-events: none;
 }
 
-/* The REC light's opposite corner, low rather than high — a camera feed's
-   own ID burn-in, the same faint mono label a real security monitor prints
-   over its footage. Deliberately quieter than `.title__rec` (no dot, lower
-   opacity): this is a background detail to notice, not a second focal
-   point competing with the eye or the wordmark. */
-.title__camid {
+/* The feed's own status strip along the bottom edge — the camera ID in
+   full and a signal meter, the furniture a real security monitor prints
+   over its footage. Deliberately the quietest thing on the screen: a
+   background detail to notice, not a seventh focal point competing with
+   the six above it.
+
+   Inset from the viewfinder's own corner brackets on both sides so it can
+   never collide with them, and lifted clear of the phone's home
+   indicator. */
+.title__feed {
   position: absolute;
-  bottom: calc(var(--step) * 2.5);
-  /* Clear of the viewfinder bracket's own corner stroke, which sits at the
-     same base inset (`.title__viewfinder`'s `inset`) this would otherwise
-     start flush against. */
-  left: calc(var(--step) * 4.5);
+  left: 0;
+  right: 0;
+  bottom: calc(env(safe-area-inset-bottom, 0px) + var(--step) * 2);
   z-index: 0;
-  margin: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--step);
+  padding: 0 calc(var(--step) * 4.5);
   font-family: var(--font-mono);
   font-size: 10px;
   letter-spacing: 0.08em;
   color: rgba(236, 226, 208, 0.35);
   pointer-events: none;
 }
+
+.title__feed-id {
+  /* Never wraps to a second line on a narrow phone — it truncates, the way
+     a real burn-in overlay would be cropped by the frame. */
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+/* Four rising bars. Full strength and steady — the network is not
+   struggling, which is rather the problem. */
+.title__signal {
+  display: flex;
+  align-items: flex-end;
+  gap: 2px;
+  flex: none;
+}
+
+.title__signal i {
+  display: block;
+  width: 3px;
+  background: var(--b-red);
+  opacity: 0.75;
+}
+
+.title__signal i:nth-child(1) { height: 4px; }
+.title__signal i:nth-child(2) { height: 7px; }
+.title__signal i:nth-child(3) { height: 10px; }
+.title__signal i:nth-child(4) { height: 13px; }
 
 .title__rec-dot {
   width: 6px;
@@ -153,18 +245,31 @@
   display: flex;
   flex-direction: column;
   gap: var(--step);
-  margin-top: var(--step);
-  width: min(280px, 80vw);
+  margin-top: calc(var(--step) * 0.5);
+  width: min(320px, 86vw);
 }
 
+/* 48px minimum, which is above the 44px both platforms ask for — this is a
+   phone game and New Game is the most important control in it. */
 .title__btn {
+  min-height: 48px;
   background: transparent;
   color: var(--b-paper);
   border: 2px solid var(--b-paper);
   padding: 12px 16px;
   font-family: var(--font-a);
   font-weight: 700;
+  font-size: 16px; /* never below 16px: iOS zooms the page on a smaller tap target's focus */
   letter-spacing: 0.06em;
+  cursor: pointer;
+  /* Kills the 300ms tap delay and the grey flash on iOS without disabling
+     the button's own :active state below. */
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.title__btn:active {
+  transform: translateY(1px);
 }
 
 .title__btn--primary {
