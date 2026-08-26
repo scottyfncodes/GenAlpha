@@ -8,6 +8,7 @@ import {
   type OverworldLocation,
 } from './locations';
 import type { Obstacle } from './obstacles';
+import type { WallMark } from './marks';
 import type { NpcKind } from './npcs';
 import type { ThresholdTier } from '../state/schema';
 import { mulberry32, seedFrom } from '../systems/rng';
@@ -372,6 +373,11 @@ export function drawTown(
   /** Poles the player has taken apart at least once — see
    * `drawSabotageScar`. Authored positions, not live ones. */
   scars: { x: number; y: number; tagged: boolean }[],
+  /** The Gen A marks standing today. Filtered by the caller against the
+   * rollout clock, the same way `obstacles` already is — see
+   * `world/marks.ts` for why they arrive over the course of the game
+   * rather than all at once. */
+  marks: WallMark[],
   moving: boolean,
   now: number,
   boardTier: number,
@@ -427,7 +433,7 @@ export function drawTown(
   // the way past. Both are paint rather than mechanics — see their own
   // tables above for why neither is a `CameraNode` or an `Obstacle`.
   for (const c of DEAD_CAMERAS) drawDeadCamera(ctx, c);
-  for (const m of GEN_A_MARKS) drawGenAMark(ctx, m);
+  for (const m of marks) drawGenAMark(ctx, m);
 
   // Ordinary cameras, worth taking apart — the same small box the story pole
   // renders as, so it reads as the same kind of object. `dismantlable` is
@@ -2032,76 +2038,6 @@ function drawStreetlight(ctx: CanvasRenderingContext2D, p: { x: number; y: numbe
 }
 
 /**
- * THE GEN A MARK, ON WALLS.
- *
- * "Every resistance asset renders the A as the anarchy circle-A. The circle
- * closes across the three acts and no dialogue ever explains it" — the
- * rule `ui/GenAMark.tsx` exists to hold, and `act3.test.ts` has a test that
- * fails if a line of dialogue names it. So the town's own copies are
- * exactly that: drawn, never captioned, and never attached to a location's
- * blurb.
- *
- * `closure` is how much of the circle whoever held the marker actually
- * finished — 0 for a bare letter that could be anybody's initial, 1 for a
- * closed ring. Authored per mark rather than rolled, because the spread is
- * the storytelling: the marks on the school wall and the underpass are
- * half-drawn and inconsistent (different people, each having seen it
- * once), and the ones in Old Market and on the Annex fence are closed,
- * because that is where the people drawing them are.
- *
- * None of this is an `Obstacle` or a `Location` — it is paint on ground
- * somebody else's collision rect already owns, so there is no connectivity
- * or overlap pass to re-run when one moves.
- */
-interface WallMark {
-  x: number;
-  y: number;
-  size: number;
-  /** 0 = no circle at all, 1 = closed ring. */
-  closure: number;
-  /** A photocopied sticker rather than spray — smaller, paler, squarer. */
-  sticker?: boolean;
-}
-
-const GEN_A_MARKS: WallMark[] = [
-  // 1. The Heights — one, small, on the alley wall behind Ellen's. The
-  // quietest district gets the faintest mark: somebody started it here.
-  { x: 356, y: 120, size: 9, closure: 0.25 },
-  // 2. Main Street — the school's flank and a sticker on the square's
-  // own bandstand post, which is the most public surface in town.
-  { x: 774, y: 96, size: 11, closure: 0.45 },
-  { x: 700, y: 244, size: 7, closure: 0.7, sticker: true },
-  { x: 1002, y: 214, size: 8, closure: 0.3, sticker: true },
-  // 3. Civic Zone — two, both painted over and re-done: the Data Centre's
-  // own fence post and the service cut between Library and Records. The
-  // district with the most cameras also has the most re-marked walls.
-  { x: 1392, y: 150, size: 12, closure: 0.85 },
-  { x: 1344, y: 300, size: 10, closure: 0.6 },
-  // 4. Old Market — the strip is where the closed ones are.
-  { x: 130, y: 486, size: 13, closure: 1 },
-  { x: 300, y: 470, size: 9, closure: 1 },
-  { x: 200, y: 664, size: 11, closure: 0.9 },
-  { x: 348, y: 640, size: 8, closure: 0.8, sticker: true },
-  // 5. Liberty Park — one on the gazebo's own post, under the banner.
-  { x: 748, y: 520, size: 10, closure: 1 },
-  // 6. The Works — the Annex fence line, next to the gap.
-  { x: 1520, y: 528, size: 12, closure: 1 },
-  { x: 1300, y: 476, size: 9, closure: 0.75 },
-  // 7. Southside — the depot's service lane and the substation fence.
-  { x: 214, y: 880, size: 10, closure: 0.55 },
-  { x: 408, y: 872, size: 8, closure: 0.4, sticker: true },
-  // 8. The Blocks — three, all closed, all on the back alleys. This is
-  // the district that puts them up.
-  { x: 700, y: 856, size: 11, closure: 1 },
-  { x: 862, y: 856, size: 10, closure: 1 },
-  { x: 1036, y: 900, size: 9, closure: 0.95 },
-  // 9. The Plaza — stickers, not spray: nobody gets long enough with a
-  // can in a lot this well covered.
-  { x: 1404, y: 860, size: 7, closure: 0.5, sticker: true },
-  { x: 1290, y: 1010, size: 8, closure: 0.65, sticker: true },
-];
-
-/**
  * One mark: the A's two legs, its crossbar, and however much of the circle
  * got drawn. Hand-cut rather than stencilled — each stroke is nudged by
  * the mark's own seeded noise so no two are the same shape, which is the
@@ -2192,7 +2128,7 @@ function drawGenAMark(ctx: CanvasRenderingContext2D, m: WallMark) {
  * the lens off this one.
  *
  * Kept deliberately small and dry — a tag and a sticker, not a mural. The
- * Gen A mark is rare on this map on purpose (`GEN_A_MARKS`), and a player
+ * Gen A mark is rare on this map on purpose (`world/marks.ts`), and a player
  * who has worked over twenty poles should end up with a town that looks
  * marked, not a town that looks vandalised.
  */
@@ -2215,7 +2151,7 @@ function drawSabotageScar(ctx: CanvasRenderingContext2D, scar: { x: number; y: n
 
   // Every second one carries the mark rather than just paint — see the
   // rarity note above.
-  if (scar.tagged) drawGenAMark(ctx, { x: scar.x + 7, y: baseY + 4, size: 8, closure: 0.6 + rand() * 0.4 });
+  if (scar.tagged) drawGenAMark(ctx, { x: scar.x + 7, y: baseY + 4, size: 8, closure: 0.6 + rand() * 0.4, stage: 0 });
 }
 
 /**

@@ -6,6 +6,7 @@ import { NPCS, wanderPos } from '../world/npcs';
 import { CAMERA_NODES } from '../world/collectibles';
 import { STREET_HACK_NODES } from '../world/streethacks';
 import { JUNCTION_BOX_NODES } from '../world/junctionboxes';
+import { marksAtStage } from '../world/marks';
 import { PATROL_ROUTES, patrolTuning } from '../world/patrols';
 import { COP_ROUTES, copTuning } from '../world/copwalk';
 import { DRONE_ROUTES, droneTuning } from '../world/drones';
@@ -166,6 +167,11 @@ export function MapShot() {
         // the toggle answers both halves of the same question — what does
         // the town look like once somebody has worked it over.
         v.damaged ? cameras.map((c, i) => ({ x: c.x, y: c.y, tagged: i % 2 === 0 })) : [],
+        // The stage control already governs the camera rollout and the
+        // staged fences; the Gen A marks come up the same clock, so it
+        // governs those too — which makes this page the fastest way to
+        // see the whole spread from day one to day fifteen.
+        marksAtStage(v.stage),
         false,
         now,
         0,

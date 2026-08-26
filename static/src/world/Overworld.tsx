@@ -11,6 +11,7 @@ import {
   type OverworldLocation,
 } from './locations';
 import { OBSTACLES } from './obstacles';
+import { marksAtStage } from './marks';
 import { NPCS, wanderPos } from './npcs';
 import { PATROL_ROUTES, activeRoutes, patrolTuning, type PatrolRoute } from './patrols';
 import { activeDroneRoutes, droneTuning, DRONE_ROUTES, DRONE_TAKEDOWN_BY_TOOL_TIER, DRONE_TAKEDOWN_RADIUS } from './drones';
@@ -1194,6 +1195,12 @@ export function Overworld() {
         droneDraw,
         copDraw,
         scarDraw,
+        // The same rollout clock the obstacle layer and the camera table
+        // read — see `world/marks.ts`. Cheap enough to derive per frame
+        // (a filter over ~22 entries) and it keeps the stage in exactly
+        // one place rather than cached against a day that can change
+        // under it.
+        marksAtStage(stage),
         moving,
         now,
         boardTierRef.current,

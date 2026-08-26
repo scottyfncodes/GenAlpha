@@ -104,10 +104,22 @@ metres; a route the player cannot take is set dressing, not a route.
 
 **What the player leaves behind.** Cameras carry a visible coverage wedge,
 so a dismantle removes a shape from the ground rather than a number from a
-bar. Five housings are already dark at the start of a new game (`draw.ts`'s
-`DEAD_CAMERAS`) and twenty Gen A marks are already up (`GEN_A_MARKS`) —
-neither is a mechanic, and that's the point: taking a camera down is a
-thing people here already do, before the player does anything.
+bar, and a pole they've taken apart keeps its paint after SafeTrace puts a
+new lens on it (`draw.ts`'s `drawSabotageScar`, off `collectedNodes`, no
+new persistence). Five housings are already dark at the start of a new
+game (`DEAD_CAMERAS`) — not a mechanic, and that's the point: taking a
+camera down is a thing people here already do, before the player does
+anything.
+
+**And what other people leave behind.** The Gen A marks (`world/marks.ts`)
+run off the same day-driven rollout clock as the cameras, so the two
+multiply against each other: four half-drawn marks on day one, none of
+them anywhere public; the Civic Zone's first at stage 2; closed rings
+everywhere by stage 3. A symbol that is already everywhere on day one is
+wallpaper — it is only worth something if the player watches it spread,
+and by the end most of it is being put up by people they have never met.
+`world/marks.test.ts` asserts that curve, because it is the one piece of
+the world design that is *only* a curve.
 
 Placement is checked, not eyeballed. `node scripts/check-connectivity.mjs`
 flood-fills the map and fails on an unreachable cell, an overlapping rect
