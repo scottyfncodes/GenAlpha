@@ -22,19 +22,36 @@
  * moment a player actually cuts through one, not just implied by the map
  * looking quieter there.
  *
- * `'building'` is the one exception to "not a building": a background one,
- * deliberately unlit and unlabelled (`draw.ts`'s `drawDecorativeBuilding`
- * paints it in a duller, receding palette) so the town reads as a filled-in
- * place without a background block competing with an actual, interactive
- * location for the player's attention.
+ * `'building'`, `'tower'` and `'billboard'` are the exceptions to "not a
+ * building": background scenery, deliberately unlit/unlabelled/uninteractive
+ * (`draw.ts`'s `drawDecorativeBuilding`/`drawSafeTraceTower`/`drawBillboard`
+ * paint them without a doorway prompt), so the town reads as a filled-in
+ * place without competing with an actual, interactive location for the
+ * player's attention. Unlike a plain `'building'` filler, the tower and the
+ * billboard are each singular, hand-placed district landmarks — one per
+ * district, not a repeatable texture — so their id and colour are chosen
+ * deliberately rather than by the noise-seeded variety the rest of this file
+ * uses.
  *
  * Coordinates were chosen against `scripts/check-connectivity.mjs` — every
  * open cell reachable from spawn, every named location's doorway reachable —
- * rather than by eye. Re-run it (`node scripts/check-connectivity.mjs`)
+ * rather than by eye. Re-run it (`npx tsx scripts/check-connectivity.mjs`)
  * before touching any of these; a maze that quietly seals off a location is
  * worse than no maze at all.
  */
-export type ObstacleKind = 'tree' | 'bush' | 'rock' | 'hedge' | 'fence' | 'car' | 'bin' | 'building' | 'crate' | 'barrel';
+export type ObstacleKind =
+  | 'tree'
+  | 'bush'
+  | 'rock'
+  | 'hedge'
+  | 'fence'
+  | 'car'
+  | 'bin'
+  | 'building'
+  | 'crate'
+  | 'barrel'
+  | 'tower'
+  | 'billboard';
 
 export interface Obstacle {
   id: string;
@@ -306,4 +323,24 @@ export const OBSTACLES: Obstacle[] = [
   // it stops at nothing.
   { id: 'filler_121', x: 2, y: 40, w: 20, h: 88, kind: 'hedge' },
   { id: 'filler_122', x: 1578, y: 400, w: 20, h: 200, kind: 'hedge' },
+
+  /*
+   * The two singular district landmarks the map redesign brief asks for —
+   * see `draw.ts`'s `drawSafeTraceTower`/`drawBillboard` for why each is
+   * drawn the way it is. Placed in genuinely open ground (checked against
+   * `scripts/check-connectivity.mjs`, not just by eye against the district's
+   * other obstacles) rather than replacing anything already there.
+   */
+  // Downtown — the strip of open ground east of the Library and west of the
+  // Warehouse District's own tree line (filler_153–155), north of Town
+  // Square. Tall enough to read as a skyline break from most of the map.
+  { id: 'safetrace_tower', x: 970, y: 8, w: 70, h: 185, kind: 'tower' },
+  // Commercial Strip — south of Pharmacy, clear of junction_16 and
+  // junction_8 (junctionboxes.test.ts checks each node's own 16px footprint
+  // against every solid obstacle), the bin/tree cluster by the district's
+  // own edge (filler_116/117/119), and both camera-dismantle points. The
+  // upper part of this district is dense with small furniture; this strip
+  // along the bottom edge was the one clean run of open ground actually
+  // wide enough for a real billboard.
+  { id: 'commercial_billboard', x: 1350, y: 1042, w: 130, h: 50, kind: 'billboard' },
 ];
