@@ -18,7 +18,15 @@ npm run dev        # http://localhost:5173
 npm test           # 256 tests, all logic, ~24s, no DOM needed
 npm run typecheck
 npm run build      # -> dist/, static, deploys to Vercel/Netlify as-is
+npm run build:single  # -> static-game.html, one self-contained file
 ```
+
+`build:single` folds `dist/` into a single HTML file with the bundle, the
+stylesheet and every sprite sheet inlined as data URIs — about 700 KB, no
+server needed. It opens from a filesystem, and it is what to publish when
+there is nowhere to host a folder. (GitHub Actions is not enabled on this
+repository, so the Pages workflow in `.github/workflows` never registers
+and never deploys; this is the fallback.)
 
 No fonts or assets are fetched at runtime; the type stacks fall back to system
 faces so the game runs offline. Drop real faces into `public/fonts` and extend
