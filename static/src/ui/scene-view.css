@@ -8,8 +8,27 @@
   overflow: hidden;
 }
 
+/*
+ * Language A's own texture — everywhere else, Language B carries the whole
+ * game's grain (the halftone dot-fill `.lang-b` paints in tokens.css); A had
+ * nothing of its own, just a flat fill of `--a-bg`, so the scene view — the
+ * single most-seen surface in the game, especially through Act 1 — read as
+ * an unstyled placeholder next to every riso-printed Language B screen.
+ * Not the same texture: a clean schematic grid instead of a hand-cut
+ * halftone is what "cool and clinical" (tokens.css's own framing of
+ * Language A) actually looks like drawn rather than just stated. A radial
+ * vignette on top keeps the corners from reading as an infinite blueprint
+ * sheet — the same "close in at the edges" move the title's `.title--claimed`
+ * background makes for Language B, in A's own cool register instead of B's
+ * warm one.
+ */
 .scene.lang-a {
-  background: var(--a-bg);
+  background-color: var(--a-bg);
+  background-image:
+    radial-gradient(ellipse at center, transparent 40%, rgba(6, 9, 14, 0.5) 100%),
+    linear-gradient(rgba(140, 170, 210, 0.07) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(140, 170, 210, 0.07) 1px, transparent 1px);
+  background-size: 100% 100%, 26px 26px, 26px 26px;
   border: none;
   border-radius: 0;
 }
