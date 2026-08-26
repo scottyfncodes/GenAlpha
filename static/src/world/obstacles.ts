@@ -5,22 +5,22 @@
  * enough to feel like a maze, per the build note: more corridors, a Pac-Man
  * read to the layout.
  *
- * Drawn as natural terrain and street furniture (trees, bushes, rocks,
- * hedges, chain-link fence, parked cars, bins — see draw.ts), not as unnamed
- * buildings: a wall of scenery with no name and no windows lit read as a
- * mistake, not as a place. `kind` picks which; assigned by each footprint's
- * proportions (tall reads as a tree, wide and flat as a hedge) and by
- * district — the Warehouse District gets fence and rock, the two
- * residential districts get hedge and bush, Riverside Park gets the
- * heaviest tree cover in town — rather than at random, so the town's edges
- * look considered rather than rolled.
+ * Drawn as natural terrain, street furniture and surveillance hardware
+ * (trees, bushes, rocks, hedges, chain-link fence, parked cars, bins,
+ * plate scanners, security gates — see draw.ts), not as unnamed buildings:
+ * a wall of scenery with no name and no windows lit read as a mistake, not
+ * as a place. `kind` picks which; assigned by each footprint's proportions
+ * (tall reads as a tree, wide and flat as a hedge) and by district — The
+ * Works gets fence, gate and crate, the two residential districts get hedge
+ * and bush, Liberty Park gets the heaviest tree cover in town — rather than
+ * at random, so the town's edges look considered rather than rolled.
  *
  * Tree placement isn't just texture, past the district-flavour pass:
- * `world/draw.ts`'s four `alley`-tier road segments (the district
- * redesign's own shortcuts) each carry a deliberate cluster of trees around
- * them, so `systems/pursuit.ts`'s `underTreeCover()` concealment is real the
- * moment a player actually cuts through one, not just implied by the map
- * looking quieter there.
+ * `world/draw.ts`'s `alley`-tier road segments (the 3x3 redesign's own
+ * shortcuts, one per built-up district) each carry a deliberate cluster of
+ * trees at their mouths, so `systems/pursuit.ts`'s `underTreeCover()`
+ * concealment is real the moment a player actually cuts through one, not
+ * just implied by the map looking quieter there.
  *
  * `'building'`, `'tower'` and `'billboard'` are the exceptions to "not a
  * building": background scenery, deliberately unlit/unlabelled/uninteractive
@@ -32,6 +32,16 @@
  * district, not a repeatable texture — so their id and colour are chosen
  * deliberately rather than by the noise-seeded variety the rest of this file
  * uses.
+ *
+ * `'scanner'` and `'gate'` are the surveillance layer the 3x3 redesign adds
+ * on top of the camera network (`world/collectibles.ts`). A camera watches
+ * a place; a plate scanner watches a *road*, which is why they only ever
+ * stand on a verge facing traffic, and why their density climbs toward the
+ * Civic Zone the same way the camera table's does. A security gate is the
+ * thing a scanner is usually protecting — and every gate on this map has a
+ * way past it within a few metres (a fence gap, a service alley, an
+ * unwatched back corner), because a route the player cannot take is set
+ * dressing, not a route.
  *
  * Coordinates were chosen against `scripts/check-connectivity.mjs` — every
  * open cell reachable from spawn, every named location's doorway reachable —
@@ -51,7 +61,9 @@ export type ObstacleKind =
   | 'crate'
   | 'barrel'
   | 'tower'
-  | 'billboard';
+  | 'billboard'
+  | 'scanner'
+  | 'gate';
 
 export interface Obstacle {
   id: string;
@@ -62,285 +74,371 @@ export interface Obstacle {
   kind: ObstacleKind;
   /**
    * Absent on everything ordinary — this piece of scenery has always been
-   * there. Set only on the handful of fence segments added as the story's
-   * `EscalationStage` (see `world/escalation.ts`) climbs, so the town's
-   * perimeter security visibly grows over the course of the game rather
-   * than sitting at its endgame density from day one.
+   * there. Set only on the handful of fence and scanner pieces added as the
+   * story's `EscalationStage` (see `world/escalation.ts`) climbs, so the
+   * town's perimeter security visibly grows over the course of the game
+   * rather than sitting at its endgame density from day one.
    */
   minStage?: 1 | 2 | 3;
 }
 
 export const OBSTACLES: Obstacle[] = [
-  // The 16 fixed hidden-pickup ids (`world/collectibles.ts` `HIDDEN_PICKUPS`
-  // names each of these by id, not by position) — spread across every
-  // district rather than clustered in one, the same "more variety, spread
-  // wide" the pickup table's own comment already asks for.
-  { id: 'filler_2', x: 300, y: 147, w: 16, h: 24, kind: 'bush' },
-  { id: 'filler_4', x: 52, y: 248, w: 16, h: 24, kind: 'bush' },
-  { id: 'filler_10', x: 588, y: 288, w: 16, h: 24, kind: 'bush' },
-  { id: 'filler_12', x: 952, y: 288, w: 16, h: 24, kind: 'bush' },
-  { id: 'filler_16', x: 768, y: 448, w: 16, h: 24, kind: 'bush' },
-  { id: 'filler_45', x: 992, y: 628, w: 16, h: 24, kind: 'bush' },
-  { id: 'filler_46', x: 316, y: 448, w: 16, h: 24, kind: 'bush' },
-  { id: 'filler_47', x: 52, y: 638, w: 16, h: 24, kind: 'bush' },
-  { id: 'filler_48', x: 1242, y: 216, w: 16, h: 24, kind: 'bush' },
-  { id: 'filler_49', x: 1537, y: 311, w: 16, h: 24, kind: 'bush' },
-  { id: 'filler_50', x: 1318, y: 588, w: 16, h: 24, kind: 'bush' },
-  { id: 'filler_51', x: 92, y: 988, w: 16, h: 24, kind: 'bush' },
-  { id: 'filler_52', x: 742, y: 838, w: 16, h: 24, kind: 'bush' },
-  { id: 'filler_53', x: 942, y: 988, w: 16, h: 24, kind: 'bush' },
-  { id: 'filler_54', x: 1274, y: 888, w: 16, h: 24, kind: 'bush' },
-  { id: 'filler_55', x: 1492, y: 1018, w: 16, h: 24, kind: 'bush' },
+  /* ================================================================ *
+   * The 16 fixed hidden-pickup ids (`world/collectibles.ts`
+   * `HIDDEN_PICKUPS` names each of these by id, not by position) —
+   * spread across all nine districts rather than clustered in one, the
+   * same "more variety, spread wide" the pickup table's own comment
+   * already asks for. Every one is quietly excluded from collision, so
+   * these are the only bushes on the map a player can walk into.
+   * ================================================================ */
+  { id: 'filler_2', x: 296, y: 252, w: 16, h: 24, kind: 'bush' }, // 1. The Heights
+  { id: 'filler_4', x: 52, y: 300, w: 16, h: 24, kind: 'bush' }, // 1. The Heights
+  { id: 'filler_10', x: 592, y: 320, w: 16, h: 24, kind: 'bush' }, // 2. Main Street
+  { id: 'filler_12', x: 1000, y: 300, w: 16, h: 24, kind: 'bush' }, // 2. Main Street
+  { id: 'filler_48', x: 1440, y: 196, w: 16, h: 24, kind: 'bush' }, // 3. Civic Zone
+  { id: 'filler_46', x: 372, y: 610, w: 16, h: 24, kind: 'bush' }, // 4. Old Market
+  { id: 'filler_47', x: 200, y: 700, w: 16, h: 24, kind: 'bush' }, // 4. Old Market
+  { id: 'filler_16', x: 640, y: 592, w: 16, h: 24, kind: 'bush' }, // 5. Liberty Park
+  { id: 'filler_45', x: 1030, y: 656, w: 16, h: 24, kind: 'bush' }, // 5. Liberty Park
+  { id: 'filler_49', x: 1560, y: 700, w: 16, h: 24, kind: 'bush' }, // 6. The Works
+  { id: 'filler_50', x: 1200, y: 700, w: 16, h: 24, kind: 'bush' }, // 6. The Works
+  { id: 'filler_51', x: 92, y: 1000, w: 16, h: 24, kind: 'bush' }, // 7. Southside
+  { id: 'filler_52', x: 620, y: 1000, w: 16, h: 24, kind: 'bush' }, // 8. The Blocks
+  { id: 'filler_53', x: 940, y: 1000, w: 16, h: 24, kind: 'bush' }, // 8. The Blocks
+  { id: 'filler_54', x: 1148, y: 1064, w: 16, h: 24, kind: 'bush' }, // 9. The Plaza
+  { id: 'filler_55', x: 1560, y: 1000, w: 16, h: 24, kind: 'bush' }, // 9. The Plaza
 
-  // The alley shortcuts' own tree cover — West End (Repair Shop <-> Wash &
-  // Fold), the Warehouse back cut behind Annex Fence, the Downtown side
-  // alley off the plaza. Residential North's own alley (behind Ellen's) is
-  // planted separately below, as part of that district's own landscaping
-  // pass rather than lumped in here.
-  { id: 'filler_1', x: 173, y: 413, w: 20, h: 40, kind: 'tree' },
-  { id: 'filler_3', x: 187, y: 469, w: 20, h: 40, kind: 'tree' },
-  { id: 'filler_5', x: 1358, y: 451, w: 20, h: 40, kind: 'tree' },
-  { id: 'filler_6', x: 1352, y: 396, w: 20, h: 40, kind: 'tree' },
-  { id: 'filler_7', x: 799, y: 154, w: 20, h: 40, kind: 'tree' },
-
-  /*
-   * Residential North, landscaped rather than scattered. Three things a
+  /* ================================================================ *
+   * 1. THE HEIGHTS — landscaped rather than scattered. Three things a
    * real block actually has:
-   *  - Street trees in a regular rhythm along the main road's own north
-   *    verge (y:210-230) — the single strongest "this is a street" signal
-   *    a top-down block can give, and the thing the old scatter never did.
+   *  - Street trees in a regular rhythm along the district street's own
+   *    north verge — the single strongest "this is a street" signal a
+   *    top-down block can give.
    *  - A low yard-front hedge for Home and for Ellen's, each broken by a
    *    gap for the walkway to its own door — a boundary that belongs to a
    *    specific building, not a hedge floating in open grass.
-   *  - The Garage's own pair of foundation bushes, and three trees flanking
-   *    the open (east) side of the rear alley behind Ellen's — the alley's
-   *    west side is the house's own wall, so there's nowhere to plant one
-   *    there.
-   * Replaces the old filler_8/9/11/13 (alley trees, irregular and two of
-   * them actually inside the alley's own walkable width) and filler_14/15/
-   * 17/18/19/20/21/22 (hedges and bushes with no relationship to any
-   * building) plus filler_23/24/25 (loose trees with no placement logic,
-   * despite being grouped under the "Downtown" comment below).
-   */
-  { id: 'filler_132', x: 20, y: 155, w: 20, h: 40, kind: 'tree' }, // street tree
-  { id: 'filler_133', x: 80, y: 155, w: 20, h: 40, kind: 'tree' }, // street tree
-  { id: 'filler_134', x: 240, y: 155, w: 20, h: 40, kind: 'tree' }, // street tree
-  { id: 'filler_135', x: 260, y: 155, w: 20, h: 40, kind: 'tree' }, // street tree
-  { id: 'filler_136', x: 320, y: 155, w: 20, h: 40, kind: 'tree' }, // street tree
-  { id: 'filler_137', x: 420, y: 155, w: 20, h: 40, kind: 'tree' }, // street tree
-  { id: 'filler_138', x: 365, y: 45, w: 20, h: 40, kind: 'tree' }, // rear alley, east side
-  { id: 'filler_139', x: 365, y: 95, w: 20, h: 40, kind: 'tree' }, // rear alley, east side
-  { id: 'filler_140', x: 365, y: 145, w: 20, h: 40, kind: 'tree' }, // rear alley, east side
-  { id: 'filler_141', x: 40, y: 138, w: 45, h: 8, kind: 'hedge' }, // Home's yard front, left of the walk
-  { id: 'filler_142', x: 130, y: 138, w: 40, h: 8, kind: 'hedge' }, // Home's yard front, right of the walk
-  { id: 'filler_143', x: 220, y: 142, w: 50, h: 8, kind: 'hedge' }, // Ellen's yard front, left of the walk
-  { id: 'filler_144', x: 298, y: 142, w: 48, h: 8, kind: 'hedge' }, // Ellen's yard front, right of the walk
-  { id: 'filler_145', x: 126, y: 201, w: 10, h: 8, kind: 'bush' }, // Garage, foundation planting
-  { id: 'filler_146', x: 162, y: 201, w: 10, h: 8, kind: 'bush' }, // Garage, foundation planting
+   *  - The Garage's own pair of foundation bushes, and three trees
+   *    flanking the open (east) side of the rear alley behind Ellen's —
+   *    the alley's west side is the house's own wall, so there's nowhere
+   *    to plant one there.
+   * Not a single camera on this block at stage 0, by design: it is the
+   * one district the surveillance gradient starts from.
+   * ================================================================ */
+  { id: 'filler_132', x: 20, y: 160, w: 20, h: 40, kind: 'tree' },
+  { id: 'filler_133', x: 80, y: 160, w: 20, h: 40, kind: 'tree' },
+  { id: 'filler_134', x: 240, y: 160, w: 20, h: 40, kind: 'tree' },
+  { id: 'filler_135', x: 288, y: 160, w: 20, h: 40, kind: 'tree' },
+  { id: 'filler_136', x: 320, y: 160, w: 20, h: 40, kind: 'tree' },
+  { id: 'filler_137', x: 424, y: 160, w: 20, h: 40, kind: 'tree' },
+  { id: 'filler_138', x: 364, y: 46, w: 20, h: 40, kind: 'tree' }, // rear alley, east side
+  { id: 'filler_139', x: 364, y: 96, w: 20, h: 40, kind: 'tree' },
+  { id: 'filler_140', x: 364, y: 146, w: 20, h: 40, kind: 'tree' },
+  { id: 'filler_141', x: 40, y: 140, w: 45, h: 8, kind: 'hedge' }, // Home's yard front, left of the walk
+  { id: 'filler_142', x: 130, y: 140, w: 40, h: 8, kind: 'hedge' }, // Home's yard front, right of the walk
+  { id: 'filler_143', x: 220, y: 144, w: 50, h: 8, kind: 'hedge' }, // Ellen's yard front, left of the walk
+  { id: 'filler_144', x: 298, y: 144, w: 48, h: 8, kind: 'hedge' }, // Ellen's yard front, right of the walk
+  { id: 'filler_145', x: 126, y: 202, w: 10, h: 8, kind: 'bush' }, // Garage, foundation planting
+  { id: 'filler_146', x: 162, y: 202, w: 10, h: 8, kind: 'bush' },
+  // The south half of the block: two more houses nobody in the story has
+  // ever knocked on, a shared hedge line between their yards, and the
+  // residents' own parked cars on the district street.
+  { id: 'heights_house_a', x: 36, y: 254, w: 104, h: 72, kind: 'building' },
+  { id: 'heights_house_b', x: 196, y: 254, w: 108, h: 72, kind: 'building' },
+  { id: 'heights_hedge_a', x: 152, y: 258, w: 8, h: 64, kind: 'hedge' },
+  { id: 'heights_hedge_b', x: 320, y: 258, w: 8, h: 64, kind: 'hedge' },
+  { id: 'heights_car_1', x: 200, y: 234, w: 18, h: 12, kind: 'car' },
+  { id: 'heights_car_2', x: 232, y: 234, w: 18, h: 12, kind: 'car' },
+  { id: 'heights_car_3', x: 356, y: 234, w: 18, h: 12, kind: 'car' },
+  { id: 'heights_bin_1', x: 186, y: 190, w: 16, h: 16, kind: 'bin' },
 
-  /*
-   * Downtown — the civic quad School and Library actually form together,
-   * landscaped as one rather than each getting a random handful of trees.
-   *  - filler_33 already sat right at School's own south-west corner; it
-   *    reads as a real entrance planting once it's mirrored across the
-   *    building's own centre line instead of standing alone.
-   *  - Library gets the same symmetric pair, flanking the pedimented
-   *    entrance its own code comment already calls out as the one building
-   *    in town "dressed up to look civic on purpose".
-   *  - The old scatter's real problem was the four trees with no logic at
-   *    all (filler_26/29/30 bunched loosely on the district's east side,
-   *    filler_32 alone on the west) — replaced with two deliberate lines,
-   *    east and west, reading as the planted buffer between Downtown and
-   *    its neighbours rather than debris.
-   * filler_27 (near Marlow Street) and filler_31 (near Town Square) were
-   * already close enough to a real building to keep as they were.
-   */
-  { id: 'filler_33', x: 560, y: 178, w: 22, h: 42, kind: 'tree' }, // School, entrance planting (west)
-  { id: 'filler_147', x: 746, y: 165, w: 22, h: 40, kind: 'tree' }, // School, entrance planting (east) — mirrors filler_33
-  { id: 'filler_148', x: 826, y: 156, w: 20, h: 40, kind: 'tree' }, // Library, entrance planting (west)
-  { id: 'filler_149', x: 942, y: 156, w: 20, h: 40, kind: 'tree' }, // Library, entrance planting (east)
-  { id: 'filler_150', x: 535, y: 60, w: 20, h: 40, kind: 'tree' }, // west edge line, toward the Crossroads
-  { id: 'filler_151', x: 535, y: 150, w: 20, h: 40, kind: 'tree' },
-  { id: 'filler_152', x: 535, y: 240, w: 20, h: 40, kind: 'tree' },
-  { id: 'filler_153', x: 1050, y: 60, w: 20, h: 40, kind: 'tree' }, // east edge line, toward the Warehouse District
-  { id: 'filler_154', x: 1050, y: 150, w: 20, h: 40, kind: 'tree' },
-  { id: 'filler_155', x: 1050, y: 240, w: 20, h: 40, kind: 'tree' },
-  { id: 'filler_27', x: 980, y: 265, w: 22, h: 42, kind: 'tree' },
-  { id: 'filler_31', x: 809, y: 278, w: 22, h: 42, kind: 'tree' },
+  /* ================================================================ *
+   * 2. MAIN STREET — the town's shopfront. The civic quad the School and
+   * Library used to form together is gone (the Library moved to the Civic
+   * Zone); what's left is a high street, so the logic here is frontage
+   * furniture — planters, bike parking, bins in the service alley, cars
+   * nose-in along the kerb — rather than the planted buffers a civic
+   * campus wanted.
+   * ================================================================ */
+  { id: 'filler_33', x: 534, y: 60, w: 22, h: 42, kind: 'tree' }, // School, entrance planting (west)
+  { id: 'filler_147', x: 534, y: 112, w: 22, h: 42, kind: 'tree' },
+  { id: 'filler_150', x: 936, y: 46, w: 20, h: 40, kind: 'tree' }, // between the market and the café
+  { id: 'filler_151', x: 806, y: 130, w: 20, h: 40, kind: 'tree' }, // the alley's south mouth, market side
+  { id: 'filler_152', x: 1064, y: 44, w: 18, h: 36, kind: 'tree' }, // the alley's south mouth, school side
+  { id: 'main_bin_1', x: 786, y: 40, w: 16, h: 16, kind: 'bin' }, // the alley itself — the shops' bins
+  { id: 'main_bin_2', x: 786, y: 62, w: 16, h: 16, kind: 'bin' },
+  { id: 'main_car_1', x: 580, y: 204, w: 18, h: 12, kind: 'car' },
+  { id: 'main_car_2', x: 790, y: 210, w: 18, h: 12, kind: 'car' },
+  { id: 'main_car_3', x: 828, y: 204, w: 18, h: 12, kind: 'car' },
+  { id: 'main_car_4', x: 980, y: 204, w: 18, h: 12, kind: 'car' },
+  { id: 'main_car_5', x: 1012, y: 204, w: 18, h: 12, kind: 'car' },
+  { id: 'main_hedge_1', x: 966, y: 128, w: 94, h: 8, kind: 'hedge' }, // the café's own terrace boundary
+  { id: 'filler_27', x: 990, y: 226, w: 22, h: 42, kind: 'tree' },
+  { id: 'filler_31', x: 836, y: 292, w: 22, h: 42, kind: 'tree' },
+  // Main Street's own block-corner unit, unlit and unnamed — the shutter
+  // Town Square's `trustAmbient` line is talking about is Marlow Street's;
+  // this is the one further down that nobody has opened.
+  { id: 'main_unit_a', x: 546, y: 226, w: 52, h: 84, kind: 'building' },
+  { id: 'main_unit_b', x: 986, y: 282, w: 74, h: 52, kind: 'building' },
   /*
    * The one piece of scenery in town that isn't there from day one — new
-   * fencing near the Downtown Crossroads, matching Town Square's own
+   * fencing at the Downtown Crossroads, matching Town Square's own
    * `hunted`-tier ambient line about "two more cameras on the bandstand
    * than there were last week." `minStage` keeps it off the map entirely
-   * until the story's actually gone on long enough to earn it (see
-   * `world/escalation.ts`).
+   * until the story's actually gone on long enough to earn it.
    */
-  { id: 'filler_58', x: 610, y: 316, w: 60, h: 16, kind: 'fence', minStage: 2 },
+  { id: 'filler_58', x: 664, y: 316, w: 60, h: 16, kind: 'fence', minStage: 2 },
+  // Plate scanners on the Crossroads' own approaches. Two at stage 0 —
+  // the busiest corner in town already reads every plate that crosses it —
+  // and a third that goes up as the rollout advances.
+  { id: 'scanner_crossroads_n', x: 466, y: 300, w: 10, h: 16, kind: 'scanner' },
+  { id: 'scanner_crossroads_s', x: 528, y: 296, w: 10, h: 16, kind: 'scanner' },
+  { id: 'scanner_main_street', x: 866, y: 164, w: 10, h: 16, kind: 'scanner', minStage: 2 },
 
-  /*
-   * West End — the Repair Shop and Wash & Fold both sit flush against
-   * their own road (the block's own street, y:520-540), the same way real
-   * older-neighbourhood shopfronts open straight onto the sidewalk with no
-   * front yard at all. So the logic here isn't a yard hedge (there's no
-   * room for one) — it's a service-yard fence behind the Repair Shop, a
-   * softer hedge behind Wash & Fold, and street trees filling the actual
-   * open frontage on either side of the two buildings, the same "plant
-   * where the street verge really is" rule Residential North used.
-   * Replaces four floating hedges and two floating fences that related to
-   * neither shop.
-   */
-  { id: 'filler_156', x: 5, y: 480, w: 20, h: 40, kind: 'tree' }, // street tree, west of the Repair Shop
-  { id: 'filler_157', x: 330, y: 480, w: 20, h: 40, kind: 'tree' }, // street tree, east of Wash & Fold
-  { id: 'filler_158', x: 440, y: 480, w: 20, h: 40, kind: 'tree' }, // street tree
-  { id: 'filler_159', x: 462, y: 480, w: 20, h: 40, kind: 'tree' }, // street tree
-  { id: 'filler_160', x: 28, y: 428, w: 8, h: 90, kind: 'fence' }, // Repair Shop, service-yard fence (west)
-  { id: 'filler_161', x: 28, y: 420, w: 136, h: 8, kind: 'fence' }, // Repair Shop, service-yard fence (north)
-  { id: 'filler_162', x: 208, y: 428, w: 8, h: 70, kind: 'hedge' }, // Wash & Fold, back hedge (west)
-  { id: 'filler_163', x: 222, y: 420, w: 88, h: 8, kind: 'hedge' }, // Wash & Fold, back hedge (north)
+  /* ================================================================ *
+   * 3. CIVIC ZONE — the densest surveillance on the map, and the only
+   * district where the hardware is the landscaping. A fenced compound
+   * around the Data Centre with one gated vehicle entrance (and one gap
+   * in the fence line at its north-east corner that nobody has fixed),
+   * clipped municipal hedging in front of City Hall, plate scanners on
+   * both approaches to the block, and the SafeTrace Tower standing in the
+   * gap between the two — the coldest silhouette in Bellhaven, moved here
+   * from Downtown because this is the district it was always describing.
+   * ================================================================ */
+  { id: 'safetrace_tower', x: 1336, y: 8, w: 50, h: 168, kind: 'tower' },
+  { id: 'civic_hedge_w', x: 1132, y: 44, w: 8, h: 120, kind: 'hedge' }, // City Hall, clipped municipal border
+  { id: 'civic_hedge_s', x: 1150, y: 172, w: 76, h: 8, kind: 'hedge' }, // broken by the walk up the steps
+  { id: 'civic_hedge_s2', x: 1256, y: 172, w: 74, h: 8, kind: 'hedge' },
+  { id: 'civic_tree_1', x: 1160, y: 0, w: 18, h: 20, kind: 'tree' },
+  { id: 'civic_tree_2', x: 1296, y: 0, w: 18, h: 20, kind: 'tree' },
+  // The Data Centre's compound: a fence on three sides, a vehicle gate on
+  // the fourth, and a deliberate gap at the north-east corner.
+  { id: 'civic_fence_w', x: 1390, y: 26, w: 8, h: 140, kind: 'fence' },
+  { id: 'civic_fence_n', x: 1402, y: 22, w: 120, h: 8, kind: 'fence' },
+  { id: 'civic_fence_e', x: 1584, y: 26, w: 8, h: 96, kind: 'fence' },
+  { id: 'civic_gate', x: 1420, y: 164, w: 46, h: 12, kind: 'gate' },
+  { id: 'civic_fence_s', x: 1500, y: 164, w: 82, h: 8, kind: 'fence' },
+  { id: 'civic_bollard', x: 1400, y: 164, w: 12, h: 12, kind: 'rock' },
+  // The service cut between the Library and the Records Office — the one
+  // route through this block that isn't overlooked, planted at both ends
+  // so cutting through it is real cover and not just a narrower street.
+  { id: 'civic_alley_tree_n', x: 1318, y: 250, w: 14, h: 34, kind: 'tree' },
+  { id: 'civic_alley_tree_s', x: 1362, y: 250, w: 14, h: 34, kind: 'tree' },
+  { id: 'civic_bin_1', x: 1338, y: 260, w: 16, h: 16, kind: 'bin' },
+  { id: 'civic_bin_2', x: 1338, y: 284, w: 16, h: 16, kind: 'bin' },
+  // Plate scanners: four here at stage 0, more than the rest of the map
+  // put together, on every approach to the block.
+  { id: 'scanner_civic_w', x: 1120, y: 160, w: 10, h: 16, kind: 'scanner' },
+  { id: 'scanner_civic_e', x: 1588, y: 204, w: 10, h: 16, kind: 'scanner' },
+  { id: 'scanner_civic_hall', x: 1234, y: 168, w: 8, h: 12, kind: 'scanner' },
+  { id: 'scanner_civic_gate', x: 1470, y: 166, w: 10, h: 16, kind: 'scanner' },
+  { id: 'scanner_civic_s', x: 1348, y: 326, w: 10, h: 16, kind: 'scanner', minStage: 1 },
+  { id: 'civic_car_1', x: 1200, y: 330, w: 18, h: 12, kind: 'car' },
+  { id: 'civic_car_2', x: 1240, y: 330, w: 18, h: 12, kind: 'car' },
+  { id: 'civic_car_3', x: 1440, y: 330, w: 18, h: 12, kind: 'car' },
 
-  /*
-   * Riverside Park — the heaviest tree cover in town, on purpose: the
-   * "open during the day, fewer eyes at night" district needed real canopy
-   * to earn that read rather than just saying it. The Green got its own
-   * full landscaping pass already (see drawGreen); this is the smaller
-   * remaining piece — filler_44 already sat right at the Ballpark's own
-   * south-west corner (the field's open side, opposite the bleachers along
-   * its north edge per drawBallpark), so it reads as shade seating once
-   * it's mirrored the same way School's own entrance tree was.
-   */
-  { id: 'filler_43', x: 821, y: 681, w: 24, h: 44, kind: 'tree' },
-  { id: 'filler_44', x: 569, y: 589, w: 24, h: 44, kind: 'tree' }, // Ballpark, south-west shade tree
-  { id: 'filler_183', x: 730, y: 589, w: 24, h: 44, kind: 'tree' }, // Ballpark, south-east shade tree — mirrors filler_44
-  { id: 'filler_56', x: 544, y: 392, w: 24, h: 44, kind: 'tree' },
-  { id: 'filler_57', x: 584, y: 396, w: 24, h: 44, kind: 'tree' },
-  { id: 'filler_59', x: 542, y: 649, w: 24, h: 44, kind: 'tree' },
-  { id: 'filler_61', x: 1039, y: 620, w: 24, h: 44, kind: 'tree' },
-  { id: 'filler_63', x: 867, y: 683, w: 24, h: 44, kind: 'tree' },
-  { id: 'filler_64', x: 530, y: 549, w: 24, h: 44, kind: 'tree' },
-  { id: 'filler_65', x: 737, y: 686, w: 16, h: 24, kind: 'bush' },
-  { id: 'filler_66', x: 773, y: 674, w: 16, h: 24, kind: 'bush' },
-  { id: 'filler_67', x: 1055, y: 418, w: 16, h: 24, kind: 'bush' },
-  { id: 'filler_68', x: 766, y: 632, w: 16, h: 24, kind: 'bush' },
-  { id: 'filler_69', x: 541, y: 703, w: 16, h: 24, kind: 'bush' },
-  { id: 'filler_71', x: 653, y: 662, w: 26, h: 22, kind: 'rock' },
-  { id: 'filler_72', x: 842, y: 639, w: 26, h: 22, kind: 'rock' },
-  { id: 'filler_73', x: 989, y: 659, w: 26, h: 22, kind: 'rock' },
+  /* ================================================================ *
+   * 4. OLD MARKET — the strip. The four frontages sit flush against
+   * their own street with no front yards, the way older-neighbourhood
+   * shopfronts actually do, so the logic here isn't yard hedging: it's
+   * the service yard behind the row, the bins and crates the market
+   * table runs out of, and street trees filling the real open frontage
+   * at either end of the row. The cut-through between the Repair Shop
+   * and Wash & Fold is planted at both mouths — this is the district
+   * whose whole identity is the back way.
+   * ================================================================ */
+  { id: 'filler_1', x: 276, y: 400, w: 14, h: 34, kind: 'tree' }, // alley mouth, repair-shop side
+  { id: 'filler_3', x: 320, y: 400, w: 14, h: 34, kind: 'tree' }, // alley mouth, laundromat side
+  { id: 'filler_5', x: 276, y: 530, w: 16, h: 36, kind: 'tree' }, // alley's south mouth
+  { id: 'filler_6', x: 320, y: 530, w: 16, h: 36, kind: 'tree' },
+  { id: 'filler_156', x: 4, y: 486, w: 20, h: 40, kind: 'tree' }, // street tree, west end of the row
+  { id: 'filler_157', x: 440, y: 420, w: 20, h: 40, kind: 'tree' }, // street tree, east end of the row
+  { id: 'filler_158', x: 440, y: 476, w: 20, h: 40, kind: 'tree' },
+  { id: 'filler_160', x: 148, y: 392, w: 126, h: 8, kind: 'fence' }, // Repair Shop, service-yard fence
+  { id: 'filler_162', x: 336, y: 394, w: 92, h: 8, kind: 'hedge' }, // Wash & Fold, back hedge
+  { id: 'market_bin_1', x: 200, y: 574, w: 16, h: 16, kind: 'bin' }, // the lot's own three bins
+  { id: 'market_bin_2', x: 200, y: 598, w: 16, h: 16, kind: 'bin' },
+  { id: 'market_bin_3', x: 200, y: 622, w: 16, h: 16, kind: 'bin' },
+  { id: 'market_crate_1', x: 360, y: 570, w: 16, h: 16, kind: 'crate' },
+  { id: 'market_crate_2', x: 384, y: 570, w: 16, h: 16, kind: 'crate' },
+  { id: 'market_crate_3', x: 360, y: 592, w: 16, h: 16, kind: 'crate' },
+  { id: 'market_barrel_1', x: 408, y: 578, w: 16, h: 16, kind: 'barrel' },
+  { id: 'market_car_1', x: 60, y: 534, w: 18, h: 12, kind: 'car' },
+  { id: 'market_car_2', x: 92, y: 534, w: 18, h: 12, kind: 'car' },
+  { id: 'market_car_3', x: 360, y: 534, w: 18, h: 12, kind: 'car' },
+  { id: 'market_fence_lot', x: 24, y: 684, w: 168, h: 8, kind: 'fence' }, // the lot's south boundary
+  { id: 'market_gate_lot', x: 200, y: 684, w: 44, h: 12, kind: 'gate' }, // …and the gate everybody walks around
+  { id: 'market_unit_a', x: 24, y: 700, w: 96, h: 34, kind: 'building' },
+  { id: 'market_unit_b', x: 380, y: 656, w: 88, h: 74, kind: 'building' },
+  { id: 'scanner_market', x: 452, y: 528, w: 10, h: 16, kind: 'scanner', minStage: 1 },
 
-  // Warehouse District — the whole east column, fenced and industrial.
-  { id: 'filler_74', x: 1320, y: 20, w: 100, h: 18, kind: 'fence' },
-  { id: 'filler_75', x: 1148, y: 34, w: 100, h: 18, kind: 'fence' },
-  { id: 'filler_76', x: 1373, y: 163, w: 100, h: 18, kind: 'fence' },
-  { id: 'filler_77', x: 1148, y: 283, w: 100, h: 18, kind: 'fence' },
-  { id: 'filler_78', x: 1171, y: 675, w: 100, h: 18, kind: 'fence' },
-  { id: 'filler_79', x: 1148, y: 709, w: 100, h: 18, kind: 'fence' },
-  { id: 'filler_80', x: 1515, y: 240, w: 28, h: 24, kind: 'rock' },
-  { id: 'filler_81', x: 1543, y: 127, w: 28, h: 24, kind: 'rock' },
-  { id: 'filler_82', x: 1556, y: 67, w: 28, h: 24, kind: 'rock' },
-  { id: 'filler_83', x: 1264, y: 29, w: 28, h: 24, kind: 'rock' },
-  { id: 'filler_84', x: 1540, y: 488, w: 18, h: 12, kind: 'car' },
-  { id: 'filler_85', x: 1391, y: 313, w: 18, h: 12, kind: 'car' },
-  { id: 'filler_86', x: 1397, y: 223, w: 18, h: 12, kind: 'car' },
-  { id: 'filler_87', x: 1438, y: 711, w: 16, h: 16, kind: 'bin' },
-  { id: 'filler_88', x: 1470, y: 405, w: 16, h: 16, kind: 'bin' },
-  { id: 'filler_89', x: 1476, y: 245, w: 16, h: 16, kind: 'bin' },
-  { id: 'filler_90', x: 1163, y: 255, w: 16, h: 16, kind: 'bin' },
+  /* ================================================================ *
+   * 5. LIBERTY PARK — the heaviest tree cover in town, on purpose: the
+   * "open during the day, fewer eyes at night" district needs real canopy
+   * to earn that read rather than just saying it, and it is the one block
+   * the surveillance gradient deliberately falls away toward. The Green
+   * carries its own full landscaping (see `drawGreen`, including the
+   * fountain and the banner); everything here is the ground around it.
+   * ================================================================ */
+  { id: 'filler_43', x: 828, y: 690, w: 24, h: 44, kind: 'tree' },
+  { id: 'filler_44', x: 548, y: 556, w: 24, h: 44, kind: 'tree' }, // Ballpark, south-west shade tree
+  { id: 'filler_183', x: 652, y: 556, w: 24, h: 44, kind: 'tree' }, // Ballpark, south-east shade tree — mirrors filler_44
+  { id: 'filler_56', x: 542, y: 388, w: 22, h: 34, kind: 'tree' },
+  { id: 'filler_57', x: 596, y: 388, w: 22, h: 34, kind: 'tree' },
+  { id: 'filler_59', x: 540, y: 668, w: 24, h: 44, kind: 'tree' },
+  { id: 'filler_61', x: 1032, y: 620, w: 24, h: 44, kind: 'tree' },
+  { id: 'filler_63', x: 852, y: 688, w: 24, h: 44, kind: 'tree' },
+  { id: 'filler_64', x: 1032, y: 412, w: 24, h: 44, kind: 'tree' },
+  { id: 'park_tree_1', x: 1032, y: 480, w: 24, h: 44, kind: 'tree' },
+  { id: 'park_tree_2', x: 988, y: 700, w: 24, h: 40, kind: 'tree' },
+  { id: 'park_tree_3', x: 700, y: 692, w: 24, h: 44, kind: 'tree' },
+  { id: 'filler_65', x: 744, y: 690, w: 16, h: 24, kind: 'bush' },
+  { id: 'filler_66', x: 796, y: 664, w: 16, h: 24, kind: 'bush' },
+  { id: 'filler_67', x: 1040, y: 556, w: 16, h: 24, kind: 'bush' },
+  { id: 'filler_68', x: 592, y: 616, w: 16, h: 24, kind: 'bush' },
+  { id: 'filler_69', x: 556, y: 720, w: 16, h: 24, kind: 'bush' },
+  { id: 'filler_71', x: 700, y: 640, w: 26, h: 22, kind: 'rock' },
+  { id: 'filler_72', x: 856, y: 632, w: 26, h: 22, kind: 'rock' },
+  { id: 'filler_73', x: 1000, y: 672, w: 26, h: 22, kind: 'rock' },
+  { id: 'park_bench_hedge', x: 706, y: 612, w: 74, h: 8, kind: 'hedge' },
+  { id: 'park_bin_1', x: 866, y: 608, w: 16, h: 16, kind: 'bin' },
 
-  // Warehouse District debris — crates and a barrel scattered near the
-  // district's own named yards (deja_jobsite's cable spools, Fenwick Lot's
-  // loading bays, the Annex, Rail Spur's boxcar, the Scrapyard), so the
-  // ground finally backs up what the district's own ambient text has always
-  // claimed about it.
-  { id: 'filler_123', x: 1225, y: 200, w: 16, h: 16, kind: 'crate' },
-  { id: 'filler_124', x: 1270, y: 230, w: 16, h: 16, kind: 'barrel' },
-  { id: 'filler_125', x: 1500, y: 270, w: 16, h: 16, kind: 'crate' },
-  { id: 'filler_126', x: 1455, y: 280, w: 16, h: 16, kind: 'crate' },
-  { id: 'filler_127', x: 1355, y: 340, w: 16, h: 16, kind: 'barrel' },
-  { id: 'filler_128', x: 1325, y: 600, w: 16, h: 16, kind: 'crate' },
-  { id: 'filler_129', x: 1325, y: 630, w: 16, h: 16, kind: 'crate' },
-  { id: 'filler_130', x: 1545, y: 610, w: 16, h: 16, kind: 'barrel' },
-  { id: 'filler_131', x: 1555, y: 700, w: 16, h: 16, kind: 'crate' },
+  /* ================================================================ *
+   * 6. THE WORKS — fenced and industrial, the one district where the
+   * fence line is the point. Every yard here has a boundary and every
+   * boundary has a way through it: a gate that is bolted, a gate that
+   * isn't, and the gap in the Annex fence line the story has been
+   * talking about since Act 1. Debris (crates, barrels, spools) backs up
+   * what the district's own ambient text has always claimed about it.
+   * ================================================================ */
+  { id: 'filler_74', x: 1148, y: 386, w: 120, h: 10, kind: 'fence' },
+  { id: 'filler_75', x: 1308, y: 386, w: 114, h: 10, kind: 'fence' },
+  { id: 'works_gate_n', x: 1440, y: 386, w: 46, h: 12, kind: 'gate' },
+  { id: 'filler_76', x: 1502, y: 386, w: 90, h: 10, kind: 'fence' },
+  { id: 'filler_77', x: 1520, y: 400, w: 8, h: 100, kind: 'fence' }, // the Annex fence line itself…
+  { id: 'filler_78', x: 1520, y: 552, w: 8, h: 66, kind: 'fence' }, // …with the gap the story keeps re-opening
+  { id: 'filler_79', x: 1148, y: 700, w: 130, h: 12, kind: 'fence', minStage: 1 },
+  { id: 'works_gate_scrap', x: 1342, y: 700, w: 46, h: 14, kind: 'gate' },
+  { id: 'filler_80', x: 1552, y: 556, w: 28, h: 24, kind: 'rock' },
+  { id: 'filler_81', x: 1552, y: 500, w: 28, h: 24, kind: 'rock' },
+  { id: 'filler_83', x: 1552, y: 660, w: 28, h: 24, kind: 'rock' },
+  { id: 'filler_84', x: 1552, y: 640, w: 18, h: 12, kind: 'car' },
+  { id: 'filler_85', x: 1150, y: 548, w: 18, h: 12, kind: 'car' },
+  { id: 'filler_86', x: 1250, y: 548, w: 18, h: 12, kind: 'car' },
+  { id: 'filler_87', x: 1420, y: 548, w: 16, h: 16, kind: 'bin' },
+  { id: 'filler_88', x: 1444, y: 548, w: 16, h: 16, kind: 'bin' },
+  { id: 'filler_89', x: 1468, y: 548, w: 16, h: 16, kind: 'bin' },
+  { id: 'filler_90', x: 1288, y: 712, w: 16, h: 16, kind: 'bin' },
+  { id: 'filler_123', x: 1268, y: 560, w: 16, h: 16, kind: 'crate' },
+  { id: 'filler_124', x: 1240, y: 560, w: 16, h: 16, kind: 'barrel' },
+  { id: 'filler_125', x: 1348, y: 546, w: 16, h: 16, kind: 'crate' },
+  { id: 'filler_126', x: 1372, y: 546, w: 16, h: 16, kind: 'crate' },
+  { id: 'filler_127', x: 1396, y: 546, w: 16, h: 16, kind: 'barrel' },
+  { id: 'filler_128', x: 1470, y: 712, w: 16, h: 16, kind: 'crate' },
+  { id: 'filler_129', x: 1552, y: 700, w: 16, h: 16, kind: 'crate' },
+  { id: 'filler_130', x: 1400, y: 712, w: 16, h: 16, kind: 'barrel' },
+  { id: 'filler_131', x: 1424, y: 712, w: 16, h: 16, kind: 'crate' },
+  { id: 'works_alley_tree_n', x: 1290, y: 392, w: 16, h: 32, kind: 'tree' },
+  { id: 'works_alley_tree_s', x: 1290, y: 616, w: 16, h: 32, kind: 'tree' },
+  { id: 'scanner_works_gate', x: 1330, y: 398, w: 10, h: 16, kind: 'scanner' },
+  { id: 'scanner_works_row', x: 1130, y: 548, w: 10, h: 16, kind: 'scanner', minStage: 1 },
 
-  /*
-   * Transit Hub — a park-and-ride, not a neighbourhood: the depot itself
-   * (its own platform and shelter, drawn by drawTransit) is the whole
-   * point, so the logic here is a single boundary hedge behind it and an
-   * actual parking row beside it, not scenery scattered around an empty
-   * lot. filler_98/99 (fencing further south, past the depot's own stub
-   * road) were already reasonably placed as a lot boundary and are kept.
-   */
-  { id: 'filler_164', x: 40, y: 822, w: 160, h: 8, kind: 'hedge' }, // Bus Depot, north boundary
-  { id: 'filler_165', x: 220, y: 870, w: 18, h: 12, kind: 'car' }, // park-and-ride row
-  { id: 'filler_166', x: 250, y: 870, w: 18, h: 12, kind: 'car' },
-  { id: 'filler_167', x: 280, y: 870, w: 18, h: 12, kind: 'car' },
-  { id: 'filler_168', x: 310, y: 870, w: 18, h: 12, kind: 'car' },
-  { id: 'filler_98', x: 304, y: 981, w: 90, h: 16, kind: 'fence' },
-  { id: 'filler_99', x: 314, y: 1080, w: 90, h: 16, kind: 'fence' },
-  { id: 'filler_100', x: 382, y: 876, w: 90, h: 70, kind: 'building' },
+  /* ================================================================ *
+   * 7. SOUTHSIDE — a park-and-ride and a substation, not a
+   * neighbourhood: the depot's own platform and shelter (drawn by
+   * `drawTransit`) and the transformer yard are the whole point, so the
+   * logic here is a boundary hedge behind the depot, an actual parking
+   * row beside it, and a real fenced compound around the substation with
+   * a gate on the lane. South of the district street, a couple of
+   * service units and the lot boundary the map has always had.
+   * ================================================================ */
+  { id: 'filler_164', x: 40, y: 816, w: 160, h: 8, kind: 'hedge' }, // Bus Depot, north boundary
+  { id: 'filler_165', x: 244, y: 940, w: 18, h: 12, kind: 'car' }, // park-and-ride row
+  { id: 'filler_166', x: 276, y: 940, w: 18, h: 12, kind: 'car' },
+  { id: 'filler_167', x: 308, y: 940, w: 18, h: 12, kind: 'car' },
+  { id: 'filler_168', x: 340, y: 940, w: 18, h: 12, kind: 'car' },
+  { id: 'sub_fence_n', x: 250, y: 808, w: 158, h: 8, kind: 'fence' },
+  { id: 'sub_fence_w', x: 242, y: 808, w: 8, h: 90, kind: 'fence' },
+  { id: 'sub_fence_e', x: 408, y: 808, w: 8, h: 90, kind: 'fence' },
+  { id: 'sub_gate', x: 244, y: 922, w: 44, h: 12, kind: 'gate' },
+  { id: 'sub_fence_s1', x: 296, y: 922, w: 50, h: 8, kind: 'fence' },
+  { id: 'sub_fence_s2', x: 356, y: 922, w: 52, h: 8, kind: 'fence' },
+  { id: 'sub_barrel_1', x: 420, y: 850, w: 16, h: 16, kind: 'barrel' },
+  { id: 'sub_crate_1', x: 420, y: 874, w: 16, h: 16, kind: 'crate' },
+  { id: 'filler_98', x: 60, y: 990, w: 120, h: 16, kind: 'fence' },
+  { id: 'filler_99', x: 314, y: 1064, w: 90, h: 16, kind: 'fence' },
+  { id: 'filler_100', x: 200, y: 992, w: 92, h: 72, kind: 'building' },
+  { id: 'southside_unit_a', x: 20, y: 1020, w: 110, h: 62, kind: 'building' },
+  { id: 'southside_tree_1', x: 428, y: 800, w: 20, h: 40, kind: 'tree' },
+  { id: 'southside_tree_2', x: 428, y: 968, w: 20, h: 40, kind: 'tree' },
+  { id: 'southside_bin_1', x: 210, y: 800, w: 16, h: 16, kind: 'bin' },
+  { id: 'scanner_depot', x: 24, y: 968, w: 10, h: 16, kind: 'scanner', minStage: 2 },
 
-  /*
-   * South Residential — Casey's is the only named building in the whole
-   * district, which is the district's own point ("quieter than the north
-   * side, closer to the edge of everything"): a sparser, single-house
-   * street reads truer to that mood than filling the emptiness back in
-   * with the same density Residential North earned by actually having
-   * three buildings. One side hedge for the house (its own front faces
-   * the road to the south, flush the same way West End's shops are, so
-   * there's no room for a front yard), and street trees filling the real
-   * open frontage on both sides of it.
-   */
-  { id: 'filler_169', x: 560, y: 834, w: 8, h: 86, kind: 'hedge' }, // Casey's, west side yard
-  { id: 'filler_170', x: 540, y: 880, w: 20, h: 40, kind: 'tree' }, // street tree, west of the house
-  { id: 'filler_171', x: 720, y: 880, w: 20, h: 40, kind: 'tree' }, // street tree, east of the house
-  { id: 'filler_172', x: 850, y: 880, w: 20, h: 40, kind: 'tree' },
-  { id: 'filler_173', x: 900, y: 880, w: 20, h: 40, kind: 'tree' },
-  { id: 'filler_174', x: 1000, y: 880, w: 20, h: 40, kind: 'tree' },
+  /* ================================================================ *
+   * 8. THE BLOCKS — three named houses along the north side and a
+   * terrace of unnamed ones along the south, with two back alleys
+   * between them: the only district on the map where the shortcut runs
+   * through where people actually live, which is exactly why it's the
+   * one the story keeps saying is worth protecting. Front hedging, bins
+   * out on collection day, and residents' cars along the kerb.
+   * ================================================================ */
+  { id: 'filler_169', x: 556, y: 816, w: 8, h: 86, kind: 'hedge' }, // Casey's, west side yard
+  { id: 'blocks_hedge_1', x: 566, y: 908, w: 118, h: 8, kind: 'hedge' },
+  { id: 'blocks_hedge_2', x: 726, y: 908, w: 120, h: 8, kind: 'hedge' },
+  { id: 'blocks_hedge_3', x: 888, y: 908, w: 144, h: 8, kind: 'hedge' },
+  { id: 'filler_170', x: 528, y: 830, w: 20, h: 40, kind: 'tree' }, // street tree, west of Casey's
+  { id: 'filler_171', x: 1040, y: 830, w: 20, h: 40, kind: 'tree' }, // street tree, east of Kestrel Row
+  { id: 'filler_172', x: 560, y: 968, w: 20, h: 40, kind: 'tree' },
+  { id: 'filler_173', x: 940, y: 962, w: 20, h: 36, kind: 'tree' },
+  { id: 'filler_174', x: 1040, y: 956, w: 20, h: 36, kind: 'tree' },
+  { id: 'blocks_bin_1', x: 696, y: 800, w: 16, h: 16, kind: 'bin' }, // the alleys' own bins
+  { id: 'blocks_bin_2', x: 696, y: 824, w: 16, h: 16, kind: 'bin' },
+  { id: 'blocks_bin_3', x: 858, y: 800, w: 16, h: 16, kind: 'bin' },
+  { id: 'blocks_car_1', x: 590, y: 944, w: 18, h: 12, kind: 'car' },
+  { id: 'blocks_car_2', x: 622, y: 944, w: 18, h: 12, kind: 'car' },
+  { id: 'blocks_car_3', x: 760, y: 944, w: 18, h: 12, kind: 'car' },
+  { id: 'blocks_car_4', x: 920, y: 944, w: 18, h: 12, kind: 'car' },
+  { id: 'blocks_car_5', x: 952, y: 944, w: 18, h: 12, kind: 'car' },
+  { id: 'blocks_terrace_s1', x: 640, y: 1000, w: 150, h: 74, kind: 'building' },
+  { id: 'blocks_terrace_s2', x: 812, y: 1000, w: 110, h: 74, kind: 'building' },
+  { id: 'blocks_terrace_s3', x: 976, y: 1000, w: 88, h: 74, kind: 'building' },
 
-  /*
-   * Commercial Strip — the location geometry already draws a real strip
-   * mall (Sal's Pizza/Arcade along the north row, Convenience/Pharmacy
-   * along the south row, the district's own street running between them);
-   * the old cars just never used it. Two ordinary parking rows, one
-   * fronting each row of storefronts, read as an actual lot instead of
-   * five cars parked nowhere in particular. filler_116/117/118 (bins) and
-   * filler_119/120 (trees) were already sitting close enough to a real
-   * storefront to keep.
-   */
-  { id: 'filler_175', x: 1185, y: 906, w: 18, h: 12, kind: 'car' }, // Sal's Pizza frontage
-  { id: 'filler_176', x: 1225, y: 906, w: 18, h: 12, kind: 'car' },
-  { id: 'filler_177', x: 1315, y: 906, w: 18, h: 12, kind: 'car' }, // the Arcade frontage
-  { id: 'filler_178', x: 1355, y: 906, w: 18, h: 12, kind: 'car' },
-  { id: 'filler_179', x: 1185, y: 946, w: 18, h: 12, kind: 'car' }, // Convenience Store frontage
-  { id: 'filler_180', x: 1225, y: 946, w: 18, h: 12, kind: 'car' },
-  { id: 'filler_181', x: 1300, y: 946, w: 18, h: 12, kind: 'car' }, // Pharmacy frontage
-  { id: 'filler_182', x: 1400, y: 946, w: 18, h: 12, kind: 'car' },
-  { id: 'filler_116', x: 1575, y: 813, w: 16, h: 16, kind: 'bin' },
-  { id: 'filler_117', x: 1524, y: 829, w: 16, h: 16, kind: 'bin' },
-  { id: 'filler_118', x: 1289, y: 1041, w: 16, h: 16, kind: 'bin' },
-  { id: 'filler_119', x: 1526, y: 988, w: 20, h: 40, kind: 'tree' },
-  { id: 'filler_120', x: 1139, y: 799, w: 20, h: 40, kind: 'tree' },
+  /* ================================================================ *
+   * 9. THE PLAZA — a retail park, which means the ground plan is mostly
+   * parking. Two rows either side of the lot spine, a cart corral, the
+   * goods-in lane behind MegaMart, and the billboard: the loudest single
+   * object in Bellhaven, kept in the one clean run of open ground along
+   * the district's south edge that's actually wide enough for it.
+   * ================================================================ */
+  { id: 'plaza_car_1', x: 1200, y: 790, w: 18, h: 12, kind: 'car' },
+  { id: 'plaza_car_2', x: 1232, y: 790, w: 18, h: 12, kind: 'car' },
+  { id: 'plaza_car_3', x: 1264, y: 790, w: 18, h: 12, kind: 'car' },
+  { id: 'plaza_car_4', x: 1318, y: 790, w: 18, h: 12, kind: 'car' },
+  { id: 'plaza_car_5', x: 1350, y: 790, w: 18, h: 12, kind: 'car' },
+  { id: 'plaza_car_6', x: 1382, y: 790, w: 18, h: 12, kind: 'car' },
+  { id: 'filler_175', x: 1180, y: 906, w: 18, h: 12, kind: 'car' }, // Sal's frontage
+  { id: 'filler_176', x: 1212, y: 906, w: 18, h: 12, kind: 'car' },
+  { id: 'filler_177', x: 1320, y: 906, w: 18, h: 12, kind: 'car' }, // the Arcade's frontage
+  { id: 'filler_178', x: 1352, y: 906, w: 18, h: 12, kind: 'car' },
+  { id: 'filler_179', x: 1180, y: 944, w: 18, h: 12, kind: 'car' }, // Convenience Store frontage
+  { id: 'filler_180', x: 1212, y: 944, w: 18, h: 12, kind: 'car' },
+  { id: 'filler_181', x: 1330, y: 944, w: 18, h: 12, kind: 'car' }, // Pharmacy frontage
+  { id: 'filler_182', x: 1362, y: 944, w: 18, h: 12, kind: 'car' },
+  { id: 'plaza_car_7', x: 1496, y: 944, w: 18, h: 12, kind: 'car' },
+  { id: 'plaza_car_8', x: 1514, y: 944, w: 18, h: 12, kind: 'car' },
+  { id: 'plaza_corral', x: 1440, y: 952, w: 40, h: 10, kind: 'fence' }, // the cart corral
+  { id: 'filler_116', x: 1424, y: 786, w: 16, h: 16, kind: 'bin' },
+  { id: 'filler_117', x: 1448, y: 786, w: 16, h: 16, kind: 'bin' }, // MegaMart's goods-in bins
+  { id: 'filler_118', x: 1290, y: 1074, w: 16, h: 16, kind: 'bin' },
+  { id: 'filler_119', x: 1540, y: 976, w: 20, h: 40, kind: 'tree' },
+  { id: 'filler_120', x: 1140, y: 800, w: 20, h: 40, kind: 'tree' },
+  { id: 'plaza_tree_1', x: 1140, y: 1000, w: 20, h: 40, kind: 'tree' },
+  { id: 'plaza_hedge_1', x: 1170, y: 1046, w: 108, h: 8, kind: 'hedge' },
+  { id: 'commercial_billboard', x: 1330, y: 1044, w: 130, h: 50, kind: 'billboard' },
+  { id: 'scanner_plaza_lot', x: 1288, y: 780, w: 10, h: 16, kind: 'scanner' },
+  { id: 'scanner_plaza_mart', x: 1594, y: 900, w: 10, h: 16, kind: 'scanner', minStage: 1 },
 
   // The map's own edges — a little scenery so the town doesn't feel like
   // it stops at nothing.
   { id: 'filler_121', x: 2, y: 40, w: 20, h: 88, kind: 'hedge' },
-  { id: 'filler_122', x: 1578, y: 400, w: 20, h: 200, kind: 'hedge' },
-
-  /*
-   * The two singular district landmarks the map redesign brief asks for —
-   * see `draw.ts`'s `drawSafeTraceTower`/`drawBillboard` for why each is
-   * drawn the way it is. Placed in genuinely open ground (checked against
-   * `scripts/check-connectivity.mjs`, not just by eye against the district's
-   * other obstacles) rather than replacing anything already there.
-   */
-  // Downtown — the strip of open ground east of the Library and west of the
-  // Warehouse District's own tree line (filler_153–155), north of Town
-  // Square. Tall enough to read as a skyline break from most of the map.
-  { id: 'safetrace_tower', x: 970, y: 8, w: 70, h: 185, kind: 'tower' },
-  // Commercial Strip — south of Pharmacy, clear of junction_16 and
-  // junction_8 (junctionboxes.test.ts checks each node's own 16px footprint
-  // against every solid obstacle), the bin/tree cluster by the district's
-  // own edge (filler_116/117/119), and both camera-dismantle points. The
-  // upper part of this district is dense with small furniture; this strip
-  // along the bottom edge was the one clean run of open ground actually
-  // wide enough for a real billboard.
-  { id: 'commercial_billboard', x: 1350, y: 1042, w: 130, h: 50, kind: 'billboard' },
+  { id: 'filler_122', x: 1584, y: 600, w: 14, h: 120, kind: 'hedge' },
 ];

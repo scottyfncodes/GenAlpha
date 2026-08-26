@@ -4,8 +4,10 @@ import {
   LOCATIONS,
   MAP_HEIGHT,
   MAP_WIDTH,
+  districtAt,
   locationAt,
   visibleLocations,
+  type District,
   type OverworldLocation,
 } from './locations';
 import { OBSTACLES } from './obstacles';
@@ -224,6 +226,16 @@ export function Overworld() {
   const save = useSave();
   const { dispatch, heatAlertUntil, setNearbyHackNodeId, setCyberdeckOpen, cyberdeckOpen } = useGame();
   const [nearby, setNearby] = useState<OverworldLocation | null>(null);
+  /**
+   * Which of the nine districts the player is standing in, shown as a
+   * nameplate for a few seconds on the way in and then gone. The whole
+   * point of the 3x3 rebuild is that a block is legible before you've read
+   * a sign — this is the one place the game says the name out loud, once,
+   * so a player who has worked it out from the architecture gets confirmed
+   * rather than told. It is not a quest marker and not a minimap: it names
+   * where you already are.
+   */
+  const [districtCard, setDistrictCard] = useState<District | null>(null);
   const [open, setOpen] = useState<OverworldLocation | null>(null);
   /** A brief line when a hidden bush gives something up — same "shown, not
    * silent" treatment as `spotted`, since there's no prompt to click for it. */
@@ -400,6 +412,8 @@ export function Overworld() {
   const keys = useRef<Set<string>>(new Set());
   const touch = useRef({ dx: 0, dy: 0 });
   const nearbyRef = useRef<OverworldLocation | null>(null);
+  const districtRef = useRef<District | null>(null);
+  const districtCardTimer = useRef<number | null>(null);
   const enterRef = useRef<(loc: OverworldLocation) => void>(() => {});
   const nearbyCameraRef = useRef<CameraNode | null>(null);
   const nearbyHackRef = useRef<StreetHackNode | null>(null);
@@ -599,6 +613,18 @@ export function Overworld() {
       const ny = clamp(pos.current.y + (dy / len) * speed * dt, yBounds[0], yBounds[1]);
       if (confinedToHome || !solid.some((l) => overlapsBuilding(pos.current.x, ny, l))) pos.current.y = ny;
 
+      const district = districtAt(pos.current.x, pos.current.y);
+      if (district?.id !== districtRef.current?.id) {
+        districtRef.current = district;
+        setDistrictCard(district);
+        if (districtCardTimer.current) window.clearTimeout(districtCardTimer.current);
+        // The roads between two districts belong to neither, so crossing
+        // one fires this twice — once to null on the tarmac and once to
+        // the new block. Clearing on null rather than showing an empty
+        // card is what keeps the plate off the screen mid-street.
+        if (district) districtCardTimer.current = window.setTimeout(() => setDistrictCard(null), 2600);
+      }
+
       const here = locationAt(pos.current.x, pos.current.y, flagsRef.current);
       if (here?.id !== nearbyRef.current?.id) {
         nearbyRef.current = here;
@@ -676,7 +702,7 @@ export function Overworld() {
        * world/relocate.ts) — never back on the exact spot it just got taken
        * apart on.
        */
-      const cameraDraw: { x: number; y: number; dismantlable: boolean; damaged: boolean }[] = [];
+      const cameraDraw: { x: number; y: number; facing: number; dismantlable: boolean; damaged: boolean }[] = [];
       let closestCamera: CameraNode | null = null;
       let closestCameraPos: { x: number; y: number } | null = null;
       let closestCameraDist = CAMERA_INTERACT_RADIUS;
@@ -689,7 +715,7 @@ export function Overworld() {
           const days = record.respawnDays ?? node.respawnDays;
           const expired = saveRef.current.world.day >= record.collectedOnDay + days;
           if (!expired) {
-            cameraDraw.push({ x: node.x, y: node.y, dismantlable: false, damaged: true });
+            cameraDraw.push({ x: node.x, y: node.y, facing: node.facing, dismantlable: false, damaged: true });
             continue;
           }
           if (!record.relocated) {
@@ -698,7 +724,7 @@ export function Overworld() {
             // persists via RELOCATE_NODE rather than recomputing live every
             // frame (see world/relocate.ts's own doc comment for why).
             if (isOnScreen(node.x, node.y, camX, camY, viewW, viewH)) {
-              cameraDraw.push({ x: node.x, y: node.y, dismantlable: false, damaged: true });
+              cameraDraw.push({ x: node.x, y: node.y, facing: node.facing, dismantlable: false, damaged: true });
               continue;
             }
             dispatch({ type: 'RELOCATE_NODE', nodeId: node.id });
@@ -710,7 +736,7 @@ export function Overworld() {
         }
         const dist = Math.hypot(effX - pos.current.x, effY - pos.current.y);
         const inRange = dist < CAMERA_INTERACT_RADIUS;
-        cameraDraw.push({ x: effX, y: effY, dismantlable: inRange, damaged: false });
+        cameraDraw.push({ x: effX, y: effY, facing: node.facing, dismantlable: inRange, damaged: false });
         if (inRange && dist < closestCameraDist) {
           closestCameraDist = dist;
           closestCamera = node;
@@ -1235,6 +1261,13 @@ export function Overworld() {
           }
         }}
       />
+
+      {districtCard && (
+        <div className="overworld__district" role="status" key={districtCard.id}>
+          <span className="overworld__district-name">{districtCard.label}</span>
+          <span className="overworld__district-sub">{districtCard.sub}</span>
+        </div>
+      )}
 
       {spotted && (
         <p className="overworld__spotted" role="status">

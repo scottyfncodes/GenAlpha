@@ -15,6 +15,65 @@
 /* Ambient warning, not a game-over screen: a patrol clocked you, Heat moved,
    and the line says so instead of the number just changing off-screen. Sits
    above the "look around" bubble so the two never compete for the same line. */
+/* THE DISTRICT NAMEPLATE.
+
+   Nine districts on a 3x3 only work if a block is legible before anybody
+   reads a sign — the architecture, the ground tint and the camera density
+   are supposed to do that work. So this says the name once, on the way in,
+   and then gets out of the way: it fades up at the top of the screen when
+   the player crosses a boundary and is gone a couple of seconds later. It
+   is deliberately not persistent and deliberately not a minimap; a label
+   that stayed on screen would do the reading for the player every time
+   instead of confirming what they already worked out.
+
+   Top-centre rather than a corner, and above `spotted`'s own line, so the
+   two never share a row — a van sighting is urgent and this never is. */
+.overworld__district {
+  position: absolute;
+  left: 50%;
+  top: calc(var(--step) * 3);
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 5px 18px;
+  background: rgba(20, 24, 32, 0.6);
+  border-top: 1px solid rgba(236, 226, 208, 0.28);
+  border-bottom: 1px solid rgba(236, 226, 208, 0.28);
+  pointer-events: none;
+  animation: district-card 2.6s ease-out forwards;
+}
+
+.overworld__district-name {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--b-paper);
+}
+
+.overworld__district-sub {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: rgba(236, 226, 208, 0.55);
+}
+
+@keyframes district-card {
+  0% { opacity: 0; transform: translate(-50%, -6px); }
+  12% { opacity: 1; transform: translate(-50%, 0); }
+  72% { opacity: 1; transform: translate(-50%, 0); }
+  100% { opacity: 0; transform: translate(-50%, 0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  /* Same information, no movement and no fade-in — the plate simply is
+     there and then isn't, which the timeout already handles. */
+  .overworld__district { animation: none; }
+}
+
 .overworld__spotted {
   position: absolute;
   left: 50%;

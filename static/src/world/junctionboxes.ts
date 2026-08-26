@@ -39,33 +39,43 @@ export const JUNCTION_BOX_RISK: Record<JunctionBoxNode['tier'], { heatCost: numb
 };
 
 export const JUNCTION_BOX_NODES: JunctionBoxNode[] = [
-  // Tier 1 — spread through the residential districts and the civic core,
-  // the earliest ground a player actually covers: Residential North, West
-  // End, Downtown, Transit Hub, South Residential, Riverside Park.
-  { id: 'junction_1', x: 150, y: 280, tier: 1 },
-  { id: 'junction_2', x: 150, y: 600, tier: 1 },
-  { id: 'junction_3', x: 659, y: 172, tier: 1 },
-  { id: 'junction_4', x: 240, y: 837, tier: 1 },
-  { id: 'junction_5', x: 650, y: 1000, tier: 1 },
-  { id: 'junction_6', x: 650, y: 450, tier: 1 },
-  // Tier 2 — West End's own working edge, the Commercial Strip, the
-  // Warehouse District's Row 1, and Riverside Park's own eastern half.
-  { id: 'junction_7', x: 370, y: 600, tier: 2 },
-  { id: 'junction_8', x: 1161, y: 1010, tier: 2 },
-  { id: 'junction_9', x: 1200, y: 250, tier: 2 },
-  { id: 'junction_10', x: 850, y: 600, tier: 2 },
-  // Tier 3 — Downtown's own eastern reach, the Warehouse District's far
-  // corner, South Residential, and Transit Hub's own south side.
-  { id: 'junction_11', x: 902, y: 284, tier: 3 },
-  { id: 'junction_12', x: 1450, y: 250, tier: 3 },
-  { id: 'junction_13', x: 893, y: 990, tier: 3 },
-  { id: 'junction_14', x: 305, y: 961, tier: 3 },
-  // Tier 4 — deeper into the Warehouse District and the Commercial Strip,
-  // where the story keeps warning it's watched.
-  { id: 'junction_15', x: 1250, y: 550, tier: 4 },
-  { id: 'junction_16', x: 1450, y: 850, tier: 4 },
-  // Tier 5 — the Warehouse District's own far edge, the last thing worth
-  // the trip, and the only pool the two top-line plans can come out of.
-  { id: 'junction_17', x: 1557, y: 160, tier: 5 },
-  { id: 'junction_18', x: 1550, y: 650, tier: 5 },
+  /*
+   * One or two per district, tiered by how far into the map's own
+   * gradient the district sits: the residential and commons blocks the
+   * player covers first carry Tier 1-2, and the tiers climb with the
+   * surveillance density toward the Civic Zone, The Works and Southside's
+   * substation — which is also where `world/coverage.ts` re-derives the
+   * heaviest camera loads, since a box feeds whichever cameras are
+   * physically nearest it.
+   */
+  // Tier 1 — The Heights, Main Street, Liberty Park and The Blocks: the
+  // earliest ground a player actually covers.
+  { id: 'junction_1', x: 150, y: 244, tier: 1 },
+  { id: 'junction_2', x: 356, y: 300, tier: 1 },
+  { id: 'junction_3', x: 660, y: 172, tier: 1 },
+  { id: 'junction_4', x: 660, y: 952, tier: 1 },
+  { id: 'junction_5', x: 872, y: 952, tier: 1 },
+  { id: 'junction_6', x: 696, y: 560, tier: 1 },
+  // Tier 2 — Old Market's own working edge, the Plaza's lot, Liberty
+  // Park's east side, and the Main Street shopfronts.
+  { id: 'junction_7', x: 128, y: 546, tier: 2 },
+  { id: 'junction_8', x: 1300, y: 1004, tier: 2 },
+  { id: 'junction_9', x: 1064, y: 692, tier: 2 },
+  { id: 'junction_10', x: 866, y: 196, tier: 2 },
+  // Tier 3 — the Civic Zone's outer edge, The Works' own street, The
+  // Blocks' back alleys, and Southside's park-and-ride.
+  { id: 'junction_11', x: 1128, y: 240, tier: 3 },
+  { id: 'junction_12', x: 1500, y: 552, tier: 3 },
+  { id: 'junction_13', x: 704, y: 890, tier: 3 },
+  { id: 'junction_14', x: 220, y: 792, tier: 3 },
+  // Tier 4 — deeper in: the Data Centre's own fence line, the Annex, and
+  // the Plaza's goods-in lane.
+  { id: 'junction_15', x: 1408, y: 196, tier: 4 },
+  { id: 'junction_16', x: 1408, y: 780, tier: 4 },
+  // Tier 5 — the two boxes worth the trip, and the only pool the top-line
+  // plans can come out of: the Scrapyard's own corner of The Works, and
+  // Substation 9, which is the whole reason Southside has an identity
+  // beyond a bus timetable.
+  { id: 'junction_17', x: 1552, y: 736, tier: 5 },
+  { id: 'junction_18', x: 424, y: 918, tier: 5 },
 ];

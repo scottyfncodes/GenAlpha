@@ -83,7 +83,7 @@ export const CROSSWALK_H = tileIndex(9, 22);
 export const CROSSWALK_V = tileIndex(12, 22);
 
 /**
- * Loose debris for the Warehouse District's own ground — cable spools, a
+ * Loose debris for The Works' own ground — cable spools, a
  * boxcar, a crane, and stacked cars are all named in the district's own
  * ambient text (`locations.ts`) but nothing on the ground ever backed that
  * up before this; a bare grey lot doesn't read as a working (or abandoned)

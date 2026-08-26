@@ -13,48 +13,63 @@ import type { EscalationStage } from './escalation';
  */
 export const DRONE_ROUTES: PatrolRoute[] = [
   {
-    // A long diagonal sweep across the civic core — Residential North down
-    // through the Downtown Crossroads — the first one active, and the one
-    // most likely to cross paths with an ordinary walk.
+    // A long diagonal sweep across the middle of the 3x3 — The Heights
+    // down through the Crossroads and into Liberty Park — the first one
+    // active, and the one most likely to cross paths with an ordinary
+    // walk.
     id: 'drone_diagonal',
     loop: false,
     points: [
       { x: 250, y: 180 },
-      { x: 850, y: 580 },
+      { x: 900, y: 600 },
     ],
   },
   {
-    // A tight racetrack loop over Town Square — the town's most watched
-    // public space, watched from above too now.
-    id: 'drone_square_loop',
+    // A racetrack over the Civic Zone. The block with the most cameras
+    // in it also gets the one drone loop that never leaves a district:
+    // there is no route into City Hall that isn't overflown.
+    id: 'drone_civic_loop',
     loop: true,
     points: [
-      { x: 520, y: 180 },
-      { x: 900, y: 180 },
-      { x: 900, y: 400 },
-      { x: 520, y: 400 },
+      { x: 1130, y: 40 },
+      { x: 1590, y: 40 },
+      { x: 1590, y: 320 },
+      { x: 1130, y: 320 },
     ],
   },
   {
-    // The Warehouse District's own perimeter, from above — a second, wider
-    // ring around the ground patrol's own `warehouse_loop`.
-    id: 'drone_annex_ring',
+    // The Works' perimeter, from above — a second, wider ring around the
+    // ground patrol's own `works_beat`.
+    id: 'drone_works_ring',
     loop: true,
     points: [
-      { x: 1150, y: 30 },
-      { x: 1580, y: 30 },
-      { x: 1580, y: 700 },
-      { x: 1150, y: 700 },
+      { x: 1130, y: 400 },
+      { x: 1590, y: 400 },
+      { x: 1590, y: 720 },
+      { x: 1130, y: 720 },
     ],
   },
   {
-    // A there-and-back over West End and the river edge, so the west side
-    // of town isn't dead airspace once Phase Two is fully live.
-    id: 'drone_west_sweep',
+    // A there-and-back over Southside and the river edge, so the
+    // south-west corner isn't dead airspace once Phase Two is fully live.
+    id: 'drone_south_sweep',
     loop: false,
     points: [
-      { x: 100, y: 750 },
-      { x: 520, y: 950 },
+      { x: 100, y: 800 },
+      { x: 520, y: 1000 },
+    ],
+  },
+  {
+    // Liberty Park, last and slowest. A drone over the commons is the
+    // one image in this game that argues its own thesis without a line
+    // of dialogue, so it only ever appears at the top of the rollout.
+    id: 'drone_park_loop',
+    loop: true,
+    points: [
+      { x: 600, y: 420 },
+      { x: 1040, y: 420 },
+      { x: 1040, y: 700 },
+      { x: 600, y: 700 },
     ],
   },
 ];

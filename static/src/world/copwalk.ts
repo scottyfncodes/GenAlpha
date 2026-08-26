@@ -12,17 +12,18 @@ import type { EscalationStage } from './escalation';
  */
 export const COP_ROUTES: PatrolRoute[] = [
   {
-    // The school's own frontage, Downtown's local street.
+    // The school's own frontage, Main Street's local street.
     id: 'cop_school_beat',
     loop: false,
     points: [
-      { x: 570, y: 230 },
-      { x: 770, y: 230 },
+      { x: 570, y: 196 },
+      { x: 770, y: 196 },
     ],
   },
   {
-    // A tighter loop around Town Square than the van's own `center_loop` —
-    // the ground floor of the same block, circled from closer in.
+    // A tighter loop around Town Square than the van's own
+    // `crossroads_loop` — the ground floor of the same block, circled
+    // from closer in.
     id: 'cop_square_beat',
     loop: true,
     points: [
@@ -30,6 +31,17 @@ export const COP_ROUTES: PatrolRoute[] = [
       { x: 775, y: 215 },
       { x: 775, y: 305 },
       { x: 615, y: 305 },
+    ],
+  },
+  {
+    // The Civic Zone's own pavement, City Hall to the Records Office —
+    // on foot, because this is the one district where somebody standing
+    // still and looking at you is the normal state of the street.
+    id: 'cop_civic_beat',
+    loop: false,
+    points: [
+      { x: 1150, y: 214 },
+      { x: 1560, y: 214 },
     ],
   },
   {
@@ -42,13 +54,12 @@ export const COP_ROUTES: PatrolRoute[] = [
     ],
   },
   {
-    // The Warehouse District's own Row 2 local street, on foot rather than
-    // the van's own wider perimeter ring.
+    // The Works' own row, on foot rather than the van's wider sweep.
     id: 'cop_annex_beat',
     loop: false,
     points: [
-      { x: 1140, y: 540 },
-      { x: 1550, y: 540 },
+      { x: 1140, y: 536 },
+      { x: 1560, y: 536 },
     ],
   },
 ];
