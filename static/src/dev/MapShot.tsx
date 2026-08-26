@@ -6,6 +6,7 @@ import { NPCS, wanderPos } from '../world/npcs';
 import { CAMERA_NODES } from '../world/collectibles';
 import { STREET_HACK_NODES } from '../world/streethacks';
 import { JUNCTION_BOX_NODES } from '../world/junctionboxes';
+import { SIGNAGE_NODES } from '../world/signage';
 import { marksAtStage } from '../world/marks';
 import { PATROL_ROUTES, patrolTuning } from '../world/patrols';
 import { COP_ROUTES, copTuning } from '../world/copwalk';
@@ -157,6 +158,7 @@ export function MapShot() {
         cameras.map((c) => ({ x: c.x, y: c.y, facing: c.facing, dismantlable: false, damaged: v.damaged })),
         STREET_HACK_NODES.map((n) => ({ x: n.x, y: n.y, kind: n.kind, hackable: false, damaged: false })),
         JUNCTION_BOX_NODES.map((n) => ({ x: n.x, y: n.y, tier: n.tier, crackable: false, damaged: false })),
+        SIGNAGE_NODES.map((n) => ({ x: n.x, y: n.y, hackable: false, hacked: v.damaged })),
         head(DRONE_ROUTES, droneCount, droneTuning(v.tier, v.stage).detectionRadius).map((d) => ({
           ...d,
           takeable: false,

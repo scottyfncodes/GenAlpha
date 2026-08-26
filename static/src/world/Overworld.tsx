@@ -28,7 +28,7 @@ import {
 } from './collectibles';
 import { useGame, useSave } from '../state/GameContext';
 import type { ThresholdTier } from '../state/schema';
-import { LIE_LOW_DECAY, lieLowBlocked } from '../systems/heat';
+import { LIE_LOW_DECAY, lieLowBlocked, TIER_ORDER } from '../systems/heat';
 import { safehouseBlocked, safehouseDecay } from '../systems/safehouse';
 import {
   canCollectHidden,
@@ -57,6 +57,9 @@ import { SceneView } from '../ui/SceneView';
 import { HomeInteriorBackdrop } from './InteriorBackdrop';
 import { STREET_HACK_INTERACT_RADIUS, STREET_HACK_NODES, type StreetHackNode } from './streethacks';
 import { canHackStreetNode, HACK_KIND_TOOL } from '../systems/streethacks';
+import { SIGNAGE_INTERACT_RADIUS, SIGNAGE_NODES, type SignageNode } from './signage';
+import { canHackSignage } from '../systems/signage';
+import { reactionLine, type ReactionCategory } from '../systems/reactions';
 import { drawTown } from './draw';
 import { Market } from '../ui/Market';
 import { Garage } from '../ui/Garage';
@@ -252,6 +255,12 @@ export function Overworld() {
   /** The junction box close enough to crack open right now, if any — same
    * "spending Heat is a decision, not a walk" reasoning a camera gets. */
   const [nearbyJunctionBox, setNearbyJunctionBox] = useState<JunctionBoxNode | null>(null);
+  /** A street sign close enough to correct right now, if any — no gear gate
+   * at all, the cheapest interaction on the map. See world/signage.ts. */
+  const [nearbySignage, setNearbySignage] = useState<SignageNode | null>(null);
+  /** A short bystander line — the town noticing, not a conversation. See
+   * systems/reactions.ts. */
+  const [reaction, setReaction] = useState<string | null>(null);
   /**
    * How many cameras a given box actually carries *today* — stage-gated
    * (`world/coverage.ts`, `systems/coverage.ts`), because a box that will
@@ -388,6 +397,35 @@ export function Overworld() {
     setGarageOpen(false);
   };
 
+  /**
+   * A bystander line, rolled only some of the time — the brief's own "use
+   * reactions sparingly enough that they remain funny" applied literally.
+   * Called from both React event handlers (a landed sabotage/hack) and the
+   * raw frame loop below (a catch); a plain closure over `setReaction` is
+   * stable either way, so this needs no ref of its own.
+   */
+  const REACTION_CHANCE = 0.55;
+  const showReaction = (category: ReactionCategory) => {
+    if (Math.random() > REACTION_CHANCE) return;
+    const line = reactionLine(category);
+    setReaction(line);
+    window.setTimeout(() => setReaction((m) => (m === line ? null : m)), 2200);
+  };
+
+  /** Heat crossing a tier *upward* is the one Heat event that isn't already
+   * shown some other way (a delta is a toast, a tier is just a number on the
+   * HUD) — this is what makes "the city noticed" legible without the player
+   * having to read the Heat chip. Never fires downward: relief is a relief,
+   * not a beat. */
+  const prevTierRef = useRef(save.heat.threshold_tier);
+  useEffect(() => {
+    if (TIER_ORDER.indexOf(save.heat.threshold_tier) > TIER_ORDER.indexOf(prevTierRef.current)) {
+      showReaction('heat_up');
+    }
+    prevTierRef.current = save.heat.threshold_tier;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [save.heat.threshold_tier]);
+
   // Spawn on the saved location rather than a hardcoded corner, so a reload
   // doesn't put the player across town from where the story left them.
   const pos = useRef(spawnFor(save.player.currentLocation));
@@ -419,6 +457,7 @@ export function Overworld() {
   const nearbyCameraRef = useRef<CameraNode | null>(null);
   const nearbyHackRef = useRef<StreetHackNode | null>(null);
   const nearbyJunctionBoxRef = useRef<JunctionBoxNode | null>(null);
+  const nearbySignageRef = useRef<SignageNode | null>(null);
   const nearbyDroneRef = useRef<{ id: string; x: number; y: number } | null>(null);
   /**
    * Whichever camera/hack/junction node is currently in range and tappable,
@@ -428,7 +467,9 @@ export function Overworld() {
    * the frame loop just decided is glowing this frame (including a node
    * that's respawned somewhere other than its own listed coordinates).
    */
-  const tappableRef = useRef<{ kind: 'camera' | 'hack' | 'junction'; id: string; x: number; y: number } | null>(null);
+  const tappableRef = useRef<{ kind: 'camera' | 'hack' | 'junction' | 'signage'; id: string; x: number; y: number } | null>(
+    null,
+  );
   /** Mirrors `active` for the frame loop, same reason `saveRef`/`tierRef` do
    * — a closure created once by `useEffect` can't read fresh state directly. */
   const activeRef = useRef<Scene | null>(null);
@@ -856,17 +897,47 @@ export function Overworld() {
         setTappedNodeId((id) => (closestJunctionBox ? id : null));
       }
 
+      /*
+       * Street signage. No relocation, no gear gate, no relief in owning a
+       * better rig — the single fixed corner it's authored at is the whole
+       * of it. `hacked` (record exists and hasn't expired) is both "already
+       * corrected" for the draw call and "not currently offerable" for the
+       * prompt, in one read of the same cooldown log every other node here
+       * shares.
+       */
+      const signageDraw: { x: number; y: number; hackable: boolean; hacked: boolean }[] = [];
+      let closestSignage: SignageNode | null = null;
+      let closestSignageDist = SIGNAGE_INTERACT_RADIUS;
+      for (const node of SIGNAGE_NODES) {
+        const dist = Math.hypot(node.x - pos.current.x, node.y - pos.current.y);
+        const inRange = dist < SIGNAGE_INTERACT_RADIUS;
+        const hackable = inRange && canHackSignage(saveRef.current, node);
+        const hacked = !canHackSignage(saveRef.current, node);
+        signageDraw.push({ x: node.x, y: node.y, hackable, hacked });
+        if (hackable && dist < closestSignageDist) {
+          closestSignageDist = dist;
+          closestSignage = node;
+        }
+      }
+      if (closestSignage?.id !== nearbySignageRef.current?.id) {
+        nearbySignageRef.current = closestSignage;
+        setNearbySignage(closestSignage);
+        setTappedNodeId((id) => (closestSignage ? id : null));
+      }
+
       // One shared record of whatever's currently tappable, in the same
-      // camera > hack > junction priority order the prompt panels below
-      // already use — the canvas tap handler hit-tests against this rather
-      // than walking all three lists itself.
+      // camera > hack > junction > signage priority order the prompt panels
+      // below already use — the canvas tap handler hit-tests against this
+      // rather than walking all four lists itself.
       tappableRef.current = closestCamera
         ? { kind: 'camera', id: closestCamera.id, x: closestCameraPos!.x, y: closestCameraPos!.y }
         : closestHack
           ? { kind: 'hack', id: closestHack.id, x: closestHackPos!.x, y: closestHackPos!.y }
           : closestJunctionBox
             ? { kind: 'junction', id: closestJunctionBox.id, x: closestJunctionBoxPos!.x, y: closestJunctionBoxPos!.y }
-            : null;
+            : closestSignage
+              ? { kind: 'signage', id: closestSignage.id, x: closestSignage.x, y: closestSignage.y }
+              : null;
 
       // A location's own card up, and it's one of the ones you can
       // actually disappear into (home, the arcade, the treehouse, …) —
@@ -932,6 +1003,7 @@ export function Overworld() {
               pos.current = spawnFor(HOME_LOCATION_ID);
               setCaught(consequence.label);
               window.setTimeout(() => setCaught((m) => (m === consequence.label ? null : m)), 4000);
+              showReaction('caught');
               continue;
             }
           }
@@ -1057,6 +1129,7 @@ export function Overworld() {
             pos.current = spawnFor(HOME_LOCATION_ID);
             setCaught(consequence.label);
             window.setTimeout(() => setCaught((m) => (m === consequence.label ? null : m)), 4000);
+            showReaction('caught');
             continue;
           }
         }
@@ -1113,6 +1186,7 @@ export function Overworld() {
             pos.current = spawnFor(HOME_LOCATION_ID);
             setCaught(consequence.label);
             window.setTimeout(() => setCaught((m) => (m === consequence.label ? null : m)), 4000);
+            showReaction('caught');
             continue;
           }
         }
@@ -1192,6 +1266,7 @@ export function Overworld() {
         cameraDraw,
         hackDraw,
         junctionBoxDraw,
+        signageDraw,
         droneDraw,
         copDraw,
         scarDraw,
@@ -1323,6 +1398,12 @@ export function Overworld() {
         </p>
       )}
 
+      {reaction && (
+        <p className="overworld__reaction" role="status">
+          {reaction}
+        </p>
+      )}
+
       {nearby && !open && (
         // One flex-stacked column instead of four independently
         // bottom-anchored elements — the old scheme hand-tuned a `bottom`
@@ -1392,7 +1473,10 @@ export function Overworld() {
                 <button
                   key={action.id}
                   className="overworld__prompt overworld__prompt--camera"
-                  onClick={() => dispatch({ type: 'SABOTAGE_CAMERA', nodeId: nearbyCamera.id, actionId: action.id })}
+                  onClick={() => {
+                    dispatch({ type: 'SABOTAGE_CAMERA', nodeId: nearbyCamera.id, actionId: action.id });
+                    showReaction('mischief');
+                  }}
                 >
                   {action.label} · Heat +{action.heatCost} · {action.quantity}×{' '}
                   {MATERIALS_BY_ID[action.itemId]?.name ?? action.itemId}
@@ -1472,6 +1556,7 @@ export function Overworld() {
                 const label = `Found: ${loot.quantity > 1 ? `${loot.quantity}× ` : ''}${loot.name}`;
                 setPicked(label);
                 window.setTimeout(() => setPicked((m) => (m === label ? null : m)), 2200);
+                showReaction('mischief');
               }}
             >
               Tier {nearbyJunctionBox.tier} junction box · Heat +
@@ -1483,13 +1568,41 @@ export function Overworld() {
         )
       )}
 
+      {/* Last but one in the priority order — a location, a camera, a
+          street hack and a junction box all win over this. No tiers, no
+          gear check: the Heat cost on the button is the only thing standing
+          between the player and doing it, on purpose (see world/signage.ts). */}
+      {!nearby && !nearbyCamera && !nearbyHack && !nearbyJunctionBox && nearbySignage && !open && (
+        tappedNodeId === nearbySignage.id ? (
+          <div className="overworld__sabotage">
+            <p className="overworld__why">
+              Official signage, corrected. Somebody official is going to notice, eventually.
+            </p>
+            <button
+              className="overworld__prompt overworld__prompt--signage"
+              onClick={() => {
+                dispatch({ type: 'HACK_SIGNAGE', nodeId: nearbySignage.id });
+                const line = `“${nearbySignage.before}” → “${nearbySignage.after}”`;
+                setPicked(line);
+                window.setTimeout(() => setPicked((m) => (m === line ? null : m)), 2800);
+                showReaction('mischief');
+              }}
+            >
+              Correct the sign · Heat +{nearbySignage.heatCost}
+            </button>
+          </div>
+        ) : (
+          <p className="overworld__taphint">Tap the sign for a closer look.</p>
+        )
+      )}
+
       {/* Last in the priority order, same as a junction box — except this
           one might not still be there by the time the player reads the
           button, since it's the only point object on the map that moves.
           The prompt opens the shot, it doesn't resolve it — Heat System
           guardrail 2 still holds, there are just two prices to show now:
           what a hit pays and what a miss costs. */}
-      {!nearby && !nearbyCamera && !nearbyHack && !nearbyJunctionBox && nearbyDrone && !open && (
+      {!nearby && !nearbyCamera && !nearbyHack && !nearbyJunctionBox && !nearbySignage && nearbyDrone && !open && (
         <button
           className="overworld__prompt overworld__prompt--drone"
           disabled={!canDisableDrone(save, nearbyDrone.id)}

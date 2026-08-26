@@ -152,6 +152,28 @@
   pointer-events: none;
 }
 
+/* A bystander line — the town noticing, not a cost and not ambient danger.
+   Deliberately the quietest toast on this list: no border, no weight,
+   lower opacity, because this is flavour and losing the occasional line to
+   `caught`/`closecall` sharing the same general area is fine. See
+   systems/reactions.ts. */
+.overworld__reaction {
+  position: absolute;
+  left: 50%;
+  top: calc(var(--step) * 17);
+  transform: translateX(-50%);
+  margin: 0;
+  width: min(280px, 76vw);
+  color: var(--b-paper);
+  opacity: 0.75;
+  font-family: var(--font-a);
+  font-style: italic;
+  font-size: 12px;
+  text-align: center;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.8);
+  pointer-events: none;
+}
+
 .overworld__prompt {
   position: absolute;
   left: 50%;
@@ -337,6 +359,16 @@
 .overworld__prompt--junction:disabled {
   opacity: 0.55;
   cursor: default;
+}
+
+/* Signage — same Heat-red as every other fixed point object; this one is
+   never disabled (no gear to be missing), so there's no `:disabled` rule
+   to pair with it. */
+.overworld__prompt--signage {
+  background: var(--b-red);
+  color: var(--b-paper);
+  border-color: var(--b-ink);
+  font-size: 13px;
 }
 
 /* A drone, in its own accent (the same magenta `draw.ts` draws its status

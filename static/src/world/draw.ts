@@ -372,6 +372,7 @@ export function drawTown(
   cameraNodes: { x: number; y: number; facing: number; dismantlable: boolean; damaged: boolean }[],
   hackNodes: { x: number; y: number; kind: 'atm' | 'phone' | 'building'; hackable: boolean; damaged: boolean }[],
   junctionBoxNodes: { x: number; y: number; tier: 1 | 2 | 3 | 4 | 5; crackable: boolean; damaged: boolean }[],
+  signageNodes: { x: number; y: number; hackable: boolean; hacked: boolean }[],
   drones: { x: number; y: number; radius: number; takeable: boolean }[],
   cops: { x: number; y: number; radius: number }[],
   /** Poles the player has taken apart at least once — see
@@ -454,6 +455,11 @@ export function drawTown(
   // is still a door" rule everything else on this list follows.
   for (const j of junctionBoxNodes) drawJunctionBox(ctx, j, now);
 
+  // Street signage — the cheapest interaction on the map. Same "always
+  // visible" rule; `hacked` (not `damaged`) is what changes its face, since
+  // a corrected sign isn't broken, it's just been got to.
+  for (const s of signageNodes) drawSignageNode(ctx, s, now);
+
   // Detection rings under the vans, so a van sitting still doesn't visually
   // "arrive" on top of its own danger zone.
   for (const patrol of patrols) drawPatrolRing(ctx, patrol);
@@ -521,7 +527,12 @@ function drawObstacle(ctx: CanvasRenderingContext2D, obstacle: Obstacle, tier: T
     case 'tower':
       return drawSafeTraceTower(ctx, obstacle, tier, now);
     case 'billboard':
-      return drawBillboard(ctx, obstacle);
+      // The Plaza's own landmark billboards are found already corrected —
+      // see `drawBillboard`'s own doc comment — so this call site always
+      // passes `hacked: true`. The player-hackable street signs
+      // (`world/signage.ts`) are a separate, smaller object drawn via
+      // `drawSignageNode` below, not an `Obstacle` at all.
+      return drawBillboard(ctx, obstacle, true);
     case 'scanner':
       return drawPlateScanner(ctx, obstacle, now);
     case 'gate':
@@ -1045,8 +1056,14 @@ function drawSafeTraceTower(ctx: CanvasRenderingContext2D, o: Obstacle, tier: Th
  * The joke is the point, and it's the brief's own worked example: a
  * pristine ad with a tiny hand-written correction underneath, discovered
  * rather than announced — there's no dialogue anywhere that explains it.
+ *
+ * `hacked` gates the correction scrawl at the bottom: the Plaza's own
+ * landmarks (`draw.ts`'s `case 'billboard'`) always pass `true` — found
+ * already corrected, same as ever — but this function doubles as the
+ * renderer for the small player-hackable street signs `drawSignageNode`
+ * builds below, which start clean and only earn the scrawl once hacked.
  */
-function drawBillboard(ctx: CanvasRenderingContext2D, o: Obstacle) {
+function drawBillboard(ctx: CanvasRenderingContext2D, o: Obstacle, hacked: boolean) {
   const faceH = o.h * 0.68;
   const legY = o.y + faceH;
   const legH = o.h - faceH;
@@ -1083,7 +1100,9 @@ function drawBillboard(ctx: CanvasRenderingContext2D, o: Obstacle) {
 
   // The correction — a crooked, hand-written strip low on the face, in the
   // resistance's own red rather than the ad's own palette, so it reads as
-  // graffiti on the sign rather than part of the sign.
+  // graffiti on the sign rather than part of the sign. Absent until
+  // `hacked` — a clean sign has nothing under it yet.
+  if (!hacked) return;
   const rand = noise(`billboard:${o.id}`);
   ctx.strokeStyle = PALETTE.billboardCorrection;
   ctx.lineWidth = 1.5;
@@ -1098,6 +1117,27 @@ function drawBillboard(ctx: CanvasRenderingContext2D, o: Obstacle) {
   }
   ctx.stroke();
   ctx.restore();
+}
+
+/**
+ * A street-level SafeTrace notice board — the small, player-hackable
+ * cousin of the Plaza's own landmark billboard, drawn with the exact same
+ * `drawBillboard` so a hacked sign reads as the same kind of correction
+ * without a second render path. Sized well under the landmark's own
+ * footprint on purpose: that one is meant to be the loudest single object
+ * in town, and this one needs to read as ordinary street furniture right
+ * up until the player does something to it.
+ */
+function drawSignageNode(
+  ctx: CanvasRenderingContext2D,
+  node: { x: number; y: number; hackable: boolean; hacked: boolean },
+  now: number,
+) {
+  const w = 26;
+  const h = 16;
+  const o: Obstacle = { id: 'signage', kind: 'billboard', x: node.x - w / 2, y: node.y - h, w, h };
+  if (node.hackable) drawPulseGlow(ctx, px(node.x), px(node.y - h / 2), Math.max(w, h) / 2, now);
+  drawBillboard(ctx, o, node.hacked);
 }
 
 /** Chain-link, the one obstacle that reads as industrial rather than grown —

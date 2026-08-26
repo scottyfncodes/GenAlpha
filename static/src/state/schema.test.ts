@@ -64,6 +64,16 @@ describe('save migration', () => {
     expect(next.skills.resistanceIntel.compromised).toBe(false);
     expect(next.economy.inventory).toEqual([]);
     expect(next.world.day).toBe(1);
+    // 0.8.0 subtree an older save can't have had — a partial incidents
+    // object should never leave a kind reading as `undefined`.
+    expect(next.world.incidents).toEqual({
+      camera_disabled: 0,
+      junction_box_cracked: 0,
+      signage_hacked: 0,
+      street_hack_landed: 0,
+      drone_downed: 0,
+      times_caught: 0,
+    });
     expect(next.settings.textSpeed).toBe('normal');
     expect(next.player.flags).toEqual({});
     expect(next.heat.current).toBe(7);

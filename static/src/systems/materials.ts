@@ -33,6 +33,7 @@ import {
   removeItem,
 } from './market';
 import { applyHeat } from './heat';
+import { bumpIncident } from './incidents';
 
 /**
  * Salvage: find it, sell it for SHDW, or build with it. Pure functions over
@@ -144,6 +145,7 @@ export function sabotageCamera(save: SaveState, nodeId: string, actionId: Sabota
       delta: action.heatCost,
       logToHistory: true,
     }),
+    world: { ...withItem.world, incidents: bumpIncident(withItem.world.incidents, 'camera_disabled') },
   };
   return markCollected(withHeat, nodeId, action.respawnDays);
 }
@@ -227,6 +229,7 @@ export function destroyJunctionBox(save: SaveState, nodeId: string): SaveState {
       delta: risk.heatCost,
       logToHistory: true,
     }),
+    world: { ...withItem.world, incidents: bumpIncident(withItem.world.incidents, 'junction_box_cracked') },
   };
   return markCollected(withHeat, nodeId, risk.respawnDays);
 }
@@ -277,6 +280,7 @@ export function disableDrone(save: SaveState, droneId: string, hit: boolean): Sa
       delta: result.heatCost,
       logToHistory: result.heatCost > 0,
     }),
+    world: { ...withItem.world, incidents: bumpIncident(withItem.world.incidents, 'drone_downed') },
   };
   return markCollected(withHeat, droneId, result.respawnDays);
 }
@@ -376,6 +380,10 @@ export function kamikazeStrike(save: SaveState, target: KamikazeTarget, hit: boo
       delta: KAMIKAZE_HEAT_COST,
       logToHistory: false,
     }),
+    world: {
+      ...s.world,
+      incidents: bumpIncident(s.world.incidents, camera ? 'camera_disabled' : 'junction_box_cracked'),
+    },
   };
   return markCollected(withHeat, target.id, KAMIKAZE_RESPAWN_DAYS);
 }

@@ -110,6 +110,13 @@ export function migrate(save: SaveState, prefersReduced = false): SaveState {
       ...save.world,
       day,
       surveillance: { ...base.world.surveillance, ...save.world?.surveillance },
+      /*
+       * 0.7.0 -> 0.8.0 adds `incidents`. Merged as its own subtree for the
+       * same reason `surveillance` is: a save carrying a *partial* incidents
+       * object (an old save has none at all) would otherwise leave a kind
+       * this version added reading as `undefined` instead of a real 0.
+       */
+      incidents: { ...base.world.incidents, ...save.world?.incidents },
     },
     settings: {
       ...base.settings,

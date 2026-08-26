@@ -3,6 +3,7 @@ import { applyHeat, decayTo } from './heat';
 import { addCash, tickMarket } from './market';
 import { tickSafehouses } from './safehouse';
 import { HOME_LOCATION_ID } from '../world/locations';
+import { bumpIncident } from './incidents';
 
 /**
  * What happens when a patrol actually catches you, rather than just clocking
@@ -98,6 +99,7 @@ export function applyCatch(save: SaveState, tier: ThresholdTier): SaveState {
       delta: consequence.heatDelta,
       logToHistory: true,
     }),
+    world: { ...s.world, incidents: bumpIncident(s.world.incidents, 'times_caught') },
   };
 
   if (tier === 'hunted') {

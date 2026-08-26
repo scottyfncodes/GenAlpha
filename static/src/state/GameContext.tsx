@@ -42,6 +42,7 @@ import {
   SWEEP_HEAT_FLOOR,
 } from '../systems/coverage';
 import { resolveStreetHack, type HackLevel } from '../systems/streethacks';
+import { hackSignage } from '../systems/signage';
 import type { SabotageActionId } from '../world/collectibles';
 import { HOME_LOCATION_ID } from '../world/locations';
 
@@ -85,7 +86,8 @@ type Action =
   | { type: 'SELL_MATERIAL'; itemId: string }
   | { type: 'CRAFT_ITEM'; recipeId: string }
   | { type: 'CAUGHT'; tier: ThresholdTier }
-  | { type: 'HACK_STREET_NODE'; nodeId: string; outcome: RunOutcome; level?: HackLevel };
+  | { type: 'HACK_STREET_NODE'; nodeId: string; outcome: RunOutcome; level?: HackLevel }
+  | { type: 'HACK_SIGNAGE'; nodeId: string };
 
 /**
  * Advancing the in-fiction clock, in one place. Both the explicit
@@ -261,6 +263,10 @@ function applyAction(state: SaveState | null, action: Action): SaveState | null 
 
     case 'DESTROY_JUNCTION_BOX':
       return destroyJunctionBox(state, action.nodeId);
+
+    /** No tool, no deck tier — see systems/signage.ts. */
+    case 'HACK_SIGNAGE':
+      return hackSignage(state, action.nodeId);
 
     case 'DISABLE_DRONE':
       return disableDrone(state, action.droneId, action.hit);

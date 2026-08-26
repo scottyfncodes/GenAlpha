@@ -7,6 +7,7 @@ import { SHDW } from '../content/economy';
 import { discoveredEntries, undiscoveredCount } from '../systems/casefile';
 import { FEED_LAST_SEEN_FLAG, unreadFeedCount, visibleFeedEntries } from '../systems/feed';
 import { escalationStage } from '../world/escalation';
+import { INCIDENT_LABELS, totalIncidents } from '../systems/incidents';
 import './phone.css';
 
 /**
@@ -21,7 +22,7 @@ import './phone.css';
  * phone's screen instead of the whole viewport without a single line of
  * Market's own CSS changing.
  */
-type App = 'home' | 'market' | 'salvage' | 'shadow' | 'leads' | 'feed';
+type App = 'home' | 'market' | 'salvage' | 'shadow' | 'leads' | 'feed' | 'incidents';
 
 export function Phone({ onClose }: { onClose: () => void }) {
   const [app, setApp] = useState<App>('home');
@@ -34,6 +35,7 @@ export function Phone({ onClose }: { onClose: () => void }) {
         {app === 'shadow' && <Shadow onBack={() => setApp('home')} />}
         {app === 'leads' && <Leads onBack={() => setApp('home')} />}
         {app === 'feed' && <Feed onBack={() => setApp('home')} />}
+        {app === 'incidents' && <Incidents onBack={() => setApp('home')} />}
         {app === 'home' && (
           <PhoneHome onOpen={setApp} onClose={onClose} />
         )}
@@ -46,6 +48,7 @@ function PhoneHome({ onOpen, onClose }: { onOpen: (app: App) => void; onClose: (
   const save = useSave();
   const leads = discoveredEntries(save).length;
   const unread = unreadFeedCount(save);
+  const incidents = totalIncidents(save);
 
   return (
     <div className="phone__home">
@@ -78,6 +81,10 @@ function PhoneHome({ onOpen, onClose }: { onOpen: (app: App) => void; onClose: (
             {unread > 0 && <span className="phone__app-badge">{unread}</span>}
           </span>
           <span>Feed</span>
+        </button>
+        <button className="phone__app" onClick={() => onOpen('incidents')}>
+          <span className="phone__app-icon">📋</span>
+          <span>Incidents{incidents > 0 ? ` (${incidents})` : ''}</span>
         </button>
       </div>
     </div>
@@ -322,6 +329,45 @@ function Leads({ onBack }: { onBack: () => void }) {
         <p className="leads__remaining">
           {remaining} more thread{remaining === 1 ? '' : 's'} out there, unaccounted for.
         </p>
+      )}
+    </div>
+  );
+}
+
+/**
+ * Incidents: not the mystery, not the money — just a tally of the chaos.
+ * Deliberately the plainest screen on the phone (no ticker, nothing to
+ * spend, no unlock riding on any of these numbers): the point is the number
+ * itself, the same "look what I did" a high score serves, not a report card.
+ * See `systems/incidents.ts` for why this is a separate log from Leads.
+ */
+function Incidents({ onBack }: { onBack: () => void }) {
+  const save = useSave();
+  const total = totalIncidents(save);
+
+  return (
+    <div className="incidents lang-b">
+      <header className="incidents__head">
+        <div>
+          <p className="incidents__eyebrow">Everything you’ve actually done to this town</p>
+          <h2 className="incidents__title">Incidents</h2>
+        </div>
+        <button className="incidents__back" onClick={onBack}>
+          Done
+        </button>
+      </header>
+
+      {total === 0 ? (
+        <p className="incidents__empty">Clean record. So far.</p>
+      ) : (
+        <ul className="incidents__list">
+          {INCIDENT_LABELS.map(({ kind, label }) => (
+            <li key={kind} className="incidents__row">
+              <span className="incidents__row-label">{label}</span>
+              <span className="incidents__row-count">{save.world.incidents[kind]}</span>
+            </li>
+          ))}
+        </ul>
       )}
     </div>
   );

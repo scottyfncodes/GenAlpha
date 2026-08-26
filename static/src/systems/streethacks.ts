@@ -5,6 +5,7 @@ import { addCash, deckTier, heatReliefFor, owns } from './market';
 import { onCooldown, markCollected } from './materials';
 import { applyHeat } from './heat';
 import { heatFor, type RunOutcome } from './missions';
+import { bumpIncident } from './incidents';
 
 /**
  * What a rig has to be built up to before it can even reach a given kind of
@@ -131,6 +132,9 @@ export function resolveStreetHack(
       delta: Math.max(1, heatFor('hacking', outcome) - relief),
       logToHistory: true,
     }),
+    world: landed
+      ? { ...withCash.world, incidents: bumpIncident(withCash.world.incidents, 'street_hack_landed') }
+      : withCash.world,
   };
 
   // Backing out cleanly costs the same small Heat tax a story mission's own

@@ -264,7 +264,29 @@ export interface WorldState {
    * Only the two facts that can't be re-derived live here.
    */
   surveillance: SurveillanceState;
+  /** ADDED in 0.8.0. See `IncidentLog`'s own doc comment above. */
+  incidents: IncidentLog;
 }
+
+/**
+ * ADDED in 0.8.0. "Look at all the ridiculous stuff I have done" — a tally of
+ * player-caused chaos, kept purely for the player to admire, never read by
+ * any gate or unlock. Deliberately not the same thing `systems/casefile.ts`
+ * already keeps: a case entry is a clue the *story* revealed, unlocked by a
+ * flag a scene wrote; an incident is a count of a thing the *player* did,
+ * bumped the instant the action lands, with no narrative content of its own.
+ * A `Record` rather than one field per kind so a future kind of mischief is
+ * a new `IncidentKind` and a migration default, not a schema shape change.
+ */
+export type IncidentKind =
+  | 'camera_disabled'
+  | 'junction_box_cracked'
+  | 'signage_hacked'
+  | 'street_hack_landed'
+  | 'drone_downed'
+  | 'times_caught';
+
+export type IncidentLog = Record<IncidentKind, number>;
 
 export interface SurveillanceState {
   /**

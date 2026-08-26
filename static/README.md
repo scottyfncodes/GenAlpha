@@ -129,12 +129,40 @@ and by the end most of it is being put up by people they have never met.
 `world/marks.test.ts` asserts that curve, because it is the one piece of
 the world design that is *only* a curve.
 
+**The cheapest interaction in the game.** Street signage (`world/signage.ts`,
+`systems/signage.ts`) needs no tool and no deck tier — the Heat cost on the
+prompt is the only gate, on purpose: it is meant to be the first thing a
+brand-new player can actually do something to. Corrected once, a sign's
+face changes (the same hand-drawn red scrawl the Plaza's own landmark
+billboard already carries, via `draw.ts`'s `drawBillboard`) and stays
+changed until SafeTrace repaints it. The joke itself — a before/after line
+pair — is shown as a toast rather than painted on the canvas, same rule
+every sign in this game follows: a shape standing in for type, never
+literal copy at a scale nobody could read.
+
+**The town noticing.** `systems/reactions.ts` is a short pool of bystander
+one-liners — "Bro.", "Not again." — fired as the same kind of toast a
+patrol sighting already uses, on a landed sabotage/hack, on Heat crossing a
+tier upward, and on an actual catch. None of it is a real conversation and
+none of it is attributed to a specific NPC; it's personality through
+reaction rather than dialogue, rolled only some of the time so it stays
+funny rather than becoming wallpaper.
+
+**The Incident Book.** A phone app (`ui/Phone.tsx`'s Incidents screen) tallies
+cameras disabled, junction boxes cracked, signs hacked, street hacks landed,
+drones downed and times caught — `state/schema.ts`'s `IncidentLog`, bumped
+alongside the action that earns it. Deliberately not the same thing
+`systems/casefile.ts`'s Leads dossier already does: a case entry is a clue
+the story revealed, an incident is a count of a thing the player did, kept
+purely so they can look at it — nothing here gates anything.
+
 Placement is checked, not eyeballed. `node scripts/check-connectivity.mjs`
 flood-fills the map and fails on an unreachable cell, an overlapping rect
 or a sealed-off location; `world/nodeplacement.test.ts`,
-`world/junctionboxes.test.ts` and `world/npcs.test.ts` hold every point
-object and every npc wander line to the same rule the player is held to.
-Re-run all of them before moving anything.
+`world/junctionboxes.test.ts`, `world/signage.test.ts` and
+`world/npcs.test.ts` hold every point object and every npc wander line to
+the same rule the player is held to. Re-run all of them before moving
+anything.
 
 ## Architecture
 
