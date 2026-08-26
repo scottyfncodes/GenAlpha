@@ -543,8 +543,7 @@ export const OBSTACLES: Obstacle[] = [
   { id: 'plaza_car_1', x: 1200, y: 790, w: 18, h: 12, kind: 'car' },
   { id: 'plaza_car_2', x: 1232, y: 790, w: 18, h: 12, kind: 'car' },
   { id: 'plaza_car_3', x: 1264, y: 790, w: 18, h: 12, kind: 'car' },
-  { id: 'plaza_car_4', x: 1318, y: 790, w: 18, h: 12, kind: 'car' },
-  { id: 'plaza_car_5', x: 1350, y: 790, w: 18, h: 12, kind: 'car' },
+  { id: 'plaza_car_4', x: 1362, y: 790, w: 18, h: 12, kind: 'car' },
   { id: 'plaza_car_6', x: 1382, y: 790, w: 18, h: 12, kind: 'car' },
   { id: 'filler_175', x: 1180, y: 906, w: 18, h: 12, kind: 'car' }, // Sal's frontage
   { id: 'filler_176', x: 1212, y: 906, w: 18, h: 12, kind: 'car' },
@@ -557,6 +556,18 @@ export const OBSTACLES: Obstacle[] = [
   { id: 'plaza_car_7', x: 1496, y: 944, w: 18, h: 12, kind: 'car' },
   { id: 'plaza_car_8', x: 1514, y: 944, w: 18, h: 12, kind: 'car' },
   { id: 'plaza_corral', x: 1440, y: 952, w: 40, h: 10, kind: 'fence' }, // the cart corral
+  /*
+   * The retail park's own signage and its security entrance. This
+   * district's surveillance is commercial rather than municipal, and the
+   * point the map is making is that a player cannot tell the difference
+   * from the pavement — a pylon sign at the lot entrance, a screen over
+   * MegaMart's door (drawn in `drawBigBox`) and bollards across its
+   * frontage are the same vocabulary the Civic Zone uses, bought by a
+   * shop instead of a council.
+   */
+  { id: 'plaza_pylon', x: 1316, y: 776, w: 40, h: 26, kind: 'billboard' },
+  { id: 'plaza_bollard_1', x: 1470, y: 914, w: 10, h: 6, kind: 'rock' },
+  { id: 'plaza_bollard_2', x: 1520, y: 914, w: 10, h: 6, kind: 'rock' },
   { id: 'plaza_truck_1', x: 1470, y: 782, w: 40, h: 22, kind: 'truck' }, // MegaMart, goods in
   { id: 'filler_116', x: 1424, y: 786, w: 16, h: 16, kind: 'bin' },
   { id: 'filler_117', x: 1448, y: 786, w: 16, h: 16, kind: 'bin' }, // MegaMart's goods-in bins

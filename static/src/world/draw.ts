@@ -313,6 +313,10 @@ const PALETTE = {
   cameraLive: '#e6402a',
   // A camera somebody else already took down — dead housing, cable
   // hanging, a sticker over the lens.
+  // The lens well, near-black so the red inside it is the brightest thing
+  // on a 16px housing — the same relationship the title camera's own lens
+  // has to its shell.
+  cameraLens: '#0d1118',
   cameraDead: '#39404c',
   cameraDeadCable: '#1d222b',
   sticker: '#e8dcc0',
@@ -4195,6 +4199,32 @@ function drawBigBox(ctx: CanvasRenderingContext2D, loc: OverworldLocation, tier:
   // The entrance: two dark door leaves centred in the glass, under a
   // canopy that projects past the wall the way every other shopfront in
   // town does (`drawShop`'s own awning trick).
+  /*
+   * THE SCREEN ABOVE THE DOOR. MegaMart's own blurb has always said it
+   * "plays the safety-grant advert on a loop with the sound off", and
+   * there was nothing on the building to back that up — the same gap the
+   * Works' back doors had.
+   *
+   * It matters more than a detail: this district's surveillance is
+   * *commercial*, not municipal, and the point the map is making is that
+   * the player cannot tell the difference from the pavement. A retailer's
+   * advertising screen and the council's safety campaign are the same
+   * hardware showing the same message, and this is where those two things
+   * are visibly one thing.
+   */
+  const scrW = loc.w * 0.26;
+  const scrX = loc.x + loc.w / 2 - scrW / 2;
+  const scrY = signY + 17;
+  ctx.fillStyle = PALETTE.billboardFrame;
+  ctx.fillRect(px(scrX - 2), px(scrY - 2), scrW + 4, 14);
+  // Cycling between the advert's two frames on a slow, silent loop.
+  const advert = Math.floor(Date.now() / 3200) % 2 === 0;
+  ctx.fillStyle = advert ? PALETTE.dataLight : PALETTE.bigBoxSign;
+  ctx.fillRect(px(scrX), px(scrY), scrW, 10);
+  ctx.fillStyle = 'rgba(244, 237, 224, 0.75)';
+  ctx.fillRect(px(scrX + 3), px(scrY + 2), scrW - 6, 2);
+  ctx.fillRect(px(scrX + 3), px(scrY + 6), scrW * (advert ? 0.5 : 0.7), 2);
+
   const canW = loc.w * 0.3;
   const canX = loc.x + loc.w / 2 - canW / 2;
   ctx.fillStyle = PALETTE.windowDark;
@@ -4330,24 +4360,49 @@ function drawCameraPost(ctx: CanvasRenderingContext2D, cx: number, boxBottomY: n
  * the housing itself. Kept to single pixels at this scale (a 16px box has
  * no room for more) so it reads as detail rather than clutter. */
 function drawCameraDetail(ctx: CanvasRenderingContext2D, x: number, y: number, size: number) {
-  ctx.strokeStyle = PALETTE.cameraDark;
-  ctx.lineWidth = 1;
-  ctx.beginPath();
-  ctx.moveTo(x + 1, y + size * 0.6);
-  ctx.lineTo(x + size - 1, y + size * 0.6);
-  ctx.stroke();
+  /*
+   * A HOOD AND A RED LENS — the two cues that make this the same object as
+   * the one on the title screen.
+   *
+   * The title camera (`ui/TitleEye.tsx`) is a dark hooded shell with a red
+   * eye in it; this was a flat blue box with a seam line and four corner
+   * rivets. Both were fine on their own and together they read as two
+   * different games. The fix is not to redraw either at the other's scale
+   * — it is to carry the two silhouette cues that survive being 16 pixels
+   * wide: the visor projecting over the lens, and the fact that the thing
+   * looking at you is red.
+   *
+   * The blue body stays. It is how a player finds a camera at a glance
+   * against a dusk palette, and no amount of family resemblance is worth
+   * trading that for.
+   */
+  const hoodH = Math.max(2, Math.round(size * 0.22));
 
+  // The visor, overhanging a pixel each side the way the title's does.
   ctx.fillStyle = PALETTE.cameraDark;
-  ctx.globalAlpha = 0.7;
-  for (const [bx, by] of [
-    [x + 1.5, y + 1.5],
-    [x + size - 2.5, y + 1.5],
-    [x + 1.5, y + size - 2.5],
-    [x + size - 2.5, y + size - 2.5],
-  ]) {
-    ctx.fillRect(px(bx), px(by), 1, 1);
-  }
-  ctx.globalAlpha = 1;
+  ctx.fillRect(px(x - 1), px(y), size + 2, hoodH);
+  ctx.fillStyle = 'rgba(0, 0, 0, 0.22)';
+  ctx.fillRect(px(x - 1), px(y + hoodH), size + 2, 1);
+
+  // The lens: a dark well under the hood with a red centre and a single
+  // pale glint, which is the title camera's own stack at 1/8 the size.
+  const cx = x + size / 2;
+  const cy = y + hoodH + (size - hoodH) * 0.45;
+  const lensR = Math.max(2.5, (size - hoodH) * 0.34);
+  ctx.fillStyle = PALETTE.cameraLens;
+  ctx.beginPath();
+  ctx.arc(px(cx), px(cy), lensR, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.fillStyle = PALETTE.cameraLive;
+  ctx.beginPath();
+  ctx.arc(px(cx), px(cy), Math.max(1, lensR * 0.5), 0, Math.PI * 2);
+  ctx.fill();
+  ctx.fillStyle = PALETTE.sticker;
+  ctx.fillRect(px(cx - lensR * 0.55), px(cy - lensR * 0.55), 1, 1);
+
+  // The mounting seam along the bottom, where the housing meets its arm.
+  ctx.fillStyle = PALETTE.cameraDark;
+  ctx.fillRect(px(x + 2), px(y + size - 2), size - 4, 1);
 }
 
 /**

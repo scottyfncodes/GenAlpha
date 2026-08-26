@@ -150,8 +150,39 @@ export const DISTRICTS: District[] = [
   },
 ];
 
+/**
+ * Which district a point is in — and, on the roads between them, which one
+ * it belongs to.
+ *
+ * The nine blocks are separated by 56px seams where the arterials run,
+ * which adds up to just over 15% of the map. A pure containment test calls
+ * all of that "nowhere", and a player walking south out of The Heights
+ * would cross the major road, arrive in Old Market and never be told,
+ * because the transition the nameplate watches for went
+ * Heights → nowhere → Old Market and the middle step cleared the card
+ * before the last one could show it. Found by actually walking it rather
+ * than by reading the code.
+ *
+ * So containment is the fast, exact path, and everything else falls back
+ * to the nearest block's centre. That is also just true of a real town:
+ * the road between two neighbourhoods is not a third place, it is the edge
+ * of whichever one you are closer to, and the name changes somewhere
+ * around the middle of the carriageway.
+ */
 export function districtAt(x: number, y: number): District | null {
-  return DISTRICTS.find((d) => x >= d.x && x <= d.x + d.w && y >= d.y && y <= d.y + d.h) ?? null;
+  const inside = DISTRICTS.find((d) => x >= d.x && x <= d.x + d.w && y >= d.y && y <= d.y + d.h);
+  if (inside) return inside;
+
+  let nearest: District | null = null;
+  let best = Infinity;
+  for (const d of DISTRICTS) {
+    const dist = Math.hypot(d.x + d.w / 2 - x, d.y + d.h / 2 - y);
+    if (dist < best) {
+      best = dist;
+      nearest = d;
+    }
+  }
+  return nearest;
 }
 
 export interface OverworldLocation {
