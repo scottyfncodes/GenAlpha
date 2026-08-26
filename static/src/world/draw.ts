@@ -3723,8 +3723,36 @@ function drawCivic(ctx: CanvasRenderingContext2D, loc: OverworldLocation, tier: 
    * with the columns invisible from more than a few tiles away — the
    * loudest thing in the Civic Zone rendering as a blank rectangle.
    */
-  const colTop = loc.y + roofH + 4;
-  const colH = loc.h - roofH - 18;
+  const bodyTop = loc.y + roofH;
+  const bodyH = loc.h - roofH;
+  const rand = noise(`civic:${loc.id}`);
+
+  // A single course of tall windows in the upper stone, the way a chamber
+  // floor actually glazes: two-thirds of them lit, none of them full
+  // height. This is the half that keeps the building warm — a colonnade
+  // over a dark loggia with nothing above it reads as a ruin.
+  const winY = bodyTop + 6;
+  const winH = Math.max(6, bodyH * 0.28);
+  const winCount = Math.max(4, Math.floor(loc.w / 26));
+  for (let i = 0; i < winCount; i++) {
+    const wx = loc.x + ((i + 0.5) * loc.w) / winCount;
+    ctx.fillStyle = rand() > 0.34 ? PALETTE.windowLit : PALETTE.windowDark;
+    ctx.fillRect(px(wx - 4), px(winY), 8, winH);
+    ctx.fillStyle = PALETTE.civicStoneShade;
+    ctx.fillRect(px(wx - 5), px(winY + winH), 10, 2);
+  }
+
+  /*
+   * The colonnade, full width, along the lower half of the frontage — a
+   * portico is a band across the front of a building, not a screen over
+   * the whole of it, and the gaps between the shafts are painted in first,
+   * dark, so the row reads as columns standing in front of a shaded
+   * loggia. Drawing pale shafts straight onto the pale stone (which is
+   * what this did at first) left the whole frontage as one cream block
+   * with the columns invisible from more than a few tiles away.
+   */
+  const colTop = bodyTop + bodyH * 0.46;
+  const colH = loc.y + loc.h - 12 - colTop;
   ctx.fillStyle = PALETTE.windowDark;
   ctx.fillRect(px(loc.x + 3), px(colTop), loc.w - 6, colH);
   const cols = Math.max(8, Math.floor(loc.w / 16));
@@ -3733,17 +3761,8 @@ function drawCivic(ctx: CanvasRenderingContext2D, loc: OverworldLocation, tier: 
     const cx = loc.x + ((i + 0.5) * loc.w) / cols;
     ctx.fillRect(px(cx - 3), px(colTop), 6, colH);
   }
-  // A lit window behind every other intercolumniation — somebody is in
-  // there, the same rule every other building on this canvas keeps.
-  const lit = noise(`civic:${loc.id}`);
-  for (let i = 0; i < cols - 1; i++) {
-    if (lit() > 0.55) continue;
-    const gx = loc.x + ((i + 1) * loc.w) / cols;
-    ctx.fillStyle = PALETTE.windowLit;
-    ctx.fillRect(px(gx - 2), px(colTop + 5), 4, Math.max(4, colH - 14));
-  }
   ctx.fillStyle = PALETTE.civicStoneShade;
-  ctx.fillRect(px(loc.x), px(colTop - 4), loc.w, 4);
+  ctx.fillRect(px(loc.x), px(colTop - 3), loc.w, 3);
   ctx.fillStyle = PALETTE.pillarShade;
   ctx.fillRect(px(loc.x), px(colTop + colH), loc.w, 3);
 
@@ -3759,6 +3778,8 @@ function drawCivic(ctx: CanvasRenderingContext2D, loc: OverworldLocation, tier: 
   ctx.fill();
   ctx.fillStyle = PALETTE.civicStone;
   ctx.fillRect(px(entX), px(loc.y + roofH), entW, loc.h - roofH - 6);
+  ctx.fillStyle = PALETTE.windowLit;
+  ctx.fillRect(px(loc.x + loc.w / 2 - 12), px(loc.y + roofH + 8), 24, 10);
   ctx.fillStyle = PALETTE.doorColor;
   ctx.fillRect(px(loc.x + loc.w / 2 - 7), px(loc.y + loc.h - 22), 14, 16);
   ctx.fillStyle = PALETTE.civicStoneShade;

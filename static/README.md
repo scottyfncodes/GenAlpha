@@ -275,6 +275,31 @@ production build. The Workbench launches both mechanics standalone at every tier
 and skin against live save state — that's where to verify Heat writes, tier
 nudges, hardening and cooldowns without playing through content.
 
+**The map inspector** is the same idea for the overworld: `npm run dev`, then
+open `/mapshot.html`. It calls the real `drawTown` with the real tables at any
+position, zoom, escalation stage and Heat tier, with buttons for each of the
+nine districts, a whole-town view, a "cameras down" toggle for what the map
+looks like after the player has been through it, and patrols on demand. Click
+the canvas to recentre. It is its own Vite entry rather than a panel inside the
+game, which is what keeps it out of players' hands for real: the production
+build only takes `index.html` as an input, so `mapshot.html` is served by the
+dev server and never lands in `dist/` at all.
+
+Every control writes itself into the query string, so a view is a URL — which
+is what lets `scripts/mapshot.mjs` screenshot all ten views without knowing
+anything about the page:
+
+```bash
+npm run dev                                   # one terminal
+npm i --no-save playwright                    # not a dependency, see the script
+npx tsx scripts/mapshot.mjs --out mapshots    # another terminal
+```
+
+`node scripts/check-connectivity.mjs` is the other half of that loop and the
+one that isn't optional: it flood-fills the map and fails on an unreachable
+cell, an overlapping rect or a sealed-off location. Run it after touching any
+coordinate in `world/`.
+
 ## Next
 
 Phase 5 (economy), which is still blocked on two schema decisions. See

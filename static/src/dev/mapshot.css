@@ -1,0 +1,89 @@
+/* Dev scaffolding — see `MapShot.tsx`. Deliberately not using the game's own
+   token set: this is a tool, and it should never be mistaken for a screen the
+   player could reach. */
+.mapshot {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  background: #10131a;
+  color: #ece2d0;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 12px;
+}
+
+.mapshot__bar {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: wrap;
+  padding: 6px 10px;
+  background: #181c26;
+  border-bottom: 1px solid #2a3140;
+}
+
+.mapshot__title {
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: #8f9bb0;
+}
+
+.mapshot__group {
+  display: flex;
+  gap: 3px;
+}
+
+.mapshot__btn {
+  min-width: 24px;
+  padding: 3px 6px;
+  background: #232a38;
+  color: #ece2d0;
+  border: 1px solid #333d4f;
+  font: inherit;
+  cursor: pointer;
+}
+
+.mapshot__btn:hover {
+  background: #2e3646;
+}
+
+.mapshot__field {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  color: #8f9bb0;
+}
+
+.mapshot__field select,
+.mapshot__field input[type='range'] {
+  background: #232a38;
+  color: #ece2d0;
+  border: 1px solid #333d4f;
+  font: inherit;
+}
+
+.mapshot__value,
+.mapshot__pos {
+  color: #ece2d0;
+}
+
+.mapshot__pos {
+  margin-left: auto;
+}
+
+/* The canvas fills whatever is left and is measured by `MapShot` each frame,
+   so resizing the window shows more map rather than the same map stretched. */
+.mapshot__canvas {
+  flex: 1;
+  min-height: 0;
+  width: 100%;
+  display: block;
+  image-rendering: pixelated;
+  cursor: crosshair;
+}
+
+.mapshot__refusal {
+  padding: 40px;
+  max-width: 46ch;
+  line-height: 1.6;
+}
