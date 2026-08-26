@@ -522,6 +522,53 @@ function drawObstacle(ctx: CanvasRenderingContext2D, obstacle: Obstacle, tier: T
       return drawPlayground(ctx, obstacle);
     case 'truck':
       return drawTruck(ctx, obstacle);
+    case 'laundry':
+      return drawWashingLine(ctx, obstacle);
+  }
+}
+
+/**
+ * A washing line: two posts, a slack line, and a few things pegged to it,
+ * seen from above so the garments read as coloured slabs hanging off a
+ * string rather than as clothing shapes.
+ *
+ * The cheapest sentence on this map. Nobody hangs their laundry out in a
+ * place they are afraid of, so a street with a line across it is a street
+ * that has not been frightened yet — which makes it the one prop that can
+ * say what The Blocks is *for* without a word of text, and the one whose
+ * absence would say something too.
+ */
+function drawWashingLine(ctx: CanvasRenderingContext2D, o: Obstacle) {
+  const rand = noise(`laundry:${o.id}`);
+  const y = o.y + 3;
+
+  ctx.fillStyle = PALETTE.porchPost;
+  ctx.fillRect(px(o.x), px(o.y), 2, o.h);
+  ctx.fillRect(px(o.x + o.w - 2), px(o.y), 2, o.h);
+
+  // The line itself, sagging in the middle the way a loaded one does.
+  ctx.strokeStyle = 'rgba(236, 226, 208, 0.4)';
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(px(o.x + 1), px(y));
+  ctx.quadraticCurveTo(px(o.x + o.w / 2), px(y + 3), px(o.x + o.w - 1), px(y));
+  ctx.stroke();
+
+  // Four or five items, each its own faded colour and its own length —
+  // a line of identical rectangles reads as bunting, not washing.
+  const palette = [PALETTE.sticker, PALETTE.windowLit, PALETTE.lawnBase, PALETTE.parkedCarGlass, PALETTE.bench];
+  const count = 4 + Math.floor(rand() * 2);
+  for (let i = 0; i < count; i++) {
+    const t = (i + 0.5) / count;
+    const gx = o.x + 3 + t * (o.w - 6);
+    // Follows the sag, so nothing floats off the line.
+    const gy = y + Math.sin(t * Math.PI) * 3;
+    const gw = 4 + Math.floor(rand() * 3);
+    const gh = 5 + Math.floor(rand() * 5);
+    ctx.globalAlpha = 0.85;
+    ctx.fillStyle = palette[Math.floor(rand() * palette.length)];
+    ctx.fillRect(px(gx - gw / 2), px(gy), gw, gh);
+    ctx.globalAlpha = 1;
   }
 }
 

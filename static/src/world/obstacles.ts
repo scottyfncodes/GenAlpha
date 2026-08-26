@@ -33,9 +33,12 @@
  * deliberately rather than by the noise-seeded variety the rest of this file
  * uses.
  *
- * `'bench'`, `'playground'` and `'truck'` are the world-life layer: the
- * three props the district brief names that nothing already here could
- * stand in for. A bench is the cheapest possible "somebody sits here" and
+ * `'bench'`, `'playground'`, `'truck'` and `'laundry'` are the world-life
+ * layer: the props the district brief names that nothing already here
+ * could stand in for. A washing line is the cheapest sentence on this map
+ * — nobody hangs laundry out in a place they are afraid of, so a street
+ * with a line across it is a street that has not been frightened yet, and
+ * The Blocks is the district the whole resistance is nominally for. A bench is the cheapest possible "somebody sits here" and
  * turns up wherever people wait (the park, the square, the depot); a
  * playground is Liberty Park's own argument for existing — the commons has
  * to be a place children are taken, not a lawn with a fountain on it; a
@@ -76,7 +79,8 @@ export type ObstacleKind =
   | 'gate'
   | 'bench'
   | 'playground'
-  | 'truck';
+  | 'truck'
+  | 'laundry';
 
 export interface Obstacle {
   id: string;
@@ -159,6 +163,14 @@ export const OBSTACLES: Obstacle[] = [
   { id: 'heights_house_b', x: 196, y: 254, w: 108, h: 72, kind: 'building' },
   { id: 'heights_hedge_a', x: 152, y: 258, w: 8, h: 64, kind: 'hedge' },
   { id: 'heights_hedge_b', x: 320, y: 258, w: 8, h: 64, kind: 'hedge' },
+  /*
+   * No house at the head of the cul-de-sac, tempting as it was: that
+   * corner only *looks* empty. It already carries the 5th & Cole ATM, a
+   * Tier 1 junction box, a stage-2 camera and the dead-end itself, and
+   * dropping a building on it buried four things a player interacts with
+   * to fix a gap that is really just the room those four need.
+   */
+  { id: 'heights_laundry_1', x: 60, y: 232, w: 52, h: 12, kind: 'laundry' },
   { id: 'heights_car_1', x: 200, y: 234, w: 18, h: 12, kind: 'car' },
   { id: 'heights_car_2', x: 232, y: 234, w: 18, h: 12, kind: 'car' },
   { id: 'heights_car_3', x: 356, y: 234, w: 18, h: 12, kind: 'car' },
@@ -193,8 +205,18 @@ export const OBSTACLES: Obstacle[] = [
   // Main Street's own block-corner unit, unlit and unnamed — the shutter
   // Town Square's `trustAmbient` line is talking about is Marlow Street's;
   // this is the one further down that nobody has opened.
+  /*
+   * The block east of the square. `marlow_unit` sits in the middle of it
+   * and does not exist until Act 2 opens it, so until then this corner of
+   * Main Street was a void with a bus shelter in it. Three more shopfronts
+   * either side, which is also what makes the safehouse read as one unit
+   * in a row rather than a building alone in a car park.
+   */
   { id: 'main_unit_a', x: 546, y: 226, w: 52, h: 84, kind: 'building' },
-  { id: 'main_unit_b', x: 986, y: 282, w: 74, h: 52, kind: 'building' },
+  { id: 'main_unit_b', x: 986, y: 272, w: 74, h: 62, kind: 'building' },
+  { id: 'main_bin_3', x: 966, y: 276, w: 16, h: 16, kind: 'bin' },
+  { id: 'main_tree_e1', x: 912, y: 300, w: 20, h: 40, kind: 'tree' },
+  { id: 'main_bench_3', x: 866, y: 300, w: 22, h: 8, kind: 'bench' },
   /*
    * The one piece of scenery in town that isn't there from day one — new
    * fencing at the Downtown Crossroads, matching Town Square's own
@@ -285,6 +307,15 @@ export const OBSTACLES: Obstacle[] = [
   { id: 'market_gate_lot', x: 200, y: 684, w: 44, h: 12, kind: 'gate' }, // …and the gate everybody walks around
   { id: 'market_unit_a', x: 24, y: 700, w: 96, h: 34, kind: 'building' },
   { id: 'market_unit_b', x: 380, y: 656, w: 88, h: 74, kind: 'building' },
+  // The strip's own back yard: a fenced run of ground behind the diner
+  // where the deliveries and the overflow end up.
+  { id: 'market_yard_fence', x: 236, y: 700, w: 8, h: 32, kind: 'fence' },
+  { id: 'market_yard_truck', x: 254, y: 660, w: 22, h: 40, kind: 'truck' },
+  { id: 'market_crate_4', x: 292, y: 664, w: 16, h: 16, kind: 'crate' },
+  { id: 'market_crate_5', x: 314, y: 664, w: 16, h: 16, kind: 'crate' },
+  { id: 'market_barrel_2', x: 292, y: 686, w: 16, h: 16, kind: 'barrel' },
+  { id: 'market_bin_4', x: 314, y: 686, w: 16, h: 16, kind: 'bin' },
+  { id: 'market_tree_e', x: 444, y: 566, w: 20, h: 40, kind: 'tree' },
   { id: 'scanner_market', x: 452, y: 528, w: 10, h: 16, kind: 'scanner', minStage: 1 },
 
   /* ================================================================ *
@@ -404,15 +435,40 @@ export const OBSTACLES: Obstacle[] = [
   // The maintenance fleet — the vehicles that keep the transit and utility
   // systems running, which is the half of this district's identity a bus
   // depot on its own never carried.
-  { id: 'southside_truck_1', x: 236, y: 968, w: 40, h: 22, kind: 'truck' },
-  { id: 'southside_truck_2', x: 300, y: 992, w: 22, h: 40, kind: 'truck' },
+  { id: 'southside_truck_1', x: 268, y: 964, w: 40, h: 22, kind: 'truck' },
+  { id: 'southside_truck_2', x: 60, y: 1004, w: 22, h: 40, kind: 'truck' },
   { id: 'southside_bench_1', x: 210, y: 856, w: 8, h: 22, kind: 'bench' },
   { id: 'sub_barrel_1', x: 420, y: 850, w: 16, h: 16, kind: 'barrel' },
   { id: 'sub_crate_1', x: 420, y: 874, w: 16, h: 16, kind: 'crate' },
-  { id: 'filler_98', x: 60, y: 990, w: 120, h: 16, kind: 'fence' },
-  { id: 'filler_99', x: 314, y: 1064, w: 90, h: 16, kind: 'fence' },
-  { id: 'filler_100', x: 200, y: 992, w: 92, h: 72, kind: 'building' },
-  { id: 'southside_unit_a', x: 20, y: 1020, w: 110, h: 62, kind: 'building' },
+  /*
+   * South of the district street: the yard the depot and the substation
+   * are actually run out of. It was two sheds on open ground, which said
+   * nothing — a maintenance operation is a *compound*: a boundary, one
+   * gated way in, the stores building, the vehicles waiting their turn,
+   * and the equipment stacked where it was last dropped. This district is
+   * the infrastructure that makes the whole surveillance rollout
+   * physically possible, and it should look like somewhere that could.
+   */
+  { id: 'filler_98', x: 60, y: 990, w: 110, h: 12, kind: 'fence' },
+  { id: 'south_yard_fence_w', x: 52, y: 990, w: 8, h: 96, kind: 'fence' },
+  { id: 'south_yard_fence_e', x: 344, y: 1004, w: 8, h: 82, kind: 'fence' },
+  { id: 'south_yard_fence_n2', x: 270, y: 990, w: 70, h: 12, kind: 'fence' },
+  { id: 'south_yard_gate', x: 214, y: 988, w: 48, h: 14, kind: 'gate' },
+  { id: 'filler_99', x: 356, y: 1064, w: 62, h: 12, kind: 'fence' },
+  { id: 'filler_100', x: 200, y: 1012, w: 92, h: 62, kind: 'building' },
+  { id: 'southside_unit_a', x: 92, y: 1012, w: 86, h: 62, kind: 'building' },
+  { id: 'south_yard_truck_1', x: 112, y: 1082, w: 40, h: 22, kind: 'truck' },
+  { id: 'south_yard_truck_2', x: 160, y: 1082, w: 40, h: 22, kind: 'truck' },
+  { id: 'south_yard_car_1', x: 200, y: 1082, w: 18, h: 12, kind: 'car' },
+  { id: 'south_yard_car_2', x: 232, y: 1082, w: 18, h: 12, kind: 'car' },
+  { id: 'south_yard_car_3', x: 264, y: 1082, w: 18, h: 12, kind: 'car' },
+  { id: 'south_yard_spool_1', x: 304, y: 1012, w: 16, h: 16, kind: 'crate' },
+  { id: 'south_yard_barrel_1', x: 304, y: 1034, w: 16, h: 16, kind: 'barrel' },
+  { id: 'south_yard_barrel_2', x: 326, y: 1012, w: 16, h: 16, kind: 'barrel' },
+  { id: 'south_yard_crate_1', x: 326, y: 1034, w: 16, h: 16, kind: 'crate' },
+  { id: 'south_yard_bin_1', x: 360, y: 1012, w: 16, h: 16, kind: 'bin' },
+  { id: 'south_yard_tree_1', x: 420, y: 1040, w: 20, h: 40, kind: 'tree' },
+  { id: 'south_yard_bench', x: 392, y: 968, w: 22, h: 8, kind: 'bench' },
   { id: 'southside_tree_1', x: 428, y: 800, w: 20, h: 40, kind: 'tree' },
   { id: 'southside_tree_2', x: 428, y: 968, w: 20, h: 40, kind: 'tree' },
   { id: 'southside_bin_1', x: 210, y: 800, w: 16, h: 16, kind: 'bin' },
@@ -432,9 +488,9 @@ export const OBSTACLES: Obstacle[] = [
   { id: 'blocks_hedge_3', x: 888, y: 908, w: 144, h: 8, kind: 'hedge' },
   { id: 'filler_170', x: 528, y: 830, w: 20, h: 40, kind: 'tree' }, // street tree, west of Casey's
   { id: 'filler_171', x: 1040, y: 830, w: 20, h: 40, kind: 'tree' }, // street tree, east of Kestrel Row
-  { id: 'filler_172', x: 560, y: 968, w: 20, h: 40, kind: 'tree' },
+  { id: 'filler_172', x: 592, y: 968, w: 20, h: 40, kind: 'tree' },
   { id: 'filler_173', x: 940, y: 962, w: 20, h: 36, kind: 'tree' },
-  { id: 'filler_174', x: 1040, y: 956, w: 20, h: 36, kind: 'tree' },
+  { id: 'filler_174', x: 1064, y: 956, w: 20, h: 36, kind: 'tree' },
   { id: 'blocks_bin_1', x: 696, y: 800, w: 16, h: 16, kind: 'bin' }, // the alleys' own bins
   { id: 'blocks_bin_2', x: 696, y: 824, w: 16, h: 16, kind: 'bin' },
   { id: 'blocks_bin_3', x: 858, y: 800, w: 16, h: 16, kind: 'bin' },
@@ -443,9 +499,39 @@ export const OBSTACLES: Obstacle[] = [
   { id: 'blocks_car_3', x: 760, y: 944, w: 18, h: 12, kind: 'car' },
   { id: 'blocks_car_4', x: 920, y: 944, w: 18, h: 12, kind: 'car' },
   { id: 'blocks_car_5', x: 952, y: 944, w: 18, h: 12, kind: 'car' },
+  /*
+   * The south side of the street, which was three unlit boxes standing on
+   * bare pavement. A terrace is not a building, it is a *row* — front
+   * yards onto the pavement, a fence between each pair, bins out for
+   * collection, and the entry passages that are the only way from the
+   * street to the back of a terrace. Everything below exists because it
+   * would be there, not because there was a gap.
+   */
   { id: 'blocks_terrace_s1', x: 640, y: 1000, w: 150, h: 74, kind: 'building' },
   { id: 'blocks_terrace_s2', x: 812, y: 1000, w: 110, h: 74, kind: 'building' },
   { id: 'blocks_terrace_s3', x: 976, y: 1000, w: 88, h: 74, kind: 'building' },
+  { id: 'blocks_yard_s1', x: 640, y: 986, w: 150, h: 8, kind: 'hedge' },
+  { id: 'blocks_yard_s2', x: 812, y: 986, w: 110, h: 8, kind: 'hedge' },
+  { id: 'blocks_yard_s3', x: 976, y: 986, w: 88, h: 8, kind: 'hedge' },
+  { id: 'blocks_bin_s1', x: 794, y: 1004, w: 16, h: 16, kind: 'bin' }, // the entry passages
+  { id: 'blocks_bin_s2', x: 794, y: 1026, w: 16, h: 16, kind: 'bin' },
+  { id: 'blocks_bin_s3', x: 940, y: 1004, w: 16, h: 16, kind: 'bin' },
+  { id: 'blocks_fence_s1', x: 794, y: 1050, w: 16, h: 24, kind: 'fence' },
+  { id: 'blocks_fence_s2', x: 940, y: 1050, w: 16, h: 24, kind: 'fence' },
+  // Washing out on the front of the row, and again behind the north side.
+  // See `drawWashingLine`: this is the district saying what it is for.
+  { id: 'blocks_laundry_1', x: 660, y: 972, w: 56, h: 12, kind: 'laundry' },
+  { id: 'blocks_laundry_2', x: 990, y: 972, w: 52, h: 12, kind: 'laundry' },
+  { id: 'blocks_laundry_3', x: 566, y: 786, w: 54, h: 12, kind: 'laundry' },
+  { id: 'blocks_bench_s', x: 880, y: 962, w: 22, h: 8, kind: 'bench' },
+  { id: 'blocks_car_s1', x: 730, y: 962, w: 18, h: 12, kind: 'car' },
+  { id: 'blocks_car_s2', x: 828, y: 962, w: 18, h: 12, kind: 'car' },
+  { id: 'blocks_tree_s1', x: 600, y: 1040, w: 20, h: 40, kind: 'tree' },
+  { id: 'blocks_tree_s2', x: 820, y: 1082, w: 20, h: 40, kind: 'tree' },
+  // The corner unit at the end of the row — a shop that used to be a
+  // front room, which is what a terrace's corner always ends up being.
+  { id: 'blocks_corner_unit', x: 536, y: 990, w: 46, h: 84, kind: 'building' },
+  { id: 'blocks_corner_bin', x: 536, y: 1078, w: 16, h: 16, kind: 'bin' },
 
   /* ================================================================ *
    * 9. THE PLAZA — a retail park, which means the ground plan is mostly

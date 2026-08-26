@@ -68,7 +68,7 @@ export const NPCS: Npc[] = [
   // 4. Old Market — the strip's own trade: somebody outside the pawn shop,
   // somebody crossing to the diner, a cat that lives behind the bins.
   { id: 'npc_market_1', kind: 'person', x: 60, y: 496, direction: 0, wanderRadius: 22, periodMs: 7800 },
-  { id: 'npc_market_2', kind: 'person', x: 240, y: 700, direction: 0, wanderRadius: 24, periodMs: 8400 },
+  { id: 'npc_market_2', kind: 'person', x: 262, y: 712, direction: 0, wanderRadius: 24, periodMs: 8400 },
   { id: 'npc_cat_5', kind: 'cat', x: 214, y: 660, direction: 0, wanderRadius: 10, periodMs: 5400 },
 
   // 5. Liberty Park — the most populated ground on the map, on purpose.
@@ -92,12 +92,12 @@ export const NPCS: Npc[] = [
   // 7. Southside — the whole district is people passing through.
   { id: 'npc_12', kind: 'person', x: 60, y: 976, direction: 0, wanderRadius: 24, periodMs: 7000 },
   { id: 'npc_south_1', kind: 'person', x: 130, y: 800, direction: 0, wanderRadius: 20, periodMs: 8300 },
-  { id: 'npc_cat_4', kind: 'cat', x: 160, y: 1080, direction: 0, wanderRadius: 10, periodMs: 5000 },
+  { id: 'npc_cat_4', kind: 'cat', x: 40, y: 972, direction: 0, wanderRadius: 10, periodMs: 5000 },
 
   // 8. The Blocks — front steps and the kerb, which is where this
   // district's life actually happens.
   { id: 'npc_13', kind: 'person', x: 780, y: 976, direction: 0, wanderRadius: 22, periodMs: 7400 },
-  { id: 'npc_blocks_1', kind: 'person', x: 600, y: 792, direction: 0, wanderRadius: 22, periodMs: 8000 },
+  { id: 'npc_blocks_1', kind: 'person', x: 640, y: 792, direction: 0, wanderRadius: 22, periodMs: 8000 },
   { id: 'npc_blocks_2', kind: 'person', x: 960, y: 792, direction: 0, wanderRadius: 20, periodMs: 6900 },
   { id: 'npc_bird_2', kind: 'bird', x: 850, y: 850, direction: 45, wanderRadius: 70, periodMs: 6000 },
 
