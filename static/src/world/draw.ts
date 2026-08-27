@@ -104,6 +104,13 @@ const PALETTE = {
   roadLineFaint: 'rgba(107, 116, 136, 0.32)',
   river: '#2a4a5c',
   riverRipple: 'rgba(180, 220, 230, 0.16)',
+  // The Old Market/Southside waterfront's own dock — weathered planking
+  // and a piling a shade darker, same wood family `bench` already uses.
+  dockPlank: '#5a4530',
+  dockPlankDark: '#453520',
+  dockPiling: '#2e2418',
+  boatHull: '#6b5a42',
+  boatTrim: '#8fa9c9',
   rail: '#2a2620',
   railTie: 'rgba(180, 170, 150, 0.28)',
   roofA: '#2f3a4d',
@@ -1993,6 +2000,8 @@ function drawEdgeGeography(ctx: CanvasRenderingContext2D) {
     ctx.fillRect(riverX + rand() * (riverW - w), y, w, 2);
   }
 
+  drawWaterfrontPier(ctx);
+
   /*
    * The rail line: along the north edge, then down the map's own eastern
    * margin to the Rail Spur's latitude in The Works. It used to run down
@@ -2008,6 +2017,55 @@ function drawEdgeGeography(ctx: CanvasRenderingContext2D) {
   ctx.fillStyle = PALETTE.railTie;
   for (let x = 8; x < MAP_WIDTH; x += 16) ctx.fillRect(x, 3, 4, 12);
   for (let y = 26; y < 658; y += 16) ctx.fillRect(1583, y, 14, 4);
+}
+
+/**
+ * A short pier at the one stretch of riverbank with nothing built against
+ * it — the seam between Old Market and Southside, y728–784, where neither
+ * district's own frontage reaches the water. Planking out from the bank,
+ * two pilings, and a single moored rowboat: enough for "somebody comes
+ * down here" without turning open water into a location to manage. Same
+ * layer as the river itself — decorative ground texture, no collision.
+ */
+function drawWaterfrontPier(ctx: CanvasRenderingContext2D) {
+  const deckX = 6;
+  const deckY = 746;
+  const deckW = 30; // stops just short of the bank at x=36
+  const deckH = 10;
+
+  ctx.fillStyle = PALETTE.dockPlankDark;
+  ctx.fillRect(px(deckX), px(deckY + deckH), deckW + 4, 2);
+  ctx.fillStyle = PALETTE.dockPlank;
+  ctx.fillRect(px(deckX), px(deckY), deckW, deckH);
+  ctx.strokeStyle = PALETTE.dockPlankDark;
+  ctx.lineWidth = 1;
+  for (let x = deckX + 4; x < deckX + deckW; x += 5) {
+    ctx.beginPath();
+    ctx.moveTo(px(x), px(deckY));
+    ctx.lineTo(px(x), px(deckY + deckH));
+    ctx.stroke();
+  }
+
+  // Two pilings, standing proud of the deck either side of it.
+  ctx.fillStyle = PALETTE.dockPiling;
+  ctx.fillRect(px(deckX - 2), px(deckY - 3), 3, deckH + 8);
+  ctx.fillRect(px(deckX + deckW - 1), px(deckY - 3), 3, deckH + 8);
+
+  // A single rowboat, moored off the pier's own outer (west) end.
+  const boatX = deckX - 2;
+  const boatY = deckY + deckH + 10;
+  ctx.fillStyle = PALETTE.boatHull;
+  ctx.beginPath();
+  ctx.moveTo(px(boatX), px(boatY + 4));
+  ctx.lineTo(px(boatX + 3), px(boatY));
+  ctx.lineTo(px(boatX + 16), px(boatY));
+  ctx.lineTo(px(boatX + 19), px(boatY + 4));
+  ctx.lineTo(px(boatX + 16), px(boatY + 8));
+  ctx.lineTo(px(boatX + 3), px(boatY + 8));
+  ctx.closePath();
+  ctx.fill();
+  ctx.fillStyle = PALETTE.boatTrim;
+  ctx.fillRect(px(boatX + 4), px(boatY + 2), 12, 2);
 }
 
 /**
@@ -2789,6 +2847,12 @@ function drawHouse(ctx: CanvasRenderingContext2D, loc: OverworldLocation, tier: 
   ctx.fillStyle = rand() < 0.7 ? PALETTE.windowLit : PALETTE.windowDark;
   ctx.fillRect(win.win2X, win.winY, win.winSize, win.winSize);
 
+  // Kestrel Row only — see `drawFireEscape`'s own doc comment for why it
+  // isn't every house on the block.
+  if (loc.id === 'blocks_terrace') {
+    drawFireEscape(ctx, loc.x + loc.w - 16, bodyY + 2, loc.y + loc.h - 8);
+  }
+
   drawGlitchTear(ctx, loc, tier, roofH);
   drawHouseYardProps(ctx, loc);
 }
@@ -2806,6 +2870,47 @@ function drawHouseYardProps(ctx: CanvasRenderingContext2D, loc: OverworldLocatio
 
   drawForSaleSign(ctx, loc.x - 14, loc.y + loc.h - 4);
   drawSwingSet(ctx, loc.x + loc.w + 20, loc.y + loc.h - 2);
+}
+
+/**
+ * An exterior fire escape: two rails and a handful of switchback landings,
+ * bolted to a wall rather than free-standing. This is texture, not a new
+ * way to move — the overworld has no vertical collision plane, so it reads
+ * as "somebody has a way up that isn't the front door" rather than
+ * offering one. Reserved for the two buildings whose own writing already
+ * implies somebody uses one: the Data Centre's roof chillers ("loud enough
+ * to hear from the street") and Kestrel Row's six stacked front doors,
+ * rather than stuck on every tall silhouette in town for its own sake.
+ */
+function drawFireEscape(ctx: CanvasRenderingContext2D, x: number, topY: number, bottomY: number) {
+  const levels = 3;
+  const landingW = 12;
+  const stepH = (bottomY - topY) / levels;
+
+  ctx.strokeStyle = PALETTE.towerMast;
+  ctx.lineWidth = 1;
+  for (let i = 0; i <= levels; i++) {
+    const y = topY + i * stepH;
+    // The landing rail itself.
+    ctx.beginPath();
+    ctx.moveTo(px(x), px(y));
+    ctx.lineTo(px(x + landingW), px(y));
+    ctx.stroke();
+    // A short railing post at its outer corner.
+    ctx.beginPath();
+    ctx.moveTo(px(x + landingW), px(y));
+    ctx.lineTo(px(x + landingW), px(y - 3));
+    ctx.stroke();
+    if (i < levels) {
+      // The diagonal flight down to the next landing, alternating which
+      // corner it starts from so it reads as a switchback, not a ladder.
+      const fromRight = i % 2 === 0;
+      ctx.beginPath();
+      ctx.moveTo(px(x + (fromRight ? landingW : 0)), px(y));
+      ctx.lineTo(px(x + (fromRight ? 0 : landingW)), px(y + stepH));
+      ctx.stroke();
+    }
+  }
 }
 
 /** A post-and-panel yard sign — two thin legs and a rectangle, small enough
@@ -4187,6 +4292,10 @@ function drawDataCenter(ctx: CanvasRenderingContext2D, loc: OverworldLocation, n
   ctx.fillRect(px(loc.x + 6), px(loc.y + loc.h - 12), 3, 3);
   ctx.fillRect(px(loc.x + loc.w - 9), px(loc.y + loc.h - 12), 3, 3);
   ctx.globalAlpha = 1;
+
+  // The way up to the roof chillers the blurb already says are up there —
+  // on the west wall, clear of the dish array and the door plate.
+  drawFireEscape(ctx, loc.x + 4, loc.y + roofH + 4, loc.y + loc.h - 6);
 }
 
 /**
