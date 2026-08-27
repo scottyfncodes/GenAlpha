@@ -149,7 +149,11 @@ export function MapShot() {
         {},
         v.tier,
         v.scale,
-        { w: 10, h: 8 },
+        // Same on-screen size as the real game's own PLAYER_W/PLAYER_H
+        // (Overworld.tsx) — this used to be a smaller, disconnected guess,
+        // which quietly broke `drawPlayer`'s own proportions for anyone
+        // previewing the character sprite through this tool specifically.
+        { w: 11, h: 15 },
         stageObstacles,
         new Set<string>(),
         NPCS.map((n) => ({ ...wanderPos(n, now), kind: n.kind, id: n.id })),

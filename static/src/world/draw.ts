@@ -40,7 +40,6 @@ import {
   TREE_TALL_TEAL,
   WALL_ORANGE,
   WALL_RED,
-  type Direction,
   type NineSlice,
   type WallKit,
 } from './spriteIndex';
@@ -128,6 +127,12 @@ const PALETTE = {
   spriteShirt: '#ece2d0',
   spriteBag: '#8a6b4a',
   spriteBagStrap: '#5c4630',
+  // The protagonist's own hoodie — cool and worn rather than any of
+  // `NPC_SHIRTS`' warmer, cleaner tones, so the one figure the camera
+  // actually follows never gets lost in a crowd of townsfolk wearing a
+  // near-identical colour by coincidence.
+  spriteHoodie: '#3f5a63',
+  spriteHoodieShadow: '#2d4149',
   capCrown: '#1a1a1c',
   capBrim: '#000000',
   outline: '#20262f',
@@ -207,6 +212,8 @@ const PALETTE = {
   bgRoof: '#2a2f3a',
   bgWindow: 'rgba(240, 192, 122, 0.32)',
   bgWindowDark: 'rgba(42, 50, 66, 0.6)',
+  roofProp: '#5a6272',
+  roofPropShadow: 'rgba(0, 0, 0, 0.4)',
   // A house's own pitched roof, a shade warmer than a civic building's flat
   // inset one — this is somebody's home, not an institution.
   pitchRoofA: '#3a4a3d',
@@ -942,6 +949,51 @@ function drawHedge(ctx: CanvasRenderingContext2D, o: Obstacle) {
 }
 
 /**
+ * Rooftop clutter — a vent box, a satellite dish, a roof hatch. On a
+ * bird's-eye map the roof is the whole visible surface a building offers,
+ * so a flat-filled rect reads as empty in a way it never would seen from
+ * the street. One or two per roof, picked deterministically off the
+ * building's own id (same `noise` trick every obstacle on this canvas
+ * already varies by, so it doesn't reshuffle every frame), and skipped
+ * outright on anything too narrow to plausibly carry one — this is texture
+ * for a roofline, not a prompt to go looking for something up there.
+ */
+function drawRoofProps(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, roofH: number, id: string) {
+  if (w < 24 || roofH < 8) return;
+  const rand = noise(`roofprops:${id}`);
+  const count = w > 60 ? 2 : 1;
+  for (let i = 0; i < count; i++) {
+    const kind = rand();
+    const px0 = x + 4 + rand() * Math.max(1, w - 14);
+    const py0 = y + roofH * 0.3;
+    if (kind < 0.4) {
+      // A vent/AC unit: a small box with its own short shadow.
+      ctx.fillStyle = PALETTE.roofPropShadow;
+      ctx.fillRect(px(px0), px(py0 + 3), 5, 1);
+      ctx.fillStyle = PALETTE.roofProp;
+      ctx.fillRect(px(px0), px(py0), 5, 3);
+    } else if (kind < 0.7) {
+      // A satellite dish: a half-circle bowl on a short mast.
+      ctx.strokeStyle = PALETTE.roofPropShadow;
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(px(px0 + 2), px(py0 + 2));
+      ctx.lineTo(px(px0 + 2), px(py0 + 5));
+      ctx.stroke();
+      ctx.fillStyle = PALETTE.roofProp;
+      ctx.beginPath();
+      ctx.arc(px(px0 + 2), px(py0 + 2), 2.5, Math.PI, Math.PI * 2);
+      ctx.fill();
+    } else {
+      // A roof access hatch: darker than the roof itself, not lighter —
+      // reads as a recess, not another box.
+      ctx.fillStyle = PALETTE.roofPropShadow;
+      ctx.fillRect(px(px0), px(py0), 4, 4);
+    }
+  }
+}
+
+/**
  * A background building — the fill-out pass's whole point: an empty block
  * reads as a gap in the town, and a building in it (even a mute one) reads
  * as more town. Deliberately duller and flatter than `drawBuilding`: no
@@ -957,6 +1009,7 @@ function drawDecorativeBuilding(ctx: CanvasRenderingContext2D, o: Obstacle) {
   ctx.fillRect(o.x, o.y + roofH, o.w, o.h - roofH);
   ctx.fillStyle = PALETTE.bgRoof;
   ctx.fillRect(o.x + 3, o.y, o.w - 6, roofH);
+  drawRoofProps(ctx, o.x + 3, o.y, o.w - 6, roofH, o.id);
 
   const rand = noise(`deco:${o.id}`);
   const w = 7;
@@ -2664,6 +2717,7 @@ function drawBuilding(ctx: CanvasRenderingContext2D, loc: OverworldLocation, tie
     ctx.fillRect(loc.x + 4, loc.y, loc.w - 8, roofH);
     ctx.fillRect(loc.x, loc.y + roofH - 4, loc.w, 4);
   }
+  drawRoofProps(ctx, loc.x, loc.y, loc.w, roofH, loc.id);
 
   // The location's own colour survives as a band at the base — it is how the
   // player has learned to tell these apart since Phase 1.
@@ -4887,14 +4941,6 @@ function characterSkinFor(id: string): number {
   return Math.floor(noise(`skin:${id}`)() * CHARACTERS.length);
 }
 
-/** A 3-frame walk cycle when moving, held on the middle (most neutral)
- * frame when standing still — same two-beat cadence `drawPlayer`'s old
- * `stride` used, just indexing a frame instead of flipping a sign. */
-function walkFrame(now: number, moving: boolean): 0 | 1 | 2 {
-  if (!moving) return 1;
-  return (Math.floor(now / 150) % 3) as 0 | 1 | 2;
-}
-
 /** A plain townsperson, drawn from the sprite sheet once it's loaded — the
  * old torso-and-head block otherwise. Ambient pedestrians only ever face
  * left or right (`Npc.direction`/`wanderPos` don't track a vertical axis),
@@ -4997,20 +5043,17 @@ function drawBird(ctx: CanvasRenderingContext2D, x: number, y: number, facing: 1
   ctx.fillRect(cx + 2 * facing, cy - 2, 3, 1);
 }
 
-/** The last-nonzero `{x,y}` facing vector (`Overworld.tsx` never lets it
- * settle back to zero) collapsed to one of the sprite sheet's 4 columns.
- * Diagonal movement sets both axes at once; horizontal wins the tie, purely
- * an arbitrary but consistent choice. */
-function facingDirection(facing: { x: number; y: number }): Direction {
-  if (Math.abs(facing.x) >= Math.abs(facing.y)) return facing.x < 0 ? 'left' : 'right';
-  return facing.y < 0 ? 'up' : 'down';
-}
-
 /**
- * The protagonist. A real character sprite once the sheet's loaded, walking
- * a 3-frame cycle in whichever of the 4 sheet directions `facing` resolves
- * to; the old hand-drawn stick figure while it isn't. The board and its
- * shadow are drawn either way — Style Guide 07's build, not the sheet's.
+ * The protagonist — hand-drawn, always, never the sheet's own stock
+ * townsperson. `CHARACTERS` is a shared six-skin wardrobe every ambient
+ * pedestrian also draws from (`characterSkinFor`, below), so a player built
+ * out of the same pool could end up in the exact shirt some background NPC
+ * is also wearing three feet away — the opposite of a protagonist. This
+ * silhouette exists to be unmistakable at a glance instead: the backwards
+ * cap, the backpack, the board underfoot are all things `drawPedestrian`
+ * deliberately never draws (see its own comment), so the one figure the
+ * camera follows never gets lost in its own crowd. The board and its
+ * shadow are drawn first either way — Style Guide 07's build, not a skin.
  */
 function drawPlayer(
   ctx: CanvasRenderingContext2D,
@@ -5030,23 +5073,21 @@ function drawPlayer(
 
   drawBoard(ctx, cx, feetY, boardTier, now);
 
-  if (spriteSheetReady()) {
-    const direction = facingDirection(facing);
-    const frame = CHARACTERS[0][direction][walkFrame(now, moving)];
-    drawSpriteTile(ctx, frame, cx, feetY - CHARACTER_DRAW_SIZE.h / 2, CHARACTER_DRAW_SIZE.w, CHARACTER_DRAW_SIZE.h);
-    return;
-  }
-
-  const headR = 3;
+  // Roughly a third each to head, torso and legs — the old proportions
+  // (a 3px head atop a 3px gap before the hip) left no real room for a
+  // filled torso to read as anything but a sliver between the limb
+  // strokes. A slightly smaller head buys the hoodie enough height to
+  // actually look like one.
+  const headR = 2.5;
   const headCy = feetY - size.h + headR;
   const neckY = headCy + headR;
-  const hipY = feetY - 6;
+  const hipY = feetY - 5;
 
   const stride = moving ? (Math.floor(now / 220) % 2 === 0 ? 1 : -1) : 0;
 
   // A backpack behind the spine — chunkier than a bare "holdover" bag on
   // purpose, with its own strap line, since a skater's backpack is half the
-  // silhouette. Still drawn under the limbs so it reads as worn, not glued on.
+  // silhouette. Drawn under the torso so it reads as worn, not glued on.
   ctx.fillStyle = PALETTE.spriteBag;
   ctx.fillRect(cx - 3, neckY, 6, hipY - neckY + 2);
   ctx.fillStyle = PALETTE.spriteBagStrap;
@@ -5055,9 +5096,21 @@ function drawPlayer(
 
   limb(ctx, cx, hipY, cx - 3 - stride, feetY);
   limb(ctx, cx, hipY, cx + 3 + stride, feetY);
-  limb(ctx, cx, neckY, cx, hipY);
   limb(ctx, cx, neckY, cx - 3 + stride, neckY + 6);
   limb(ctx, cx, neckY, cx + 3 - stride, neckY + 6);
+
+  // A filled hoodie torso, not just a spine line — the same solid-block
+  // silhouette an ambient pedestrian's own torso rect gets (`drawPedestrian`,
+  // below), so the protagonist reads as a body wearing a bag rather than a
+  // bag with limbs hanging off it. The zip is one pixel of the shadow tone
+  // down the centreline, cheap enough not to need its own draw call.
+  const torsoW = 5;
+  ctx.fillStyle = PALETTE.outline;
+  ctx.fillRect(cx - torsoW / 2 - 1, neckY - 1, torsoW + 2, hipY - neckY + 2);
+  ctx.fillStyle = PALETTE.spriteHoodie;
+  ctx.fillRect(cx - torsoW / 2, neckY, torsoW, hipY - neckY);
+  ctx.fillStyle = PALETTE.spriteHoodieShadow;
+  ctx.fillRect(cx, neckY, 1, hipY - neckY);
 
   ctx.fillStyle = PALETTE.spriteSkin;
   ctx.beginPath();
