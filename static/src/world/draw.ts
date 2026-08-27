@@ -391,6 +391,9 @@ export function drawTown(
    * already decided these aren't solid, this just says so before the
    * player finds out by walking straight through one. */
   openGateIds: Set<string>,
+  /** Car obstacle ids currently able to set an alarm off — see
+   * `world/distractions.ts`. Same pulse language as `openGateIds`, amber. */
+  distractableIds: Set<string>,
 ) {
   ensureSpriteSheetLoading();
 
@@ -426,7 +429,8 @@ export function drawTown(
   for (const obstacle of obstacles) {
     drawObstacle(ctx, obstacle, tier, now);
     if (sparklingObstacleIds.has(obstacle.id)) drawSparkle(ctx, obstacle, now);
-    if (openGateIds.has(obstacle.id)) drawTraversalOpen(ctx, obstacle, now);
+    if (openGateIds.has(obstacle.id)) drawInteractablePulse(ctx, obstacle, now, '125, 232, 192');
+    if (distractableIds.has(obstacle.id)) drawInteractablePulse(ctx, obstacle, now, '240, 160, 60');
   }
   for (const loc of locations) drawLocation(ctx, loc, here?.id === loc.id, tier, now);
 
@@ -544,17 +548,19 @@ function drawObstacle(ctx: CanvasRenderingContext2D, obstacle: Obstacle, tier: T
 }
 
 /**
- * The tell for a gate or fence line the current board tier clears
- * (`world/traversal.ts`) — a slow cyan pulse round the barrier's own rect,
- * drawn over whatever `drawObstacle` already put there rather than
- * replacing it. The barrier still looks like itself; this is what says the
- * normal rule doesn't apply to it right now, before the player finds out by
- * riding straight through one unannounced.
+ * The generic "you can do something with this, right now" tell — a slow
+ * pulsing dashed outline round an object's own rect, drawn over whatever
+ * `drawObstacle` already put there rather than replacing it. One visual
+ * language, two meanings told apart by colour: cyan-green for a board-tier
+ * gate the current board clears (`world/traversal.ts`), amber for a car
+ * alarm ready to set off (`world/distractions.ts`). Either way, the object
+ * still looks like itself — this is what says the normal rule doesn't apply
+ * to it right now, before the player finds out by walking into one.
  */
-function drawTraversalOpen(ctx: CanvasRenderingContext2D, o: Obstacle, now: number) {
+function drawInteractablePulse(ctx: CanvasRenderingContext2D, o: { x: number; y: number; w: number; h: number }, now: number, rgb: string) {
   const pulse = 0.45 + 0.35 * Math.sin(now / 320);
   ctx.save();
-  ctx.strokeStyle = `rgba(125, 232, 192, ${pulse.toFixed(2)})`;
+  ctx.strokeStyle = `rgba(${rgb}, ${pulse.toFixed(2)})`;
   ctx.lineWidth = 2;
   ctx.setLineDash([4, 3]);
   ctx.strokeRect(px(o.x - 2), px(o.y - 2), px(o.w + 4), px(o.h + 4));

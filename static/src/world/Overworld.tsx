@@ -11,8 +11,10 @@ import {
   type OverworldLocation,
 } from './locations';
 import { OBSTACLES } from './obstacles';
-import { traversableObstacleIds } from './traversal';
+import { GATE_CLEAR_HEAT_RELIEF, TRAVERSAL_GATES, traversableObstacleIds } from './traversal';
 import { investigate, isInvestigateActive, type InvestigateAlert } from './investigate';
+import { DISTRACTION_INTERACT_RADIUS, DISTRACTION_NODES, type DistractionNode } from './distractions';
+import { easeSpeed, momentumTuningFor } from './momentum';
 import { marksAtStage } from './marks';
 import { NPCS, wanderPos } from './npcs';
 import { PATROL_ROUTES, activeRoutes, patrolTuning, type PatrolRoute } from './patrols';
@@ -39,6 +41,7 @@ import {
   canFlyRecon,
   canKamikaze,
   canSabotage,
+  canTriggerDistraction,
   onCooldown,
   rollJunctionBoxLoot,
   type KamikazeTarget,
@@ -256,6 +259,9 @@ export function Overworld() {
   /** The junction box close enough to crack open right now, if any — same
    * "spending Heat is a decision, not a walk" reasoning a camera gets. */
   const [nearbyJunctionBox, setNearbyJunctionBox] = useState<JunctionBoxNode | null>(null);
+  /** A car alarm close enough to set off, if any — the player's own DISTRACT
+   * tool. See world/distractions.ts. */
+  const [nearbyDistraction, setNearbyDistraction] = useState<DistractionNode | null>(null);
   /**
    * How many cameras a given box actually carries *today* — stage-gated
    * (`world/coverage.ts`, `systems/coverage.ts`), because a box that will
@@ -320,6 +326,9 @@ export function Overworld() {
    * another cost — so it gets its own line rather than reusing `spotted`'s
    * ambient tone or `caught`'s consequence one. */
   const [closeCall, setCloseCall] = useState<string | null>(null);
+  /** The board's own payoff line — riding a gate through clean. Same
+   * one-line-not-a-toast shape as `closeCall`, its own copy and tone. */
+  const [trick, setTrick] = useState<string | null>(null);
   /** Walking (0) up through the Hoverboard (5) — checked every render off
    * inventory rather than a schema field, same as any other owned gear. No
    * mount/dismount toggle the way the car had one: a board isn't something
@@ -365,6 +374,16 @@ export function Overworld() {
   /* Last direction of travel, so the sprite reads as turning. Held in a ref
      because it changes every frame and nothing outside the canvas cares. */
   const facing = useRef({ x: 0, y: 1 });
+  /** The player's own current speed, eased frame to frame toward whatever
+   * `momentum.ts` says the target should be — see `easeSpeed`. Starts at 0
+   * so a save that opens mid-frame doesn't begin already at speed. */
+  const currentSpeedRef = useRef(0);
+  /** The last *actual* direction of travel, distinct from `facing` (which
+   * only tracks left/right and up/down for the sprite) — this is the unit
+   * vector displacement is applied along, so a board keeps coasting in a
+   * straight line for the instant after input releases instead of the
+   * eased speed above having nothing left to move it in. */
+  const lastDirRef = useRef({ x: 0, y: 1 });
 
   /**
    * Every thread this location is offering, not just the first. Two mentors
@@ -431,7 +450,13 @@ export function Overworld() {
   const nearbyCameraRef = useRef<CameraNode | null>(null);
   const nearbyHackRef = useRef<StreetHackNode | null>(null);
   const nearbyJunctionBoxRef = useRef<JunctionBoxNode | null>(null);
+  const nearbyDistractionRef = useRef<DistractionNode | null>(null);
   const nearbyDroneRef = useRef<{ id: string; x: number; y: number } | null>(null);
+  /** Which board-tier gates the player is already standing in, so the
+   * "clean line" bonus (world/traversal.ts) fires once per approach rather
+   * than every frame spent on the spot — same shape as `contactRef` below
+   * for the hidden pickups. */
+  const gateContactRef = useRef<Set<string>>(new Set());
   /**
    * Whichever camera/hack/junction node is currently in range and tappable,
    * with its live on-screen position — the canvas tap handler reads this
@@ -603,6 +628,20 @@ export function Overworld() {
       const speed = base * (hurt ? 0.6 : 1);
 
       /*
+       * Momentum (world/momentum.ts): the target speed above is reached by
+       * easing toward it, not switching to it — a board spins up over a
+       * beat and coasts down rather than snapping to top speed and stopping
+       * dead the instant input releases. Direction stays instant (read off
+       * `lastDirRef`, only updated while actually moving) so the board
+       * never drifts somewhere the player didn't point it — only the
+       * magnitude has weight, which is what keeps this safe on a thumb.
+       */
+      if (moving) lastDirRef.current = { x: dx / len, y: dy / len };
+      const targetSpeed = moving ? speed : 0;
+      currentSpeedRef.current = easeSpeed(currentSpeedRef.current, targetSpeed, dt, momentumTuningFor(boardTierRef.current));
+      const dir = lastDirRef.current;
+
+      /*
        * Before the very first prompt is ever tapped, the player doesn't get
        * to leave the house — the door isn't a door yet, it's a wall with a
        * different colour on it. `confinedToHome` covers exactly the window
@@ -631,10 +670,10 @@ export function Overworld() {
       const xBounds = confinedToHome ? HOME_BOUNDS.x : ([8, MAP_WIDTH - 8] as const);
       const yBounds = confinedToHome ? HOME_BOUNDS.y : ([8, MAP_HEIGHT - 8] as const);
 
-      const nx = clamp(pos.current.x + (dx / len) * speed * dt, xBounds[0], xBounds[1]);
+      const nx = clamp(pos.current.x + dir.x * currentSpeedRef.current * dt, xBounds[0], xBounds[1]);
       if (confinedToHome || !solid.some((l) => overlapsBuilding(nx, pos.current.y, l))) pos.current.x = nx;
 
-      const ny = clamp(pos.current.y + (dy / len) * speed * dt, yBounds[0], yBounds[1]);
+      const ny = clamp(pos.current.y + dir.y * currentSpeedRef.current * dt, yBounds[0], yBounds[1]);
       if (confinedToHome || !solid.some((l) => overlapsBuilding(pos.current.x, ny, l))) pos.current.y = ny;
 
       const district = districtAt(pos.current.x, pos.current.y);
@@ -878,6 +917,58 @@ export function Overworld() {
         setNearbyJunctionBox(closestJunctionBox);
         setTappedNodeId((id) => (closestJunctionBox ? id : null));
       }
+
+      /*
+       * DISTRACT — a car alarm close enough to set off. No relocate, no
+       * damaged-in-place cosmetics (a car isn't a resource being taken
+       * apart, it's a trick on a short reset): just the nearest one in
+       * range that isn't already ringing.
+       */
+      let closestDistraction: DistractionNode | null = null;
+      let closestDistractionDist = DISTRACTION_INTERACT_RADIUS;
+      for (const node of DISTRACTION_NODES) {
+        const dist = Math.hypot(node.x - pos.current.x, node.y - pos.current.y);
+        if (dist < closestDistractionDist) {
+          closestDistractionDist = dist;
+          closestDistraction = node;
+        }
+      }
+      if (closestDistraction?.id !== nearbyDistractionRef.current?.id) {
+        nearbyDistractionRef.current = closestDistraction;
+        setNearbyDistraction(closestDistraction);
+      }
+      // Which of the parked cars on screen are actually ready to set off
+      // right now — the pulse (draw.ts) only lights the ones that are.
+      const distractableIds = new Set(
+        DISTRACTION_NODES.filter((n) => canTriggerDistraction(saveRef.current, n.id)).map((n) => n.obstacleId),
+      );
+
+      /*
+       * The "clean line" bonus (world/traversal.ts): riding a board-tier
+       * gate through, once per approach. `stillOnGates` mirrors the hidden
+       * pickups' own `stillTouching` pattern just above — fires once on
+       * arrival, not every frame spent standing on the spot.
+       */
+      const stillOnGates = new Set<string>();
+      if (boardTierRef.current > 0) {
+        for (const gate of TRAVERSAL_GATES) {
+          if (gate.minBoardTier > boardTierRef.current) continue;
+          const obstacle = OBSTACLES.find((o) => o.id === gate.obstacleId);
+          if (!obstacle || !overlapsBuilding(pos.current.x, pos.current.y, obstacle)) continue;
+          stillOnGates.add(gate.id);
+          if (gateContactRef.current.has(gate.id)) continue;
+          dispatch({
+            type: 'ADD_HEAT',
+            eventId: `gate_clear_${gate.id}`,
+            delta: -GATE_CLEAR_HEAT_RELIEF,
+            logToHistory: false,
+          });
+          play('clear');
+          setTrick('Clean line.');
+          window.setTimeout(() => setTrick((m) => (m === 'Clean line.' ? null : m)), 1400);
+        }
+      }
+      gateContactRef.current = stillOnGates;
 
       // One shared record of whatever's currently tappable, in the same
       // camera > hack > junction priority order the prompt panels below
@@ -1230,6 +1321,7 @@ export function Overworld() {
         boardTierRef.current,
         confinedToHome,
         openGateIds,
+        distractableIds,
       );
       raf = requestAnimationFrame(frame);
     };
@@ -1346,6 +1438,12 @@ export function Overworld() {
       {closeCall && (
         <p className="overworld__closecall" role="status">
           {closeCall}
+        </p>
+      )}
+
+      {trick && (
+        <p className="overworld__trick" role="status">
+          {trick}
         </p>
       )}
 
@@ -1513,13 +1611,31 @@ export function Overworld() {
         )
       )}
 
+      {/* DISTRACT — a single-tap tool, not a two-step tap-then-panel: there's
+          only ever one thing to do with a car alarm, so it doesn't earn the
+          camera/junction's own glow-then-open dance. Free, so there's
+          nothing to preview here the way a costed action shows its price. */}
+      {!nearby && !nearbyCamera && !nearbyHack && !nearbyJunctionBox && nearbyDistraction && !open && (
+        <button
+          className="overworld__prompt overworld__prompt--distraction"
+          disabled={!canTriggerDistraction(save, nearbyDistraction.id)}
+          onClick={() => {
+            dispatch({ type: 'TRIGGER_DISTRACTION', nodeId: nearbyDistraction.id });
+            investigateRef.current = { x: nearbyDistraction.x, y: nearbyDistraction.y, startedAtMs: performance.now() };
+            play('alert');
+          }}
+        >
+          {canTriggerDistraction(save, nearbyDistraction.id) ? 'Set off the alarm' : 'Still ringing out — give it a day'}
+        </button>
+      )}
+
       {/* Last in the priority order, same as a junction box — except this
           one might not still be there by the time the player reads the
           button, since it's the only point object on the map that moves.
           The prompt opens the shot, it doesn't resolve it — Heat System
           guardrail 2 still holds, there are just two prices to show now:
           what a hit pays and what a miss costs. */}
-      {!nearby && !nearbyCamera && !nearbyHack && !nearbyJunctionBox && nearbyDrone && !open && (
+      {!nearby && !nearbyCamera && !nearbyHack && !nearbyJunctionBox && !nearbyDistraction && nearbyDrone && !open && (
         <button
           className="overworld__prompt overworld__prompt--drone"
           disabled={!canDisableDrone(save, nearbyDrone.id)}

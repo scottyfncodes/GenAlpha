@@ -152,6 +152,25 @@
   pointer-events: none;
 }
 
+/* The board's own payoff line — the same green `dronerecon.css` already
+   uses for "a skillful use of a tool just paid off", so the two read as one
+   visual language rather than two unrelated accents. */
+.overworld__trick {
+  position: absolute;
+  left: 50%;
+  top: calc(var(--step) * 14);
+  transform: translateX(-50%);
+  margin: 0;
+  background: rgba(16, 14, 13, 0.9);
+  color: var(--b-paper);
+  border: 2px solid #3ab08c;
+  padding: 8px 16px;
+  font-family: var(--font-a);
+  font-weight: 700;
+  font-size: 13px;
+  pointer-events: none;
+}
+
 .overworld__prompt {
   position: absolute;
   left: 50%;
@@ -350,6 +369,21 @@
 }
 
 .overworld__prompt--drone:disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+
+/* DISTRACT — amber like `closeCall`'s own payoff line, not the Heat-red
+   every costed action gets, because this one is free: the whole point of a
+   distraction is that it's what you spend instead of Heat. */
+.overworld__prompt--distraction {
+  background: var(--b-orange);
+  color: var(--b-ink);
+  border-color: var(--b-ink);
+  font-size: 13px;
+}
+
+.overworld__prompt--distraction:disabled {
   opacity: 0.55;
   cursor: default;
 }

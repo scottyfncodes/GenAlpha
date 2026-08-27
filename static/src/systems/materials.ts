@@ -11,6 +11,7 @@ import {
   type SabotageActionId,
 } from '../world/collectibles';
 import { JUNCTION_BOX_NODES, JUNCTION_BOX_RISK } from '../world/junctionboxes';
+import { DISTRACTION_COOLDOWN_DAYS, DISTRACTION_NODES } from '../world/distractions';
 import { DRONE_TAKEDOWN_BY_TOOL_TIER } from '../world/drones';
 import { DRONE_SHOOT_MISS_COOLDOWN_DAYS, DRONE_SHOOT_MISS_HEAT_PENALTY } from './droneshoot';
 import {
@@ -444,4 +445,23 @@ export function craft(save: SaveState, recipeId: string): SaveState {
   let s = save;
   for (const input of recipe.inputs) s = removeItem(s, input.itemId, input.quantity);
   return grantItem(s, recipe.outputItemId, 1, 'crafted');
+}
+
+/** No tool, no deck, no Heat gate — a distraction is available to anyone
+ * standing next to it, the moment it isn't already ringing (`world/
+ * distractions.ts` `DISTRACTION_COOLDOWN_DAYS`). */
+export function canTriggerDistraction(save: SaveState, nodeId: string): boolean {
+  return DISTRACTION_NODES.some((n) => n.id === nodeId) && !onCooldown(save, nodeId, DISTRACTION_COOLDOWN_DAYS);
+}
+
+/**
+ * Sets the alarm off. No Heat, no item — the whole payoff is off-screen, in
+ * `world/investigate.ts`: `Overworld.tsx` stamps an alert at this node's own
+ * position the instant this dispatches, which is what actually pulls a
+ * nearby patrol or officer away from wherever the player needs them not to
+ * be. This function only owns the alarm's own cooldown so it can't be spammed.
+ */
+export function triggerDistraction(save: SaveState, nodeId: string): SaveState {
+  if (!canTriggerDistraction(save, nodeId)) return save;
+  return markCollected(save, nodeId, DISTRACTION_COOLDOWN_DAYS);
 }

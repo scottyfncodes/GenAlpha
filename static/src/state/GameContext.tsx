@@ -31,6 +31,7 @@ import {
   reconEmpCamera,
   sabotageCamera,
   sellMaterial,
+  triggerDistraction,
   type KamikazeTarget,
 } from '../systems/materials';
 import { applyCatch } from '../systems/consequences';
@@ -83,6 +84,7 @@ type Action =
   | { type: 'DISABLE_DRONE'; droneId: string; hit: boolean }
   | { type: 'FLY_RECON'; hit: boolean; discoveredCount?: number }
   | { type: 'RECON_EMP_CAMERA'; nodeId: string }
+  | { type: 'TRIGGER_DISTRACTION'; nodeId: string }
   | { type: 'KAMIKAZE_STRIKE'; target: KamikazeTarget; hit: boolean }
   | { type: 'SELL_MATERIAL'; itemId: string }
   | { type: 'CRAFT_ITEM'; recipeId: string }
@@ -274,6 +276,13 @@ function applyAction(state: SaveState | null, action: Action): SaveState | null 
      * without flying into it. See systems/materials.ts reconEmpCamera. */
     case 'RECON_EMP_CAMERA':
       return reconEmpCamera(state, action.nodeId);
+
+    /** DISTRACT: set a car alarm off. See systems/materials.ts
+     * triggerDistraction — the actual payoff (a nearby patrol pulled off
+     * its route) is world/investigate.ts, stamped by Overworld.tsx the
+     * instant this dispatches, not stored in the save at all. */
+    case 'TRIGGER_DISTRACTION':
+      return triggerDistraction(state, action.nodeId);
 
     case 'KAMIKAZE_STRIKE':
       return kamikazeStrike(state, action.target, action.hit);

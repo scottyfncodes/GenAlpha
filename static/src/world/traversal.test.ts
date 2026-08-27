@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { OBSTACLES } from './obstacles';
-import { isGateOpen, MAX_BOARD_TIER, traversableObstacleIds, TRAVERSAL_GATES } from './traversal';
+import { GATE_CLEAR_HEAT_RELIEF, isGateOpen, MAX_BOARD_TIER, traversableObstacleIds, TRAVERSAL_GATES } from './traversal';
 
 describe('TRAVERSAL_GATES', () => {
   it('every gate points at an obstacle id that actually exists', () => {
@@ -44,5 +44,11 @@ describe('isGateOpen / traversableObstacleIds', () => {
       expect(isGateOpen(gate, gate.minBoardTier)).toBe(true);
       expect(isGateOpen(gate, gate.minBoardTier - 1)).toBe(false);
     }
+  });
+});
+
+describe('GATE_CLEAR_HEAT_RELIEF', () => {
+  it('is a real, positive relief', () => {
+    expect(GATE_CLEAR_HEAT_RELIEF).toBeGreaterThan(0);
   });
 });

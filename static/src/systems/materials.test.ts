@@ -7,6 +7,7 @@ import {
   canKamikaze,
   canReconEmp,
   canSabotage,
+  canTriggerDistraction,
   collectHidden,
   craft,
   destroyJunctionBox,
@@ -15,7 +16,9 @@ import {
   kamikazeStrike,
   reconEmpCamera,
   rollJunctionBoxLoot,
+  triggerDistraction,
 } from './materials';
+import { DISTRACTION_NODES } from '../world/distractions';
 import { createNewSave } from '../state/defaults';
 import { CAMERA_NODES } from '../world/collectibles';
 import { JUNCTION_BOX_NODES } from '../world/junctionboxes';
@@ -289,5 +292,30 @@ describe('kamikaze strikes', () => {
     const save = createNewSave('Wren');
     save.economy.inventory = [{ itemId: 'scout_drone', quantity: 1, acquiredVia: 'crafted' }];
     expect(kamikazeStrike(save, { kind: 'camera', id: 'not_a_real_node' }, true)).toEqual(save);
+  });
+});
+
+describe('DISTRACT', () => {
+  const node = DISTRACTION_NODES[0];
+
+  it('needs no tool, no deck, no Heat — available to anyone standing next to it', () => {
+    const save = createNewSave('Wren');
+    expect(canTriggerDistraction(save, node.id)).toBe(true);
+    const after = triggerDistraction(save, node.id);
+    expect(after.heat.current).toBe(save.heat.current);
+    expect(after.economy.inventory).toEqual(save.economy.inventory);
+  });
+
+  it('resets fast, not on a story-length cooldown — it is a trick, not a resource', () => {
+    const save = createNewSave('Wren');
+    const after = triggerDistraction(save, node.id);
+    expect(canTriggerDistraction(after, node.id)).toBe(false);
+    const nextDay = { ...after, world: { ...after.world, day: after.world.day + 1 } };
+    expect(canTriggerDistraction(nextDay, node.id)).toBe(true);
+  });
+
+  it('is a no-op on an unknown node id', () => {
+    const save = createNewSave('Wren');
+    expect(triggerDistraction(save, 'not_a_real_alarm')).toEqual(save);
   });
 });

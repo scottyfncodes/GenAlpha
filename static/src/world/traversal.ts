@@ -55,3 +55,15 @@ export function traversableObstacleIds(boardTier: number): Set<string> {
  * exist for `isGateOpen`'s ceiling to mean anything — a cheap sanity check
  * a test can pin so this file and the economy catalog can't drift apart. */
 export const MAX_BOARD_TIER = BOARD_TIERS.length;
+
+/**
+ * The "clean line" reward for actually riding a gate through rather than
+ * just noticing it's open — small, felt Heat relief, the same "skillful use
+ * of a tool is worth something" idea `dronerecon.ts`'s discovery bonus
+ * already applies to flying well. Not a resource and not a toast full of
+ * numbers: `Overworld.tsx` debounces it per gate per approach (the same
+ * "stillTouching" pattern the hidden pickups already use) so standing on
+ * the spot doesn't farm it, and pays it out as Heat quietly easing rather
+ * than a counter going up.
+ */
+export const GATE_CLEAR_HEAT_RELIEF = 2;
