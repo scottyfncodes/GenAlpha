@@ -386,6 +386,11 @@ export function drawTown(
   now: number,
   boardTier: number,
   confinedToHome: boolean,
+  /** Gate/fence obstacle ids the current board tier clears — see
+   * `world/traversal.ts`. Purely a tell: the collision check (Overworld.tsx)
+   * already decided these aren't solid, this just says so before the
+   * player finds out by walking straight through one. */
+  openGateIds: Set<string>,
 ) {
   ensureSpriteSheetLoading();
 
@@ -421,6 +426,7 @@ export function drawTown(
   for (const obstacle of obstacles) {
     drawObstacle(ctx, obstacle, tier, now);
     if (sparklingObstacleIds.has(obstacle.id)) drawSparkle(ctx, obstacle, now);
+    if (openGateIds.has(obstacle.id)) drawTraversalOpen(ctx, obstacle, now);
   }
   for (const loc of locations) drawLocation(ctx, loc, here?.id === loc.id, tier, now);
 
@@ -535,6 +541,24 @@ function drawObstacle(ctx: CanvasRenderingContext2D, obstacle: Obstacle, tier: T
     case 'laundry':
       return drawWashingLine(ctx, obstacle);
   }
+}
+
+/**
+ * The tell for a gate or fence line the current board tier clears
+ * (`world/traversal.ts`) — a slow cyan pulse round the barrier's own rect,
+ * drawn over whatever `drawObstacle` already put there rather than
+ * replacing it. The barrier still looks like itself; this is what says the
+ * normal rule doesn't apply to it right now, before the player finds out by
+ * riding straight through one unannounced.
+ */
+function drawTraversalOpen(ctx: CanvasRenderingContext2D, o: Obstacle, now: number) {
+  const pulse = 0.45 + 0.35 * Math.sin(now / 320);
+  ctx.save();
+  ctx.strokeStyle = `rgba(125, 232, 192, ${pulse.toFixed(2)})`;
+  ctx.lineWidth = 2;
+  ctx.setLineDash([4, 3]);
+  ctx.strokeRect(px(o.x - 2), px(o.y - 2), px(o.w + 4), px(o.h + 4));
+  ctx.restore();
 }
 
 /**

@@ -1,0 +1,149 @@
+/*
+ * The scout flight's own screen. Same full-viewport centred-panel shape as
+ * `.droneflight__stage`, but green rather than cyan — recon and kamikaze
+ * are the same airframe doing two different jobs, and the colour is the
+ * cheapest way to say "this one isn't a one-way trip" before reading a
+ * word of the copy.
+ */
+.dronerecon__stage {
+  position: fixed;
+  inset: 0;
+  z-index: 30;
+  display: grid;
+  place-items: center;
+  background: rgba(6, 10, 14, 0.78);
+  padding: var(--step);
+}
+
+.dronerecon {
+  position: relative;
+  width: min(320px, 92vw);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: calc(var(--step) * 2);
+  background: var(--b-ink);
+  color: var(--b-paper);
+  border: 2px solid #3ab08c;
+  border-radius: var(--radius-b, 8px);
+  font-family: var(--font-a);
+}
+
+.dronerecon__head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--step);
+}
+
+.dronerecon__framing {
+  margin: 0;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #7de8c0;
+}
+
+.dronerecon__close {
+  background: none;
+  border: 1px solid rgba(236, 226, 208, 0.4);
+  color: var(--b-paper);
+  border-radius: var(--radius-b, 8px);
+  padding: 4px 10px;
+  font-size: 11px;
+  font-family: var(--font-a);
+  flex: none;
+}
+
+.dronerecon__prompt {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.4;
+  opacity: 0.85;
+}
+
+.dronerecon__clock {
+  height: 4px;
+  background: rgba(236, 226, 208, 0.15);
+}
+
+.dronerecon__clock span {
+  display: block;
+  height: 100%;
+  background: #7de8c0;
+  transition: width 80ms linear;
+}
+
+.dronerecon__status {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--step);
+}
+
+.dronerecon__hits {
+  display: flex;
+  gap: 4px;
+}
+
+.dronerecon__hits span {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  border: 1px solid #7de8c0;
+  background: rgba(125, 232, 192, 0.35);
+}
+
+.dronerecon__hits span.is-lost {
+  background: none;
+  border-color: rgba(236, 226, 208, 0.3);
+}
+
+.dronerecon__found {
+  margin: 0;
+  font-size: 11px;
+  font-family: var(--font-mono);
+  opacity: 0.8;
+}
+
+.dronerecon__field {
+  display: block;
+  width: 100%;
+  height: 280px;
+  border: 1px solid rgba(125, 232, 192, 0.3);
+  border-radius: 4px;
+  touch-action: none;
+  cursor: crosshair;
+}
+
+.dronerecon__lastfound {
+  margin: 0;
+  font-size: 12px;
+  text-align: center;
+  color: #7de8c0;
+  min-height: 1.4em;
+}
+
+.dronerecon__result {
+  position: absolute;
+  inset: 0;
+  margin: 0;
+  display: grid;
+  place-items: center;
+  font-family: var(--font-b);
+  font-size: 22px;
+  text-align: center;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  background: rgba(10, 14, 20, 0.6);
+  pointer-events: none;
+}
+
+.dronerecon__result--hit {
+  color: #3dff9a;
+}
+
+.dronerecon__result--miss {
+  color: var(--b-red);
+}

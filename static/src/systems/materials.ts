@@ -18,9 +18,9 @@ import {
   KAMIKAZE_HEAT_COST,
   KAMIKAZE_RESPAWN_DAYS,
   RECON_FAIL_HEAT_PENALTY,
-  RECON_SUCCESS_HEAT_RELIEF,
   type PlayerDroneTier,
 } from '../world/playerdrone';
+import { canEmpFromAir, reconHeatRelief } from './dronerecon';
 import {
   addCash,
   addShdw,
@@ -296,15 +296,18 @@ export function canFlyRecon(save: SaveState): boolean {
 }
 
 /**
- * `hit` is the flight minigame's own outcome — a clean run pays Heat
- * relief scaled by which airframe made it up there, a scrubbed one costs a
- * flat penalty instead. The drone always comes home; this is the one drone
+ * `hit` is the flight's own outcome — home clean, or spotted and scrubbed.
+ * A clean run pays Heat relief scaled by both the airframe and
+ * `discoveredCount`, the number of things the flight actually found
+ * (`systems/dronerecon.ts` `reconHeatRelief`) — a thorough scout outpays a
+ * flight that just circled and came home. A scrubbed one costs a flat
+ * penalty instead. The drone always comes home; this is the one drone
  * action that never touches the inventory.
  */
-export function flyRecon(save: SaveState, hit: boolean): SaveState {
+export function flyRecon(save: SaveState, hit: boolean, discoveredCount = 0): SaveState {
   if (!canFlyRecon(save)) return save;
   const tier = playerDroneTier(save) as PlayerDroneTier;
-  const delta = hit ? -RECON_SUCCESS_HEAT_RELIEF[tier] : RECON_FAIL_HEAT_PENALTY;
+  const delta = hit ? -reconHeatRelief(tier, discoveredCount) : RECON_FAIL_HEAT_PENALTY;
   return {
     ...save,
     heat: applyHeat(save.heat, {
@@ -313,6 +316,44 @@ export function flyRecon(save: SaveState, hit: boolean): SaveState {
       logToHistory: true,
     }),
   };
+}
+
+/** Heat cost for putting a scouted camera to sleep from the air — cheaper
+ * than any physical sabotage tier, since nobody climbed the pole, but not
+ * free: SafeTrace still notices a housing that's gone dark. */
+export const RECON_EMP_HEAT_COST = 3;
+/** Shorter than a physical dismantle's respawn — an EMP stuns the housing,
+ * it doesn't carry any of it away, so SafeTrace has it back up sooner. */
+export const RECON_EMP_RESPAWN_DAYS = 3;
+
+/** Tier 2+ airframe, camera actually in scan range this flight (the caller —
+ * `Overworld.tsx` — only ever offers an id that was), and not already dark
+ * from this or any other means: the cooldown log is shared with every other
+ * way of taking a camera down, so an EMP can't stack on top of a fresh
+ * physical sabotage or vice versa. */
+export function canReconEmp(save: SaveState, cameraId: string): boolean {
+  if (canEmpFromAir(playerDroneTier(save) as PlayerDroneTier) === false) return false;
+  return !onCooldown(save, cameraId, RECON_EMP_RESPAWN_DAYS);
+}
+
+/**
+ * Disruption, not a dismantle: the housing goes dark and stays dark for a
+ * few days, at a flat Heat cost, and pays out no parts — bolt cutters never
+ * touched it, so there's nothing to carry home. This is the drone's own
+ * verb, distinct from the loot a physical sabotage or a kamikaze strike pays.
+ */
+export function reconEmpCamera(save: SaveState, cameraId: string): SaveState {
+  const node = CAMERA_NODES.find((n) => n.id === cameraId);
+  if (!node || !canReconEmp(save, cameraId)) return save;
+  const withHeat = {
+    ...save,
+    heat: applyHeat(save.heat, {
+      eventId: `recon_emp_${cameraId}`,
+      delta: RECON_EMP_HEAT_COST,
+      logToHistory: true,
+    }),
+  };
+  return markCollected(withHeat, cameraId, RECON_EMP_RESPAWN_DAYS);
 }
 
 /** A camera or a junction box, already in reach — the same two nearby

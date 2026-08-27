@@ -28,6 +28,7 @@ import {
   flyRecon,
   kamikazeStrike,
   markRelocated,
+  reconEmpCamera,
   sabotageCamera,
   sellMaterial,
   type KamikazeTarget,
@@ -80,7 +81,8 @@ type Action =
   | { type: 'SABOTAGE_CAMERA'; nodeId: string; actionId: SabotageActionId }
   | { type: 'DESTROY_JUNCTION_BOX'; nodeId: string }
   | { type: 'DISABLE_DRONE'; droneId: string; hit: boolean }
-  | { type: 'FLY_RECON'; hit: boolean }
+  | { type: 'FLY_RECON'; hit: boolean; discoveredCount?: number }
+  | { type: 'RECON_EMP_CAMERA'; nodeId: string }
   | { type: 'KAMIKAZE_STRIKE'; target: KamikazeTarget; hit: boolean }
   | { type: 'SELL_MATERIAL'; itemId: string }
   | { type: 'CRAFT_ITEM'; recipeId: string }
@@ -266,7 +268,12 @@ function applyAction(state: SaveState | null, action: Action): SaveState | null 
       return disableDrone(state, action.droneId, action.hit);
 
     case 'FLY_RECON':
-      return flyRecon(state, action.hit);
+      return flyRecon(state, action.hit, action.discoveredCount);
+
+    /** Tier 2+ recon verb: put a scouted camera to sleep from the air,
+     * without flying into it. See systems/materials.ts reconEmpCamera. */
+    case 'RECON_EMP_CAMERA':
+      return reconEmpCamera(state, action.nodeId);
 
     case 'KAMIKAZE_STRIKE':
       return kamikazeStrike(state, action.target, action.hit);

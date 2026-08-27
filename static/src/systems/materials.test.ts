@@ -5,6 +5,7 @@ import {
   canDisableDrone,
   canFlyRecon,
   canKamikaze,
+  canReconEmp,
   canSabotage,
   collectHidden,
   craft,
@@ -12,6 +13,7 @@ import {
   disableDrone,
   flyRecon,
   kamikazeStrike,
+  reconEmpCamera,
   rollJunctionBoxLoot,
 } from './materials';
 import { createNewSave } from '../state/defaults';
@@ -196,6 +198,48 @@ describe('recon flights', () => {
     const afterScout = flyRecon(scout, true);
     const afterStrike = flyRecon(strike, true);
     expect(strike.heat.current - afterStrike.heat.current).toBeGreaterThan(scout.heat.current - afterScout.heat.current);
+  });
+
+  it('a flight that actually found things relieves more Heat than one that circled and came home', () => {
+    const save = createNewSave('Wren');
+    save.heat = { ...save.heat, current: 40 };
+    save.economy.inventory = [{ itemId: 'scout_drone', quantity: 1, acquiredVia: 'crafted' }];
+    const nothingFound = flyRecon(save, true, 0);
+    const foundThree = flyRecon(save, true, 3);
+    expect(save.heat.current - foundThree.heat.current).toBeGreaterThan(save.heat.current - nothingFound.heat.current);
+  });
+});
+
+describe('recon EMP', () => {
+  it('is not available on the base Scout airframe', () => {
+    const save = createNewSave('Wren');
+    save.economy.inventory = [{ itemId: 'scout_drone', quantity: 1, acquiredVia: 'crafted' }];
+    expect(canReconEmp(save, node.id)).toBe(false);
+  });
+
+  it('opens up at Tier 2 and costs Heat but no parts, on the camera\'s own cooldown log', () => {
+    const save = createNewSave('Wren');
+    save.economy.inventory = [
+      { itemId: 'recon_drone', quantity: 1, acquiredVia: 'crafted' },
+      { itemId: 'bolt_cutters', quantity: 1, acquiredVia: 'crafted' },
+      { itemId: 'cyberdeck_3', quantity: 1, acquiredVia: 'purchase' },
+    ];
+    expect(canReconEmp(save, node.id)).toBe(true);
+    // A housing standing and reachable on foot too, before the EMP lands.
+    expect(canSabotage(save, node)).toBe(true);
+    const after = reconEmpCamera(save, node.id);
+    expect(after.heat.current).toBeGreaterThan(save.heat.current);
+    expect(after.economy.inventory).toEqual(save.economy.inventory);
+    expect(canReconEmp(after, node.id)).toBe(false);
+    // Shares the camera's own cooldown log, so a physical sabotage can't
+    // stack on top of a housing that's already dark from an EMP.
+    expect(canSabotage(after, node)).toBe(false);
+  });
+
+  it('is a no-op on an unknown camera id', () => {
+    const save = createNewSave('Wren');
+    save.economy.inventory = [{ itemId: 'strike_drone', quantity: 1, acquiredVia: 'crafted' }];
+    expect(reconEmpCamera(save, 'not_a_real_node')).toEqual(save);
   });
 });
 

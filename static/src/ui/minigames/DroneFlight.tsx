@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { collides, FLIGHT_BOUNDS, isShotDown, progressPct } from '../../systems/droneflight';
-import { KAMIKAZE_FLIGHT_MS, playerDroneTuning, RECON_FLIGHT_MS, type PlayerDroneTier } from '../../world/playerdrone';
+import { KAMIKAZE_FLIGHT_MS, playerDroneTuning, type PlayerDroneTier } from '../../world/playerdrone';
 import { play } from '../../systems/audio';
 import { drawInterceptor, drawPlayerDrone, droneSpritesReady, ensureDroneSpritesLoading } from './droneSprites';
 import './drone-flight.css';
@@ -22,26 +22,25 @@ interface Shot {
 let nextId = 1;
 
 /**
- * The flight itself — a bird's-eye, forced-scroll run, the same shape a
- * classic vertical shooter uses: the drone is fixed near the bottom of its
- * own lane, the world comes at it, and the only way through is dodging or
- * clearing what's in the way before the clock runs out. Recon and kamikaze
- * share this exact mechanic (`mode` only tunes enemy density and the
- * framing text) because the thing that makes either one real is the same
- * thing either way: the player has to fly it, not just own the airframe.
+ * The kamikaze run — a bird's-eye, forced-scroll flight into defended
+ * airspace, the same shape a classic vertical shooter uses: the drone is
+ * fixed near the bottom of its own lane, the world comes at it, and the
+ * only way through is dodging or clearing what's in the way before it
+ * either gets there or gets shot down first. It's a one-way trip either
+ * way, so the tension is entirely "does it land" — recon used to share this
+ * mechanic and doesn't anymore (`ui/minigames/DroneRecon.tsx`), because a
+ * flight that's supposed to come home isn't supposed to feel like this one.
  *
  * Closing before a resolution is a free walk-away, same as
  * `DroneShoot`'s "Step away" — only an actual finish (reached the end, or
  * shot down first) calls `onResolve`.
  */
 export function DroneFlight({
-  mode,
   droneTier,
   targetLabel,
   onResolve,
   onClose,
 }: {
-  mode: 'recon' | 'kamikaze';
   droneTier: PlayerDroneTier;
   targetLabel: string;
   onResolve: (hit: boolean) => void;
@@ -49,7 +48,7 @@ export function DroneFlight({
 }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const tuning = playerDroneTuning(droneTier);
-  const durationMs = mode === 'kamikaze' ? KAMIKAZE_FLIGHT_MS : RECON_FLIGHT_MS;
+  const durationMs = KAMIKAZE_FLIGHT_MS;
 
   const playerPos = useRef({ x: FLIGHT_BOUNDS.w / 2, y: FLIGHT_BOUNDS.h - 44 });
   const draggingRef = useRef(false);
@@ -71,10 +70,8 @@ export function DroneFlight({
     canvas.height = FLIGHT_BOUNDS.h;
     ensureDroneSpritesLoading();
 
-    // Kamikaze flies into defended airspace — more of everything comes at
-    // it than a recon sweep ever sees.
-    const spawnIntervalMs = mode === 'kamikaze' ? 850 : 1300;
-    const scrollSpeed = mode === 'kamikaze' ? 105 : 82;
+    const spawnIntervalMs = 850;
+    const scrollSpeed = 105;
 
     let raf = 0;
     let last = performance.now();
@@ -212,18 +209,12 @@ export function DroneFlight({
     <div className="droneflight__stage">
       <div className="droneflight">
         <div className="droneflight__head">
-          <p className="droneflight__framing">
-            {mode === 'kamikaze' ? 'Kamikaze run' : 'Recon flight'} — {targetLabel}
-          </p>
+          <p className="droneflight__framing">Kamikaze run — {targetLabel}</p>
           <button className="droneflight__close" onClick={onClose}>
             Step away
           </button>
         </div>
-        <p className="droneflight__prompt">
-          {mode === 'kamikaze'
-            ? 'Drag to fly. It only has to get there once.'
-            : 'Drag to fly. Stay clear and bring it home.'}
-        </p>
+        <p className="droneflight__prompt">Drag to fly. It only has to get there once.</p>
         <div className="droneflight__clock">
           <span style={{ width: `${progress}%` }} />
         </div>
@@ -249,7 +240,7 @@ export function DroneFlight({
         />
         {result && (
           <p className={`droneflight__result droneflight__result--${result}`}>
-            {result === 'hit' ? (mode === 'kamikaze' ? 'Impact.' : 'Home.') : 'Shot down.'}
+            {result === 'hit' ? 'Impact.' : 'Shot down.'}
           </p>
         )}
       </div>

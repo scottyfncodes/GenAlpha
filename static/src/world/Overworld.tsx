@@ -11,13 +11,15 @@ import {
   type OverworldLocation,
 } from './locations';
 import { OBSTACLES } from './obstacles';
+import { traversableObstacleIds } from './traversal';
+import { investigate, isInvestigateActive, type InvestigateAlert } from './investigate';
 import { marksAtStage } from './marks';
 import { NPCS, wanderPos } from './npcs';
 import { PATROL_ROUTES, activeRoutes, patrolTuning, type PatrolRoute } from './patrols';
 import { activeDroneRoutes, droneTuning, DRONE_ROUTES, DRONE_TAKEDOWN_BY_TOOL_TIER, DRONE_TAKEDOWN_RADIUS } from './drones';
 import { COP_ROUTES, activeCopRoutes, copTuning } from './copwalk';
 import { gravitate, underTreeCover, UNSEEN_COOLDOWN_MS, UNSEEN_RELIEF_PER_TICK, UNSEEN_TICK_MS } from '../systems/pursuit';
-import { escalationStage } from './escalation';
+import { escalationStage, type EscalationStage } from './escalation';
 import { relocatedPosition, isOnScreen } from './relocate';
 import {
   CAMERA_NODES,
@@ -62,7 +64,9 @@ import { Market } from '../ui/Market';
 import { Garage } from '../ui/Garage';
 import { DroneShoot } from '../ui/minigames/DroneShoot';
 import { DroneFlight } from '../ui/minigames/DroneFlight';
+import { DroneRecon } from '../ui/minigames/DroneRecon';
 import { RECON_FAIL_HEAT_PENALTY, type PlayerDroneTier } from '../world/playerdrone';
+import { canEmpFromAir, poisInRange, type ReconPoi } from '../systems/dronerecon';
 import { DRONE_SHOOT_MISS_HEAT_PENALTY } from '../systems/droneshoot';
 import { play } from '../systems/audio';
 import './overworld.css';
@@ -285,11 +289,19 @@ export function Overworld() {
   /** The small "Recon flight / Kamikaze strike" panel — the player's own
    * drone, as opposed to the FLACK ones above. */
   const [droneMenuOpen, setDroneMenuOpen] = useState(false);
-  /** The flight currently in progress, if any — which mode, and for a
-   * kamikaze run, which node it's aimed at. */
-  const [droneFlight, setDroneFlight] = useState<
-    { mode: 'recon'; targetLabel: string } | { mode: 'kamikaze'; target: KamikazeTarget; targetLabel: string } | null
-  >(null);
+  /** The kamikaze run currently in progress, if any — which node it's
+   * aimed at. */
+  const [kamikazeFlight, setKamikazeFlight] = useState<{ target: KamikazeTarget; targetLabel: string } | null>(null);
+  /** The scout flight currently in progress, if any — the block it launched
+   * over and what was actually in range of it, fixed at the moment of
+   * launch since the recon field doesn't scroll with the player underneath
+   * a minigame that's already blocking their movement. */
+  const [reconFlight, setReconFlight] = useState<{
+    center: { x: number; y: number };
+    pois: ReconPoi[];
+    heatTier: ThresholdTier;
+    stage: EscalationStage;
+  } | null>(null);
   /**
    * Held in state, not derived: a scene's own effects change the chapter part
    * way through, which would otherwise unmount the scene mid-read.
@@ -466,6 +478,11 @@ export function Overworld() {
    * cleared the instant they step outside it, so this measures continuous
    * exposure, not a running total. */
   const patrolLingerRef = useRef<Map<string, number>>(new Map());
+  /** "Patrol + sabotage" — set the instant a camera, junction box or EMP'd
+   * housing goes dark, read by the van/cop loops below via
+   * `world/investigate.ts`. One event at a time (a fresh sabotage just
+   * overwrites it); it expires on its own after `INVESTIGATE_DURATION_MS`. */
+  const investigateRef = useRef<InvestigateAlert | null>(null);
 
   /** Same "always walking, only the active subset drawn or checked" shape
    * as `patrolStateRef` — a drone that comes online at `hunted` is already
@@ -498,7 +515,8 @@ export function Overworld() {
   const lastUnseenTickRef = useRef(performance.now());
 
   enterRef.current = enter;
-  blockedRef.current = Boolean(open) || cyberdeckOpen || Boolean(droneShootTarget) || Boolean(droneFlight);
+  blockedRef.current =
+    Boolean(open) || cyberdeckOpen || Boolean(droneShootTarget) || Boolean(kamikazeFlight) || Boolean(reconFlight);
 
   // Movement + render loop.
   useEffect(() => {
@@ -567,8 +585,13 @@ export function Overworld() {
       const stage = escalationStage(saveRef.current.world.day);
       const activeObstacles = OBSTACLES.filter((o) => !o.minStage || stage >= o.minStage);
       // A bush hiding a salvage find is walkable, full stop — that's the only
-      // tell it ever gives, so it can't also be a wall.
-      const solidObstacles = activeObstacles.filter((o) => !HIDDEN_PICKUP_OBSTACLE_IDS.has(o.id));
+      // tell it ever gives, so it can't also be a wall. A gate or fence line
+      // the current board tier clears (world/traversal.ts) drops out the
+      // same way — the barrier is still drawn, it just isn't solid anymore.
+      const openGateIds = traversableObstacleIds(boardTierRef.current);
+      const solidObstacles = activeObstacles.filter(
+        (o) => !HIDDEN_PICKUP_OBSTACLE_IDS.has(o.id) && !openGateIds.has(o.id),
+      );
       const blockers: { x: number; y: number; w: number; h: number }[] = [...solidLocations, ...solidObstacles];
       const solid = blockers.filter((l) => !overlapsBuilding(pos.current.x, pos.current.y, l));
 
@@ -980,9 +1003,9 @@ export function Overworld() {
         patrolStateRef.current.set(route.id, next);
         if (!active.has(route.id)) continue;
 
-        const routePos = inSafeSpace
-          ? patrolPosition(route, next)
-          : gravitate(patrolPosition(route, next), pos.current, tierRef.current, dt);
+        let routePos = patrolPosition(route, next);
+        if (isInvestigateActive(investigateRef.current, now)) routePos = investigate(routePos, investigateRef.current, dt);
+        if (!inSafeSpace) routePos = gravitate(routePos, pos.current, tierRef.current, dt);
         // Already chasing gets the wider give-up radius; starting one at all
         // still needs an actual sighting at the van's own detection range —
         // otherwise a van two and a half circles away would start driving at
@@ -1094,7 +1117,8 @@ export function Overworld() {
         copStateRef.current.set(route.id, next);
         if (!activeCops.has(route.id)) continue;
 
-        const basePos = patrolPosition(route, next);
+        let basePos = patrolPosition(route, next);
+        if (isInvestigateActive(investigateRef.current, now)) basePos = investigate(basePos, investigateRef.current, dt);
         const p = inSafeSpace ? basePos : gravitate(basePos, pos.current, tierRef.current, dt);
         copDraw.push({ x: p.x, y: p.y, radius: copTune.detectionRadius });
 
@@ -1205,6 +1229,7 @@ export function Overworld() {
         now,
         boardTierRef.current,
         confinedToHome,
+        openGateIds,
       );
       raf = requestAnimationFrame(frame);
     };
@@ -1242,6 +1267,7 @@ export function Overworld() {
         if (nearbyRef.current) enterRef.current(nearbyRef.current);
         else if (nearbyCameraRef.current) {
           dispatch({ type: 'SABOTAGE_CAMERA', nodeId: nearbyCameraRef.current.id, actionId: 'dismantle' });
+          investigateRef.current = { x: nearbyCameraRef.current.x, y: nearbyCameraRef.current.y, startedAtMs: performance.now() };
         }
         return;
       }
@@ -1392,7 +1418,10 @@ export function Overworld() {
                 <button
                   key={action.id}
                   className="overworld__prompt overworld__prompt--camera"
-                  onClick={() => dispatch({ type: 'SABOTAGE_CAMERA', nodeId: nearbyCamera.id, actionId: action.id })}
+                  onClick={() => {
+                    dispatch({ type: 'SABOTAGE_CAMERA', nodeId: nearbyCamera.id, actionId: action.id });
+                    investigateRef.current = { x: nearbyCamera.x, y: nearbyCamera.y, startedAtMs: performance.now() };
+                  }}
                 >
                   {action.label} · Heat +{action.heatCost} · {action.quantity}×{' '}
                   {MATERIALS_BY_ID[action.itemId]?.name ?? action.itemId}
@@ -1469,6 +1498,7 @@ export function Overworld() {
                 // state (`rollJunctionBoxLoot` is seeded, not random).
                 const loot = rollJunctionBoxLoot(save, nearbyJunctionBox);
                 dispatch({ type: 'DESTROY_JUNCTION_BOX', nodeId: nearbyJunctionBox.id });
+                investigateRef.current = { x: nearbyJunctionBox.x, y: nearbyJunctionBox.y, startedAtMs: performance.now() };
                 const label = `Found: ${loot.quantity > 1 ? `${loot.quantity}× ` : ''}${loot.name}`;
                 setPicked(label);
                 window.setTimeout(() => setPicked((m) => (m === label ? null : m)), 2200);
@@ -1533,10 +1563,14 @@ export function Overworld() {
                 disabled={!canFlyRecon(save)}
                 onClick={() => {
                   setDroneMenuOpen(false);
-                  setDroneFlight({ mode: 'recon', targetLabel: 'Bellhaven sweep' });
+                  const stage = escalationStage(save.world.day);
+                  const heatTier = save.heat.threshold_tier;
+                  const scanCenter = { x: pos.current.x, y: pos.current.y };
+                  const pois = poisInRange(scanCenter, CAMERA_NODES, JUNCTION_BOX_NODES, activeRoutes(heatTier, stage));
+                  setReconFlight({ center: scanCenter, pois, heatTier, stage });
                 }}
               >
-                Recon flight · Hit: Heat relief · Miss: Heat +{RECON_FAIL_HEAT_PENALTY}
+                Scout flight · find things, EMP a scouted camera · Miss: Heat +{RECON_FAIL_HEAT_PENALTY}
               </button>
               {(() => {
                 const target: KamikazeTarget | null = nearbyCamera
@@ -1556,7 +1590,7 @@ export function Overworld() {
                     onClick={() => {
                       if (!target) return;
                       setDroneMenuOpen(false);
-                      setDroneFlight({ mode: 'kamikaze', target, targetLabel });
+                      setKamikazeFlight({ target, targetLabel });
                     }}
                   >
                     {target ? `Kamikaze strike · ${targetLabel} · one-way` : 'Kamikaze strike · needs a camera or junction box in reach'}
@@ -1568,17 +1602,36 @@ export function Overworld() {
         </div>
       )}
 
-      {droneFlight && (
-        <DroneFlight
-          mode={droneFlight.mode}
+      {reconFlight && (
+        <DroneRecon
           droneTier={Math.min(3, Math.max(1, playerDroneTier(save))) as PlayerDroneTier}
-          targetLabel={droneFlight.targetLabel}
-          onResolve={(hit) => {
-            if (droneFlight.mode === 'recon') dispatch({ type: 'FLY_RECON', hit });
-            else dispatch({ type: 'KAMIKAZE_STRIKE', target: droneFlight.target, hit });
-            setDroneFlight(null);
+          pois={reconFlight.pois}
+          center={reconFlight.center}
+          heatTier={reconFlight.heatTier}
+          stage={reconFlight.stage}
+          empAvailable={canEmpFromAir(Math.min(3, Math.max(1, playerDroneTier(save))) as PlayerDroneTier)}
+          onResolve={({ hit, discoveredCount }) => {
+            dispatch({ type: 'FLY_RECON', hit, discoveredCount });
+            setReconFlight(null);
           }}
-          onClose={() => setDroneFlight(null)}
+          onEmpCamera={(cameraId) => {
+            dispatch({ type: 'RECON_EMP_CAMERA', nodeId: cameraId });
+            const target = CAMERA_NODES.find((n) => n.id === cameraId);
+            if (target) investigateRef.current = { x: target.x, y: target.y, startedAtMs: performance.now() };
+          }}
+          onClose={() => setReconFlight(null)}
+        />
+      )}
+
+      {kamikazeFlight && (
+        <DroneFlight
+          droneTier={Math.min(3, Math.max(1, playerDroneTier(save))) as PlayerDroneTier}
+          targetLabel={kamikazeFlight.targetLabel}
+          onResolve={(hit) => {
+            dispatch({ type: 'KAMIKAZE_STRIKE', target: kamikazeFlight.target, hit });
+            setKamikazeFlight(null);
+          }}
+          onClose={() => setKamikazeFlight(null)}
         />
       )}
 
@@ -1633,7 +1686,7 @@ export function Overworld() {
           (`blockedRef` zeroes touch input under the same two conditions),
           so leaving it on screen was just a control sitting on top of a
           location card with no function, not a real toggle underneath it. */}
-      {!open && !cyberdeckOpen && !droneShootTarget && !droneFlight && (
+      {!open && !cyberdeckOpen && !droneShootTarget && !kamikazeFlight && !reconFlight && (
         <Joystick onChange={(dx, dy) => (touch.current = { dx, dy })} />
       )}
 

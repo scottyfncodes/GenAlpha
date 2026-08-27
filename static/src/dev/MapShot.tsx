@@ -176,6 +176,7 @@ export function MapShot() {
         now,
         0,
         false,
+        new Set<string>(),
       );
     };
     raf = requestAnimationFrame(frame);
