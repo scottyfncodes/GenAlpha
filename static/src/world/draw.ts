@@ -919,16 +919,58 @@ function drawHedge(ctx: CanvasRenderingContext2D, o: Obstacle) {
  * background layer that never competes with an actual, interactive
  * location for the eye. `noise` keyed on the obstacle's own id, same as
  * every other obstacle, so it doesn't reshuffle every frame.
+ *
+ * Only a dozen of these exist, but a street with two or three in view used
+ * to render them as the exact same box — same tint, same flat roofline —
+ * which is the literal wallpaper the map redesign brief calls out: filler
+ * that reads as "buildings placed on a grid" rather than a town. Wall tone
+ * and roof shape now come off the same per-id `rand()` the windows already
+ * used, so neighbours on the same street stop matching. The palette stays
+ * inside `bgWall`'s own desaturated dusk range on purpose — these still
+ * have to lose to an actual location's own detail, not compete with it.
+ *
+ * The seed folds in `o.w`/`o.h`, not just `o.id`: three of these sit in a
+ * row in The Blocks with near-identical ids (`blocks_terrace_s1`..`s3`),
+ * and an id-only seed rolled the same palette entry for all three often
+ * enough to put the wallpaper right back — id-only hashes of near-identical
+ * strings land in the same slice of a small palette more often than chance
+ * alone suggests. Every real instance already has a different width or
+ * height, so folding both in for free is what actually decorrelates
+ * neighbours instead of just widening the palette and hoping.
  */
 function drawDecorativeBuilding(ctx: CanvasRenderingContext2D, o: Obstacle) {
-  const roofH = 12;
+  const rand = noise(`deco:${o.id}:${o.w}:${o.h}`);
 
-  ctx.fillStyle = PALETTE.bgWall;
+  const palette = [
+    { wall: PALETTE.bgWall, roof: PALETTE.bgRoof },
+    { wall: '#413a48', roof: '#302a37' }, // violet-grey
+    { wall: '#3f4538', roof: '#2e3329' }, // olive-grey
+    { wall: '#463b34', roof: '#332a25' }, // warm brown-grey
+    { wall: '#39424a', roof: '#293138' }, // slate-grey
+    { wall: '#40382e', roof: '#2e2820' }, // dark ochre
+  ];
+  const { wall, roof } = palette[Math.floor(rand() * palette.length)];
+  // A pitched roof for anything tall enough to carry one, so the skyline
+  // isn't every flat inset roofline in a row — gated on height rather than
+  // rolled independently, since a gable on a 34px-tall unit has no wall
+  // left under it.
+  const gabled = o.h >= 50 && rand() < 0.5;
+  const roofH = gabled ? Math.min(16, Math.round(o.h * 0.22)) : 12;
+
+  ctx.fillStyle = wall;
   ctx.fillRect(o.x, o.y + roofH, o.w, o.h - roofH);
-  ctx.fillStyle = PALETTE.bgRoof;
-  ctx.fillRect(o.x + 3, o.y, o.w - 6, roofH);
+  ctx.fillStyle = roof;
+  if (gabled) {
+    ctx.beginPath();
+    ctx.moveTo(o.x, o.y + roofH);
+    ctx.lineTo(o.x + o.w / 2, o.y);
+    ctx.lineTo(o.x + o.w, o.y + roofH);
+    ctx.closePath();
+    ctx.fill();
+  } else {
+    ctx.fillRect(o.x + 3, o.y, o.w - 6, roofH);
+  }
 
-  const rand = noise(`deco:${o.id}`);
   const w = 7;
   const h = 9;
   const gap = 9;
