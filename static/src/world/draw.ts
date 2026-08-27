@@ -241,6 +241,14 @@ const PALETTE = {
   pavingDark: '#4c5568',
   bandstandRoof: '#c8532e',
   bandstandPost: '#232935',
+  // Town Square's clock tower — warm terracotta brick, deliberately nothing
+  // like the SafeTrace Tower's cold steel-blue (`towerPanel`) or the
+  // Scrapyard's weathered brown (`smokestack`): Bellhaven's three skyline
+  // landmarks should read as three different things before a player is
+  // close enough to tell which district they're actually standing in.
+  clockTower: '#8a5a42',
+  clockTowerDark: '#6b4433',
+  clockFace: '#e8dcc0',
   bench: '#5a4530',
   banner: '#e8dcc0',
   bannerText: '#c8532e',
@@ -959,7 +967,55 @@ function drawHedge(ctx: CanvasRenderingContext2D, o: Obstacle) {
  * height, so folding both in for free is what actually decorrelates
  * neighbours instead of just widening the palette and hoping.
  */
+/**
+ * A corrugated storage shed — the same wall/roof fallback tones
+ * `drawWarehouse` uses, so this reads as kin to The Works' real warehouses
+ * rather than another house. A roll-up door band stands in for a doorway
+ * (there isn't one — this is still background, no name, no prompt) and a
+ * roof vent breaks up the roofline. Reserved for Southside's own two
+ * "stores building" fillers — see the call site's own comment.
+ */
+function drawDepotShed(ctx: CanvasRenderingContext2D, o: Obstacle) {
+  const roofH = 8;
+  ctx.fillStyle = PALETTE.wallB;
+  ctx.fillRect(o.x, o.y + roofH, o.w, o.h - roofH);
+  ctx.fillStyle = PALETTE.corrugated;
+  ctx.fillRect(o.x, o.y, o.w, roofH);
+  ctx.strokeStyle = PALETTE.corrugatedLine;
+  ctx.lineWidth = 1;
+  for (let x = o.x + 3; x < o.x + o.w; x += 5) {
+    ctx.beginPath();
+    ctx.moveTo(px(x), o.y);
+    ctx.lineTo(px(x), o.y + roofH);
+    ctx.stroke();
+  }
+
+  const doorW = o.w * 0.6;
+  const doorX = o.x + (o.w - doorW) / 2;
+  const doorY = o.y + roofH + 4;
+  const doorH = o.h - roofH - 8;
+  ctx.fillStyle = PALETTE.rollDoor;
+  ctx.fillRect(px(doorX), px(doorY), doorW, doorH);
+  ctx.strokeStyle = PALETTE.rollDoorLine;
+  ctx.lineWidth = 1;
+  for (let y = doorY + 4; y < doorY + doorH; y += 4) {
+    ctx.beginPath();
+    ctx.moveTo(px(doorX), px(y));
+    ctx.lineTo(px(doorX + doorW), px(y));
+    ctx.stroke();
+  }
+
+  ctx.fillStyle = PALETTE.vent;
+  ctx.fillRect(px(o.x + o.w * 0.75), o.y - 3, 5, 4);
+}
 function drawDecorativeBuilding(ctx: CanvasRenderingContext2D, o: Obstacle) {
+  // Southside's own two: "the stores building" the district's doc comment
+  // describes, not another anonymous house — the maintenance compound's
+  // whole point is that it could plausibly run the surveillance rollout's
+  // physical side, and a building that reads as a house undercuts that on
+  // sight before a player reads a word of it.
+  if (o.id === 'filler_100' || o.id === 'southside_unit_a') return drawDepotShed(ctx, o);
+
   const rand = noise(`deco:${o.id}:${o.w}:${o.h}`);
 
   const palette = [
@@ -2882,12 +2938,66 @@ function drawHouse(ctx: CanvasRenderingContext2D, loc: OverworldLocation, tier: 
  * text — the one lone house in that whole district was reading as any
  * other house instead of the specific abandoned one the writing means.
  * Same id-keyed, collision-free approach as `drawWarehouseYardProps`.
+ *
+ * `nova_house` gets a different kind of flourish for a different reason:
+ * The Heights is deliberately the quietest block on the map (home turf, no
+ * camera at stage 0), which is right for the story but leaves it with
+ * nothing a player would specifically remember about the street itself.
+ * A little free library out front is the map-redesign brief's own example
+ * of a "weird little neighbourhood landmark" — no narrative weight, no
+ * blurb, just a reason to notice this one front yard on the way past.
  */
 function drawHouseYardProps(ctx: CanvasRenderingContext2D, loc: OverworldLocation) {
-  if (loc.id !== 'casey_house') return;
+  if (loc.id === 'casey_house') {
+    drawForSaleSign(ctx, loc.x - 14, loc.y + loc.h - 4);
+    drawSwingSet(ctx, loc.x + loc.w + 20, loc.y + loc.h - 2);
+  } else if (loc.id === 'nova_house') {
+    drawLittleLibrary(ctx, loc.x - 16, loc.y + loc.h - 4);
+  }
+}
 
-  drawForSaleSign(ctx, loc.x - 14, loc.y + loc.h - 4);
-  drawSwingSet(ctx, loc.x + loc.w + 20, loc.y + loc.h - 2);
+/**
+ * A little free library: a post, a birdhouse-sized box with a peaked roof,
+ * and a shelf of books behind its own glass front. See `drawHouseYardProps`
+ * for why Ellen's is the one yard on the block that gets one.
+ */
+function drawLittleLibrary(ctx: CanvasRenderingContext2D, x: number, groundY: number) {
+  const postH = 22;
+  const boxW = 14;
+  const boxH = 16;
+  const boxY = groundY - postH - boxH;
+
+  ctx.fillStyle = 'rgba(0,0,0,0.18)';
+  ctx.beginPath();
+  ctx.ellipse(px(x), px(groundY + 1), 5, 2, 0, 0, Math.PI * 2);
+  ctx.fill();
+
+  ctx.strokeStyle = PALETTE.porchPost;
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(px(x), px(groundY));
+  ctx.lineTo(px(x), px(boxY + boxH));
+  ctx.stroke();
+
+  ctx.fillStyle = PALETTE.plank;
+  ctx.fillRect(px(x - boxW / 2), px(boxY), boxW, boxH);
+  ctx.fillStyle = PALETTE.pitchRoofB;
+  ctx.beginPath();
+  ctx.moveTo(px(x - boxW / 2 - 2), px(boxY));
+  ctx.lineTo(px(x), px(boxY - 6));
+  ctx.lineTo(px(x + boxW / 2 + 2), px(boxY));
+  ctx.closePath();
+  ctx.fill();
+
+  // The glass front, and a row of tiny book spines behind it — the detail
+  // that makes it a library and not just a nesting box.
+  ctx.fillStyle = PALETTE.windowDark;
+  ctx.fillRect(px(x - boxW / 2 + 2), px(boxY + 3), boxW - 4, boxH - 6);
+  const spineColors = [PALETTE.bandstandRoof, PALETTE.towerScreenCalm, PALETTE.forSaleSign, PALETTE.gardenLeaf];
+  for (let i = 0; i < 4; i++) {
+    ctx.fillStyle = spineColors[i % spineColors.length];
+    ctx.fillRect(px(x - boxW / 2 + 3 + i * 2.5), px(boxY + 4), 2, boxH - 8);
+  }
 }
 
 /**
@@ -3176,14 +3286,54 @@ function drawPlaza(ctx: CanvasRenderingContext2D, loc: OverworldLocation) {
   }
 
   const bx = loc.x + loc.w / 2;
-  const by = loc.y + loc.h * 0.4;
-  const bw = 36;
-  const bh = 8;
-  ctx.fillStyle = PALETTE.bandstandPost;
-  ctx.fillRect(px(bx - bw / 2 + 2), px(by - 2), 3, 20);
-  ctx.fillRect(px(bx + bw / 2 - 5), px(by - 2), 3, 20);
-  ctx.fillStyle = PALETTE.bandstandRoof;
-  ctx.fillRect(px(bx - bw / 2), px(by - bh), bw, bh);
+
+  // The clock tower — Main Street's own skyline landmark, standing where
+  // the bandstand used to. Downtown had no answer to the SafeTrace Tower
+  // or the Scrapyard's smokestack: every other district a player can name
+  // from across the map by its own silhouette, and this was the one gap.
+  // Warm brick rather than either of those two, and short enough that the
+  // Tower still reads as the tallest thing in Bellhaven — this is
+  // Downtown's landmark, not a rival to the Civic Zone's.
+  const towerBaseY = loc.y + loc.h * 0.46;
+  const towerW = 20;
+  const towerH = 58;
+  const capH = 9;
+  const towerTopY = towerBaseY - towerH;
+
+  ctx.fillStyle = 'rgba(0,0,0,0.2)';
+  ctx.beginPath();
+  ctx.ellipse(px(bx), px(towerBaseY + 2), towerW / 2 + 3, 4, 0, 0, Math.PI * 2);
+  ctx.fill();
+
+  ctx.fillStyle = PALETTE.clockTower;
+  ctx.fillRect(px(bx - towerW / 2), px(towerTopY), towerW, towerH);
+  ctx.fillStyle = PALETTE.clockTowerDark;
+  ctx.fillRect(px(bx - towerW / 2), px(towerTopY), towerW * 0.28, towerH);
+
+  ctx.fillStyle = PALETTE.clockTowerDark;
+  ctx.beginPath();
+  ctx.moveTo(px(bx - towerW / 2 - 3), px(towerTopY));
+  ctx.lineTo(px(bx), px(towerTopY - capH));
+  ctx.lineTo(px(bx + towerW / 2 + 3), px(towerTopY));
+  ctx.closePath();
+  ctx.fill();
+
+  // The clock face, high on the shaft — a pale disc with two hands fixed
+  // at ten past six, the one clock in Bellhaven that always agrees with
+  // itself.
+  const clockY = towerTopY + 16;
+  ctx.fillStyle = PALETTE.clockFace;
+  ctx.beginPath();
+  ctx.arc(px(bx), px(clockY), 6, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.strokeStyle = PALETTE.clockTowerDark;
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(px(bx), px(clockY));
+  ctx.lineTo(px(bx), px(clockY - 4));
+  ctx.moveTo(px(bx), px(clockY));
+  ctx.lineTo(px(bx + 3), px(clockY));
+  ctx.stroke();
 
   ctx.strokeStyle = PALETTE.bandstandPost;
   ctx.lineWidth = 2;
