@@ -34,6 +34,7 @@ import {
 } from '../systems/materials';
 import { applyCatch } from '../systems/consequences';
 import { checkDeadDrop } from '../world/deaddrop';
+import { resolveSabotageNode } from '../world/sabotagenodes';
 import {
   markSwept,
   rearmIfClear,
@@ -82,6 +83,7 @@ type Action =
   | { type: 'SABOTAGE_CAMERA'; nodeId: string; actionId: SabotageActionId }
   | { type: 'DESTROY_JUNCTION_BOX'; nodeId: string }
   | { type: 'CHECK_DEAD_DROP' }
+  | { type: 'SABOTAGE_NODE'; nodeId: string; outcome: RunOutcome }
   | { type: 'DISABLE_DRONE'; droneId: string; hit: boolean }
   | { type: 'FLY_RECON'; hit: boolean }
   | { type: 'KAMIKAZE_STRIKE'; target: KamikazeTarget; hit: boolean }
@@ -269,6 +271,9 @@ function applyAction(state: SaveState | null, action: Action): SaveState | null 
 
     case 'CHECK_DEAD_DROP':
       return checkDeadDrop(state);
+
+    case 'SABOTAGE_NODE':
+      return resolveSabotageNode(state, action.nodeId, action.outcome);
 
     case 'DISABLE_DRONE':
       return disableDrone(state, action.droneId, action.hit);

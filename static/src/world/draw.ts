@@ -416,6 +416,7 @@ export function drawTown(
    * which is what actually keeps it hidden (see `world/deaddrop.ts`); this
    * never draws a locked or dimmed version, only nothing at all. */
   deadDrop: { x: number; y: number; checkable: boolean } | null,
+  sabotageRelays: { x: number; y: number; sabotageable: boolean; damaged: boolean }[],
   drones: { x: number; y: number; radius: number; takeable: boolean }[],
   cops: { x: number; y: number; radius: number }[],
   /** Poles the player has taken apart at least once — see
@@ -512,6 +513,9 @@ export function drawTown(
   // door" above: this door doesn't exist to draw until resistanceIntel
   // says it does.
   if (deadDrop) drawDeadDrop(ctx, deadDrop.x, deadDrop.y, deadDrop.checkable, now);
+
+  // Sabotage relays — always visible, same as a junction box.
+  for (const r of sabotageRelays) drawSabotageRelay(ctx, r, now);
 
   // Detection rings under the vans, so a van sitting still doesn't visually
   // "arrive" on top of its own danger zone.
@@ -5207,6 +5211,47 @@ function drawJunctionBox(
   ctx.globalAlpha = node.damaged ? 0.6 : 1;
   ctx.fillStyle = PALETTE.junctionDark;
   ctx.fillRect(x + size / 2 - 1, y + size - 6, 2, 4);
+  ctx.globalAlpha = 1;
+
+  if (node.damaged) drawSabotageDamage(ctx, x, y, size, now);
+}
+
+/**
+ * A repeatable sabotage target (`world/sabotagenodes.ts`, Audit item #5) —
+ * a street cabinet, always visible whether or not the Sabotage skill is
+ * unlocked yet, same "locked door is still a door" rule a junction box
+ * follows. Deliberately reads differently from `drawJunctionBox` up close
+ * (vent slats instead of a hazard-stripe lid) even though both are "a small
+ * grey box on a corner" from a distance — two mechanics, two textures.
+ */
+function drawSabotageRelay(
+  ctx: CanvasRenderingContext2D,
+  node: { x: number; y: number; sabotageable: boolean; damaged: boolean },
+  now: number,
+) {
+  const size = 14;
+  const x = px(node.x - size / 2);
+  const y = px(node.y - size / 2);
+
+  if (node.sabotageable) drawPulseGlow(ctx, x + size / 2, y + size / 2, size / 2, now);
+
+  ctx.globalAlpha = node.damaged ? 0.6 : 1;
+  ctx.fillStyle = PALETTE.junctionBody;
+  ctx.fillRect(x, y, size, size);
+  ctx.strokeStyle = PALETTE.junctionDark;
+  ctx.lineWidth = 1;
+  ctx.strokeRect(x - 0.5, y - 0.5, size + 1, size + 1);
+
+  if (!node.damaged) {
+    ctx.strokeStyle = PALETTE.junctionDark;
+    ctx.lineWidth = 1;
+    for (let vy = y + 3; vy < y + size - 2; vy += 3) {
+      ctx.beginPath();
+      ctx.moveTo(x + 2, vy);
+      ctx.lineTo(x + size - 2, vy);
+      ctx.stroke();
+    }
+  }
   ctx.globalAlpha = 1;
 
   if (node.damaged) drawSabotageDamage(ctx, x, y, size, now);

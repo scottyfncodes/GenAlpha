@@ -150,11 +150,66 @@ export const DATA_ANNEX_DOOR: SabotageConfig = {
   ],
 };
 
+/**
+ * Player-Freedom Audit item #5's own template — the repeatable overworld
+ * targets (`world/sabotagenodes.ts`), not a scripted one-off. Same grey
+ * street cabinet at every position it's actually placed, on purpose: the
+ * point isn't a new location to discover, it's a verb the player can go
+ * use again whenever the story isn't handing them a reason to.
+ */
+export const SURVEILLANCE_RELAY: SabotageConfig = {
+  missionId: 'surveillance_relay',
+  skinId: 'infrastructure',
+  title: 'Surveillance Relay',
+  brief: 'A grey cabinet on the corner, humming, with more cable coming out of it than a traffic light needs.',
+  alertnessBudget: ALERTNESS_BUDGET[2],
+  baseAlertnessBudget: ALERTNESS_BUDGET[2],
+  casingDetails: [
+    {
+      id: 'vent',
+      label: 'The vent grille',
+      finding: 'Four screws, all of them stripped soft from somebody doing this before you.',
+    },
+    {
+      id: 'sightline',
+      label: 'Who can actually see it',
+      finding: 'A shopfront window, angled away. Nobody in this town looks at a utility cabinet on purpose.',
+    },
+    {
+      id: 'hum',
+      label: 'The hum itself',
+      finding: 'It changes pitch on a cycle — busy, then idle, then busy again. Idle is quieter to work through.',
+    },
+  ],
+  windowBeats: [
+    {
+      id: 'open',
+      prompt: 'The panel wants either the right screwdriver or a reason not to need one.',
+      seconds: 12,
+      options: [
+        { id: 'screws', text: 'Back the stripped screws out slow', risk: 1, requiresCasingDetail: 'vent', outcome: 'They turn easier than they look. Somebody really has done this before.' },
+        { id: 'pry', text: 'Just pry the grille', risk: 4, outcome: 'It comes off. It also bends, which anyone walking past tomorrow will clock.' },
+      ],
+    },
+    {
+      id: 'cut',
+      prompt: 'Inside: a fan, a board, and a bundle of cable with one obvious feed.',
+      seconds: 12,
+      options: [
+        { id: 'idle', text: 'Wait for the hum to drop, then pull it', risk: 1, requiresCasingDetail: 'hum', outcome: 'You pull it on the quiet half of the cycle. Nothing so much as flickers.' },
+        { id: 'window', text: 'Work with your back to the shopfront’s blind side', risk: 1, requiresCasingDetail: 'sightline', outcome: 'You’re a shape nobody was looking for in a place nobody looks.' },
+        { id: 'blind', text: 'Just pull the whole bundle', risk: 4, outcome: 'It comes free in your hand. The fan spins down behind you like it’s sighing.' },
+      ],
+    },
+  ],
+};
+
 export const SABOTAGE_MISSIONS: Record<string, SabotageConfig> = {
   [DEJA_JOBSITE.missionId]: DEJA_JOBSITE,
   [DATA_ANNEX_DOOR.missionId]: DATA_ANNEX_DOOR,
   [HELIO_INTERCEPT.missionId]: HELIO_INTERCEPT,
   [UPLINK_CABINET.missionId]: UPLINK_CABINET,
+  [SURVEILLANCE_RELAY.missionId]: SURVEILLANCE_RELAY,
 };
 
 export interface BuildSabotageArgs {

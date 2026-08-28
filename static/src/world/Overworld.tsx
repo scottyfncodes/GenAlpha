@@ -44,6 +44,17 @@ import {
 import { boardTier, droneToolTier, gpsTier, owns, playerDroneTier } from '../systems/market';
 import { CLEARABLE_OBSTACLES, type ClearableObstacle } from './clearables';
 import { canCheckDeadDrop, DEAD_DROP_CASH, DEAD_DROP_POS } from './deaddrop';
+import {
+  canSabotageNode,
+  SABOTAGE_INTERACT_RADIUS,
+  SABOTAGE_NODE_CASH,
+  SABOTAGE_NODE_RESPAWN_DAYS,
+  SABOTAGE_NODES,
+  type SabotageNode,
+} from './sabotagenodes';
+import { buildSabotageConfig, SURVEILLANCE_RELAY } from '../content/sabotage';
+import { MissionBriefing } from '../ui/minigames/MissionBriefing';
+import { SabotageMission } from '../ui/minigames/SabotageMission';
 import { FOOT_REVEAL_RADIUS, GPS_REVEAL_RADIUS } from './exploration';
 import { consequenceFor, HURT_UNTIL_DAY_FLAG } from '../systems/consequences';
 import { MATERIALS_BY_ID } from '../content/materials';
@@ -342,6 +353,14 @@ export function Overworld() {
    * plain boolean rather than a node object, since there's only ever the
    * one and it either exists for this player yet or it doesn't. */
   const [nearbyDeadDrop, setNearbyDeadDrop] = useState(false);
+  /** The repeatable sabotage relay close enough to case right now, if any —
+   * same "spending Heat is a decision, not a walk" shape as a camera or
+   * junction box. */
+  const [nearbySabotageNode, setNearbySabotageNode] = useState<SabotageNode | null>(null);
+  /** The one currently open for play — a full-screen takeover, same as the
+   * cyberdeck's own Hack app, not a HUD panel. */
+  const [activeSabotageNode, setActiveSabotageNode] = useState<SabotageNode | null>(null);
+  const [sabotageBriefed, setSabotageBriefed] = useState(false);
   /**
    * How many cameras a given box actually carries *today* — stage-gated
    * (`world/coverage.ts`, `systems/coverage.ts`), because a box that will
@@ -664,6 +683,7 @@ export function Overworld() {
   const nearbyJunctionBoxRef = useRef<JunctionBoxNode | null>(null);
   const nearbyClearableRef = useRef<ClearableObstacle | null>(null);
   const nearbyDeadDropRef = useRef(false);
+  const nearbySabotageNodeRef = useRef<SabotageNode | null>(null);
   const nearbyDroneRef = useRef<{ id: string; x: number; y: number } | null>(null);
   /**
    * Whichever camera/hack/junction node is currently in range and tappable,
@@ -1296,6 +1316,23 @@ export function Overworld() {
         setNearbyDeadDrop(isNearDeadDrop);
       }
 
+      /* Repeatable sabotage relays (`world/sabotagenodes.ts`) — same
+       * shape as the clearable/dead-drop checks above: three fixed points,
+       * no relocate/respawn-position machinery needed. */
+      let closestSabotageNode: SabotageNode | null = null;
+      let closestSabotageDist = SABOTAGE_INTERACT_RADIUS;
+      for (const n of SABOTAGE_NODES) {
+        const dist = Math.hypot(n.x - pos.current.x, n.y - pos.current.y);
+        if (dist < closestSabotageDist) {
+          closestSabotageDist = dist;
+          closestSabotageNode = n;
+        }
+      }
+      if (closestSabotageNode?.id !== nearbySabotageNodeRef.current?.id) {
+        nearbySabotageNodeRef.current = closestSabotageNode;
+        setNearbySabotageNode(closestSabotageNode);
+      }
+
       // One shared record of whatever's currently tappable, in the same
       // camera > hack > junction priority order the prompt panels below
       // already use — the canvas tap handler hit-tests against this rather
@@ -1619,6 +1656,14 @@ export function Overworld() {
         ? { x: DEAD_DROP_POS.x, y: DEAD_DROP_POS.y, checkable: canCheckDeadDrop(saveRef.current) }
         : null;
 
+      const sabotageRelayDraw = SABOTAGE_NODES.map((n) => {
+        const record = saveRef.current.world.collectedNodes.find((c) => c.nodeId === n.id);
+        const damaged = Boolean(
+          record && saveRef.current.world.day < record.collectedOnDay + (record.respawnDays ?? SABOTAGE_NODE_RESPAWN_DAYS),
+        );
+        return { x: n.x, y: n.y, sabotageable: !damaged && canSabotageNode(saveRef.current, n), damaged };
+      });
+
       // Flying replaces the camera's own subject — same real town, same
       // day/stage-derived lists above, just following the drone instead of
       // the walker. This is the one line that makes "the same view, just
@@ -1648,6 +1693,7 @@ export function Overworld() {
         hackDraw,
         junctionBoxDraw,
         deadDropDraw,
+        sabotageRelayDraw,
         droneDraw,
         copDraw,
         scarDraw,
@@ -1959,6 +2005,34 @@ export function Overworld() {
       )}
 
       {/*
+        A repeatable sabotage relay (`world/sabotagenodes.ts`, Audit item
+        #5) — same priority slot a junction box gets, one step below it,
+        since both are "something to spend Heat on" rather than a doorway.
+        No tap-to-reveal step: three fixed points don't need it.
+      */}
+      {!nearby && !nearbyCamera && !nearbyHack && !nearbyJunctionBox && nearbySabotageNode && !open && (
+        <div className="overworld__sabotage">
+          <p className="overworld__why">
+            {SURVEILLANCE_RELAY.brief} Cracking it feeds nobody's dinner-table story but yours.
+          </p>
+          <button
+            className="overworld__prompt overworld__prompt--junction"
+            disabled={!canSabotageNode(save, nearbySabotageNode)}
+            onClick={() => {
+              setActiveSabotageNode(nearbySabotageNode);
+              setSabotageBriefed(false);
+            }}
+          >
+            {!save.skills.sabotage.unlocked
+              ? 'Surveillance Relay · needs Deja’s training'
+              : canSabotageNode(save, nearbySabotageNode)
+                ? 'Case the relay'
+                : 'Already worked — give it a few days'}
+          </button>
+        </div>
+      )}
+
+      {/*
         The physical-obstacle progression (`world/clearables.ts`, Audit
         item #1). No tap-to-reveal step, unlike everything else on this
         list — the prompt shows the moment the player's in range, since
@@ -1968,7 +2042,7 @@ export function Overworld() {
         do anything about it yet, and the game says why rather than
         staying silent about it.
       */}
-      {!nearby && !nearbyCamera && !nearbyHack && !nearbyJunctionBox && nearbyClearable && !open && (
+      {!nearby && !nearbyCamera && !nearbyHack && !nearbyJunctionBox && !nearbySabotageNode && nearbyClearable && !open && (
         <div className="overworld__sabotage">
           <p className="overworld__why">{nearbyClearable.lockedHint}</p>
           <button
@@ -2001,7 +2075,7 @@ export function Overworld() {
         the same "locked door is still a door" rule the rest of this list
         follows once it's actually visible at all.
       */}
-      {!nearby && !nearbyCamera && !nearbyHack && !nearbyJunctionBox && !nearbyClearable && nearbyDeadDrop && !open && (
+      {!nearby && !nearbyCamera && !nearbyHack && !nearbyJunctionBox && !nearbySabotageNode && !nearbyClearable && nearbyDeadDrop && !open && (
         <div className="overworld__sabotage">
           <p className="overworld__why">
             A loose slab, the kind you’d only look twice at if somebody told you to. Bishop told you to.
@@ -2141,6 +2215,43 @@ export function Overworld() {
       )}
 
       {active && <SceneView scene={active} onClose={leave} />}
+
+      {/* The sabotage relay's own full-screen takeover, same shape as the
+          cyberdeck's Hack app: brief, then the mechanic, then closed. */}
+      {activeSabotageNode && (
+        <div className="scene__stage">
+          {!sabotageBriefed ? (
+            <MissionBriefing
+              kind="sabotage"
+              language="B"
+              title={SURVEILLANCE_RELAY.title}
+              framing="Nobody built a story around this. That's the point."
+              brief={SURVEILLANCE_RELAY.brief}
+              onStart={() => setSabotageBriefed(true)}
+              onCancel={() => setActiveSabotageNode(null)}
+            />
+          ) : (
+            <SabotageMission
+              config={buildSabotageConfig({
+                missionId: SURVEILLANCE_RELAY.missionId,
+                heatTier: save.heat.threshold_tier,
+              })}
+              inventory={save.economy.inventory.map((i) => i.itemId)}
+              onResolve={(outcome) => {
+                dispatch({ type: 'SABOTAGE_NODE', nodeId: activeSabotageNode.id, outcome });
+                setActiveSabotageNode(null);
+                if (outcome === 'clean' || outcome === 'messy') {
+                  showPickup(
+                    'RELAY DOWN',
+                    `$${outcome === 'clean' ? SABOTAGE_NODE_CASH : Math.ceil(SABOTAGE_NODE_CASH / 2)}.`,
+                    2400,
+                  );
+                }
+              }}
+            />
+          )}
+        </div>
+      )}
 
       {open && !active && (
         <div className={`overworld__scene ${open.language === 'B' ? 'lang-b' : 'lang-a'}`}>
