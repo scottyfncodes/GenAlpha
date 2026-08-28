@@ -63,8 +63,15 @@ import { drawTown } from './draw';
 import { Market } from '../ui/Market';
 import { Garage } from '../ui/Garage';
 import { DroneShoot } from '../ui/minigames/DroneShoot';
-import { DroneFlight } from '../ui/minigames/DroneFlight';
-import { RECON_FAIL_HEAT_PENALTY, type PlayerDroneTier } from '../world/playerdrone';
+import {
+  DRONE_BATTERY_MS,
+  DRONE_FLIGHT_REVEAL_RADIUS,
+  DRONE_FLIGHT_SPEED,
+  DRONE_LANDING_RADIUS,
+  KAMIKAZE_BATTERY_MS,
+  KAMIKAZE_IMPACT_RADIUS,
+  type PlayerDroneTier,
+} from '../world/playerdrone';
 import { DRONE_SHOOT_MISS_HEAT_PENALTY } from '../systems/droneshoot';
 import { play } from '../systems/audio';
 import './overworld.css';
@@ -303,10 +310,24 @@ export function Overworld() {
    * resolution or a free walk-away. */
   const [droneShootTarget, setDroneShootTarget] = useState<string | null>(null);
   /** The flight currently in progress, if any — which mode, and for a
-   * kamikaze run, which node it's aimed at. */
+   * kamikaze run, which node it's aimed at. Driving the flight itself is
+   * the frame loop's job (it reads this via `droneFlightRef`); this copy
+   * is what the JSX below reacts to. */
   const [droneFlight, setDroneFlight] = useState<
-    { mode: 'recon'; targetLabel: string } | { mode: 'kamikaze'; target: KamikazeTarget; targetLabel: string } | null
+    { mode: 'recon' } | { mode: 'kamikaze'; target: KamikazeTarget; targetLabel: string } | null
   >(null);
+  const droneFlightRef = useRef(droneFlight);
+  droneFlightRef.current = droneFlight;
+  /** How the last flight actually ended, shown on a brief result line before
+   * control hands back — mirrors the old minigame's own "Home."/"Impact."/
+   * "Shot down." beat, just with a fourth outcome now that the battery can
+   * cost the airframe outright. */
+  const [droneResult, setDroneResult] = useState<'landed' | 'confiscated' | 'impact' | 'crashed' | null>(null);
+  const [droneBatteryPct, setDroneBatteryPct] = useState(100);
+  /** Recon only — whether the drone is currently close enough to its own
+   * launch point to land. Kamikaze has no equivalent: reaching the target
+   * resolves the flight on its own, there's nothing to press. */
+  const [droneCanLand, setDroneCanLand] = useState(false);
   /**
    * Held in state, not derived: a scene's own effects change the chapter part
    * way through, which would otherwise unmount the scene mid-read.
@@ -426,9 +447,124 @@ export function Overworld() {
     setGarageOpen(false);
   };
 
+  /**
+   * Launches a recon flight from wherever the player is standing right
+   * now. The drone starts at the pilot's own position and facing — it's
+   * the same body taking off, not spawning somewhere else — and the
+   * battery is sized off the airframe's own tier (`DRONE_BATTERY_MS`).
+   */
+  const launchRecon = () => {
+    const tier = Math.min(3, Math.max(1, playerDroneTier(save))) as PlayerDroneTier;
+    dronePos.current = { ...pos.current };
+    droneLaunchPos.current = { ...pos.current };
+    droneFacing.current = { ...facing.current };
+    droneTargetPosRef.current = null;
+    droneBatteryRef.current = DRONE_BATTERY_MS[tier];
+    droneTotalBatteryRef.current = DRONE_BATTERY_MS[tier];
+    droneSpeedRef.current = DRONE_FLIGHT_SPEED[tier];
+    droneRevealRadiusRef.current = DRONE_FLIGHT_REVEAL_RADIUS[tier];
+    lastDroneRevealPosRef.current = { x: -9999, y: -9999 };
+    droneResolvedRef.current = false;
+    setDroneResult(null);
+    setDroneBatteryPct(100);
+    setDroneCanLand(false);
+    setDroneMenuOpen(false);
+    setDroneFlight({ mode: 'recon' });
+  };
+
+  /** Same shape as `launchRecon`, aimed at a fixed target instead of open
+   * air — see the frame loop's own drone block for how the two modes
+   * actually resolve differently once the flight is under way. */
+  const launchKamikaze = (target: KamikazeTarget, targetLabel: string, targetPos: { x: number; y: number }) => {
+    const tier = Math.min(3, Math.max(1, playerDroneTier(save))) as PlayerDroneTier;
+    dronePos.current = { ...pos.current };
+    droneLaunchPos.current = { ...pos.current };
+    droneFacing.current = { ...facing.current };
+    droneTargetPosRef.current = targetPos;
+    droneBatteryRef.current = KAMIKAZE_BATTERY_MS;
+    droneTotalBatteryRef.current = KAMIKAZE_BATTERY_MS;
+    droneSpeedRef.current = DRONE_FLIGHT_SPEED[tier];
+    droneRevealRadiusRef.current = DRONE_FLIGHT_REVEAL_RADIUS[tier];
+    lastDroneRevealPosRef.current = { x: -9999, y: -9999 };
+    droneResolvedRef.current = false;
+    setDroneResult(null);
+    setDroneBatteryPct(100);
+    setDroneCanLand(false);
+    setDroneMenuOpen(false);
+    setDroneFlight({ mode: 'kamikaze', target, targetLabel });
+  };
+
+  /**
+   * Settles what the flight actually cost — `flyRecon`/`kamikazeStrike`
+   * (systems/materials.ts) do the Heat/inventory work; this just picks
+   * which of the two to call and shows the result line for a beat before
+   * handing control back. Guarded by `droneResolvedRef` so the frame
+   * loop's own battery check and landing/impact check can never both fire
+   * this in the same flight.
+   */
+  const resolveDroneFlight = (hit: boolean) => {
+    const flight = droneFlightRef.current;
+    if (!flight || droneResolvedRef.current) return;
+    droneResolvedRef.current = true;
+    if (flight.mode === 'recon') {
+      dispatch({ type: 'FLY_RECON', hit });
+      setDroneResult(hit ? 'landed' : 'confiscated');
+    } else {
+      dispatch({ type: 'KAMIKAZE_STRIKE', target: flight.target, hit });
+      setDroneResult(hit ? 'impact' : 'crashed');
+    }
+    window.setTimeout(() => {
+      setDroneFlight(null);
+      setDroneResult(null);
+    }, 1400);
+  };
+
+  /** A free walk-away, same contract the old minigame's own `onClose` held
+   * to: only an actual resolution above ever costs Heat or the airframe.
+   * Whatever ground got scouted along the way is already committed —
+   * `REVEAL_AREA` dispatches live as the drone flies, not in a batch here. */
+  const closeDroneFlight = () => {
+    droneResolvedRef.current = true;
+    setDroneFlight(null);
+    setDroneResult(null);
+  };
+
   // Spawn on the saved location rather than a hardcoded corner, so a reload
   // doesn't put the player across town from where the story left them.
   const pos = useRef(spawnFor(save.player.currentLocation));
+
+  /**
+   * The drone's own position, facing and launch point — separate refs
+   * entirely from the walker's own `pos`/`facing`, since piloting a drone
+   * doesn't move the kid: they're standing wherever they launched from for
+   * the whole flight (`blockedRef` already freezes their own input the
+   * same way it does for a scene or the Cyberdeck). Movement input gets
+   * redirected here instead of `pos` for exactly the duration a flight is
+   * active — see the frame loop's own drone block.
+   */
+  const dronePos = useRef({ x: 0, y: 0 });
+  const droneFacing = useRef({ x: 0, y: 1 });
+  const droneLaunchPos = useRef({ x: 0, y: 0 });
+  /** ms remaining. The one and only risk a flight carries now — see
+   * `world/playerdrone.ts`'s own doc comment. */
+  const droneBatteryRef = useRef(0);
+  const droneTotalBatteryRef = useRef(1);
+  /** Tier-scaled speed/reveal-radius, fixed for the flight at launch time
+   * (`playerDroneTier` needs the always-fresh `save` prop, which the frame
+   * loop's own closure can't read directly — same reason every other
+   * per-frame value here comes off a ref instead). */
+  const droneSpeedRef = useRef(DRONE_FLIGHT_SPEED[1]);
+  const droneRevealRadiusRef = useRef(DRONE_FLIGHT_REVEAL_RADIUS[1]);
+  /** Kamikaze only — the world position the flight is aimed at. */
+  const droneTargetPosRef = useRef<{ x: number; y: number } | null>(null);
+  /** Same 24px-moved throttle `lastRevealPosRef` uses for the walker's own
+   * foot reveal — a flight's continuous scouted-fog reveal shouldn't
+   * dispatch every single frame either. */
+  const lastDroneRevealPosRef = useRef({ x: -9999, y: -9999 });
+  /** True once a resolution (landed, confiscated, impact, crashed) has
+   * fired this flight — guards against firing it twice in the same or a
+   * following frame while the brief result screen is still up. */
+  const droneResolvedRef = useRef(false);
   /**
    * Tracks the opening chapter directly (`currentChapter === 'act1_glitch_01'`),
    * not `confinedToHome` — that also depends on whether a scene is open, and
@@ -570,10 +706,84 @@ export function Overworld() {
 
       let dx = blockedRef.current ? 0 : touch.current.dx;
       let dy = blockedRef.current ? 0 : touch.current.dy;
-      if (keys.current.has('a') || keys.current.has('arrowleft')) dx -= 1;
-      if (keys.current.has('d') || keys.current.has('arrowright')) dx += 1;
-      if (keys.current.has('w') || keys.current.has('arrowup')) dy -= 1;
-      if (keys.current.has('s') || keys.current.has('arrowdown')) dy += 1;
+      // Gated on the same flag the touch axis already is above — a key
+      // still held down from before a scene/Cyberdeck/flight opened
+      // shouldn't keep nudging the walker for as long as it's held. This
+      // matters far more than it used to now that a drone flight can hold
+      // WASD down continuously for the better part of a minute, reading
+      // the very same keys the block below redirects to the drone instead.
+      if (!blockedRef.current) {
+        if (keys.current.has('a') || keys.current.has('arrowleft')) dx -= 1;
+        if (keys.current.has('d') || keys.current.has('arrowright')) dx += 1;
+        if (keys.current.has('w') || keys.current.has('arrowup')) dy -= 1;
+        if (keys.current.has('s') || keys.current.has('arrowdown')) dy += 1;
+      }
+
+      /*
+       * The drone's own flight, redirecting the exact same touch/keyboard
+       * input the walker reads above (independent of `blockedRef`, which
+       * is what's freezing the walker in the first place while this runs).
+       * Free flight — no building collision, only the map's own edges —
+       * and everything below runs instead of the walker's own movement,
+       * collision, exploration and proximity-interaction logic for this
+       * frame; the walker stays exactly where they launched from until the
+       * flight resolves.
+       */
+      if (droneFlightRef.current && !droneResolvedRef.current) {
+        let ddx = touch.current.dx;
+        let ddy = touch.current.dy;
+        if (keys.current.has('a') || keys.current.has('arrowleft')) ddx -= 1;
+        if (keys.current.has('d') || keys.current.has('arrowright')) ddx += 1;
+        if (keys.current.has('w') || keys.current.has('arrowup')) ddy -= 1;
+        if (keys.current.has('s') || keys.current.has('arrowdown')) ddy += 1;
+        const dlen = Math.hypot(ddx, ddy) || 1;
+        if (ddx !== 0 || ddy !== 0) droneFacing.current = { x: Math.sign(ddx), y: Math.sign(ddy) };
+
+        dronePos.current = {
+          x: clamp(dronePos.current.x + (ddx / dlen) * droneSpeedRef.current * dt, 0, MAP_WIDTH),
+          y: clamp(dronePos.current.y + (ddy / dlen) * droneSpeedRef.current * dt, 0, MAP_HEIGHT),
+        };
+
+        // Continuous scouted-fog reveal along the real flight path — the
+        // same throttle-by-distance shape the walker's own foot reveal
+        // uses below, so this isn't dispatching every single frame.
+        const droneMoved = Math.hypot(
+          dronePos.current.x - lastDroneRevealPosRef.current.x,
+          dronePos.current.y - lastDroneRevealPosRef.current.y,
+        );
+        if (droneMoved > 24) {
+          lastDroneRevealPosRef.current = { ...dronePos.current };
+          dispatch({
+            type: 'REVEAL_AREA',
+            x: dronePos.current.x,
+            y: dronePos.current.y,
+            radius: droneRevealRadiusRef.current,
+            kind: 'scouted',
+          });
+        }
+
+        const flight = droneFlightRef.current;
+        if (flight.mode === 'kamikaze' && droneTargetPosRef.current) {
+          const distToTarget = Math.hypot(
+            dronePos.current.x - droneTargetPosRef.current.x,
+            dronePos.current.y - droneTargetPosRef.current.y,
+          );
+          if (distToTarget < KAMIKAZE_IMPACT_RADIUS) resolveDroneFlight(true);
+        } else if (flight.mode === 'recon') {
+          const distHome = Math.hypot(
+            dronePos.current.x - droneLaunchPos.current.x,
+            dronePos.current.y - droneLaunchPos.current.y,
+          );
+          setDroneCanLand(distHome < DRONE_LANDING_RADIUS);
+        }
+
+        droneBatteryRef.current = Math.max(0, droneBatteryRef.current - dt * 1000);
+        setDroneBatteryPct(Math.round((droneBatteryRef.current / droneTotalBatteryRef.current) * 100));
+        // Battery dead before it made it home (or, for a kamikaze run,
+        // before it reached the target) is always a failure — there's no
+        // version of "ran out of power" that counts as landing.
+        if (droneBatteryRef.current <= 0) resolveDroneFlight(false);
+      }
 
       const moving = dx !== 0 || dy !== 0;
       if (moving) facing.current = { x: Math.sign(dx), y: Math.sign(dy) };
@@ -1289,11 +1499,21 @@ export function Overworld() {
         scarDraw.push({ x: node.x, y: node.y, tagged: scarDraw.length % 2 === 0 });
       }
 
+      // Flying replaces the camera's own subject — same real town, same
+      // day/stage-derived lists above, just following the drone instead of
+      // the walker. This is the one line that makes "the same view, just
+      // flying" literally true rather than a separate screen pretending to
+      // be one.
+      const flying = Boolean(droneFlightRef.current) && !droneResolvedRef.current;
+      const renderSubject = flying ? dronePos.current : pos.current;
+      const renderFacing = flying ? droneFacing.current : facing.current;
+      const renderMoving = flying ? touch.current.dx !== 0 || touch.current.dy !== 0 || keys.current.size > 0 : moving;
+
       drawTown(
         ctx,
         canvas,
-        pos.current,
-        facing.current,
+        renderSubject,
+        renderFacing,
         here,
         flagsRef.current,
         tierRef.current,
@@ -1315,10 +1535,11 @@ export function Overworld() {
         // one place rather than cached against a day that can change
         // under it.
         marksAtStage(stage),
-        moving,
+        renderMoving,
         now,
         boardTierRef.current,
         confinedToHome,
+        flying,
       );
       raf = requestAnimationFrame(frame);
     };
@@ -1345,6 +1566,17 @@ export function Overworld() {
       // which is exactly when there's no dialogue box also swallowing the
       // key, so pressing Down there scrolled the page out from under it.
       if (isGameKey) e.preventDefault();
+
+      // A drone flight still wants the movement keys — the frame loop
+      // redirects them at the drone instead of the walker for as long as
+      // it's airborne — just not the interact key, which has nothing to do
+      // mid-flight. Checked before the general `blockedRef` gate below,
+      // since a flight is itself one of the things that sets `blockedRef`
+      // and would otherwise swallow the very keys it needs.
+      if (droneFlightRef.current) {
+        if (MOVE.includes(k)) keys.current.add(k);
+        return;
+      }
       if (blockedRef.current || !isGameKey) return;
 
       if (k === 'e' || k === ' ') {
@@ -1642,17 +1874,14 @@ export function Overworld() {
         frame's own proximity check already found, and that data has nowhere
         else to come from.
       */}
-      {droneMenuOpen && !open && !cyberdeckOpen && !droneShootTarget && (
+      {droneMenuOpen && !open && !cyberdeckOpen && !droneShootTarget && !droneFlight && (
         <div className="overworld__dronepanel">
           <button
             className="overworld__prompt overworld__prompt--drone"
             disabled={!canFlyRecon(save)}
-            onClick={() => {
-              setDroneMenuOpen(false);
-              setDroneFlight({ mode: 'recon', targetLabel: 'Bellhaven sweep' });
-            }}
+            onClick={launchRecon}
           >
-            Recon flight · Hit: Heat relief · Miss: Heat +{RECON_FAIL_HEAT_PENALTY}
+            Recon flight · Land it: Heat relief · Battery dies: drone confiscated
           </button>
           {(() => {
             const target: KamikazeTarget | null = nearbyCamera
@@ -1665,14 +1894,14 @@ export function Overworld() {
               : nearbyJunctionBox
                 ? `Tier ${nearbyJunctionBox.tier} junction box`
                 : '';
+            const targetPos = nearbyCamera ?? nearbyJunctionBox ?? null;
             return (
               <button
                 className="overworld__prompt overworld__prompt--drone"
                 disabled={!target || !canKamikaze(save, target)}
                 onClick={() => {
-                  if (!target) return;
-                  setDroneMenuOpen(false);
-                  setDroneFlight({ mode: 'kamikaze', target, targetLabel });
+                  if (!target || !targetPos) return;
+                  launchKamikaze(target, targetLabel, { x: targetPos.x, y: targetPos.y });
                 }}
               >
                 {target ? `Kamikaze strike · ${targetLabel} · one-way` : 'Kamikaze strike · needs a camera or junction box in reach'}
@@ -1682,18 +1911,49 @@ export function Overworld() {
         </div>
       )}
 
+      {/*
+        The flight itself. No separate canvas, no separate screen — the
+        overworld canvas above is already drawing the drone's own view
+        (`drawTown`'s `renderAsDrone` branch, driven by `dronePos` in the
+        frame loop), so this is just the thin HUD over it: the battery, a
+        Land button once close enough to actually use it, and the free
+        walk-away every drone action in this game gets. The result line
+        replaces all three the moment a flight actually resolves.
+      */}
       {droneFlight && (
-        <DroneFlight
-          mode={droneFlight.mode}
-          droneTier={Math.min(3, Math.max(1, playerDroneTier(save))) as PlayerDroneTier}
-          targetLabel={droneFlight.targetLabel}
-          onResolve={(hit) => {
-            if (droneFlight.mode === 'recon') dispatch({ type: 'FLY_RECON', hit });
-            else dispatch({ type: 'KAMIKAZE_STRIKE', target: droneFlight.target, hit });
-            setDroneFlight(null);
-          }}
-          onClose={() => setDroneFlight(null)}
-        />
+        <div className="overworld__droneflight">
+          {!droneResult ? (
+            <>
+              <p className="overworld__droneflight-label">
+                {droneFlight.mode === 'kamikaze' ? `Kamikaze run · ${droneFlight.targetLabel}` : 'Recon flight'}
+              </p>
+              <div className="overworld__droneflight-battery">
+                <span style={{ width: `${droneBatteryPct}%` }} />
+              </div>
+              <div className="overworld__droneflight-actions">
+                <button className="overworld__prompt overworld__prompt--drone" onClick={closeDroneFlight}>
+                  Step away
+                </button>
+                {droneFlight.mode === 'recon' && (
+                  <button
+                    className="overworld__prompt overworld__prompt--drone"
+                    disabled={!droneCanLand}
+                    onClick={() => resolveDroneFlight(true)}
+                  >
+                    {droneCanLand ? 'Land' : 'Fly back to land'}
+                  </button>
+                )}
+              </div>
+            </>
+          ) : (
+            <p className={`overworld__droneflight-result overworld__droneflight-result--${droneResult}`}>
+              {droneResult === 'landed' && 'Home. Heat eases off.'}
+              {droneResult === 'confiscated' && 'Battery died mid-flight. SafeTrace has the airframe now.'}
+              {droneResult === 'impact' && 'Impact.'}
+              {droneResult === 'crashed' && 'Battery died short of the target. Crashed, for nothing.'}
+            </p>
+          )}
+        </div>
       )}
 
       {active && <SceneView scene={active} onClose={leave} />}
@@ -1743,11 +2003,15 @@ export function Overworld() {
       {market && <Market onClose={() => setMarket(false)} />}
       {garageOpen && <Garage onClose={() => setGarageOpen(false)} />}
 
-      {/* Hidden rather than just covered — it already does nothing here
-          (`blockedRef` zeroes touch input under the same two conditions),
-          so leaving it on screen was just a control sitting on top of a
-          location card with no function, not a real toggle underneath it. */}
-      {!open && !cyberdeckOpen && !droneShootTarget && !droneFlight && (
+      {/* Hidden rather than just covered when a location card, the
+          Cyberdeck or the shoot-down minigame is up — it does nothing there
+          (`blockedRef` zeroes touch input under the same conditions), so
+          leaving it on screen would just be a control sitting on top of
+          something with no function underneath it. A drone flight is the
+          one exception: this is the exact same stick, just redirected to
+          fly the drone instead of the walker for as long as the flight
+          lasts (see the frame loop's own drone block). */}
+      {!open && !cyberdeckOpen && !droneShootTarget && (
         <Joystick onChange={(dx, dy) => (touch.current = { dx, dy })} />
       )}
 

@@ -318,6 +318,11 @@ const PALETTE = {
   droneLight: '#e84ac9',
   droneRing: 'rgba(232, 74, 201, 0.18)',
   droneShadow: 'rgba(0, 0, 0, 0.22)',
+  // The player's own drone, mid-flight — a cooler body and a cyan light
+  // instead of a FLACK unit's warning pink, so the one drone actually under
+  // the player's control never reads as one more thing hunting them.
+  playerDroneBody: '#2f5d6b',
+  playerDroneLight: '#7dd3ff',
   // The surveillance hardware the 3x3 redesign adds beside the cameras: a
   // plate scanner's grey mast and its red read-light, and a security
   // gate's yellow-and-black arm. Both deliberately share the camera's own
@@ -415,6 +420,16 @@ export function drawTown(
   now: number,
   boardTier: number,
   confinedToHome: boolean,
+  /**
+   * ADDED for the real-flight drone recon/kamikaze redesign. When true,
+   * `player` is the drone's own live position (`Overworld.tsx` redirects
+   * movement input there instead of the walker's for the duration of a
+   * flight) and the sprite drawn at it is the drone, not the kid — the
+   * camera-follow math above this comment reads `player` either way, which
+   * is the one line of code that actually makes "the same view, just
+   * flying" true.
+   */
+  renderAsDrone = false,
 ) {
   ensureSpriteSheetLoading();
 
@@ -497,7 +512,12 @@ export function drawTown(
   for (const drone of drones) drawDroneShadow(ctx, drone.x, drone.y);
   for (const drone of drones) drawDroneRing(ctx, drone);
 
-  drawPlayer(ctx, player, facing, playerSize, moving, now, boardTier);
+  if (renderAsDrone) {
+    drawDroneShadow(ctx, player.x, player.y);
+    drawDrone(ctx, player, now, false, 'player');
+  } else {
+    drawPlayer(ctx, player, facing, playerSize, moving, now, boardTier);
+  }
 
   // The drone bodies themselves render above the player, not under —
   // they're in the air, not on the street, and the one thing everything
@@ -1480,8 +1500,20 @@ function drawDroneShadow(ctx: CanvasRenderingContext2D, x: number, y: number) {
  * and a status light that blinks whether or not the player is close enough
  * to act on it. `takeable` adds the same soft-glow "you can act on this"
  * treatment every other point object on the map gets once it's in reach.
+ *
+ * `variant` swaps the body/light colour only — a FLACK interceptor
+ * (`'safetrace'`, the default) and the player's own airframe mid-flight
+ * (`'player'`) are the same silhouette, since they're the same kind of
+ * object; the colour is the only thing that has to say which one is
+ * whose.
  */
-function drawDrone(ctx: CanvasRenderingContext2D, drone: { x: number; y: number }, now: number, takeable: boolean) {
+function drawDrone(
+  ctx: CanvasRenderingContext2D,
+  drone: { x: number; y: number },
+  now: number,
+  takeable: boolean,
+  variant: 'safetrace' | 'player' = 'safetrace',
+) {
   const cx = px(drone.x);
   const cy = px(drone.y) - DRONE_ALTITUDE;
   const armR = 6;
@@ -1509,7 +1541,7 @@ function drawDrone(ctx: CanvasRenderingContext2D, drone: { x: number; y: number 
   ctx.lineTo(cx - armR, cy + armR);
   ctx.stroke();
 
-  ctx.fillStyle = PALETTE.droneBody;
+  ctx.fillStyle = variant === 'player' ? PALETTE.playerDroneBody : PALETTE.droneBody;
   ctx.fillRect(cx - 4, cy - 3, 8, 6);
   ctx.strokeStyle = PALETTE.outline;
   ctx.strokeRect(cx - 4.5, cy - 3.5, 9, 7);
@@ -1517,7 +1549,7 @@ function drawDrone(ctx: CanvasRenderingContext2D, drone: { x: number; y: number 
   // A blink, not a steady glow — same on/off read as a camera's own status
   // light elsewhere, so "watching" always looks like the same thing.
   if (Math.floor(now / 500) % 2 === 0) {
-    ctx.fillStyle = PALETTE.droneLight;
+    ctx.fillStyle = variant === 'player' ? PALETTE.playerDroneLight : PALETTE.droneLight;
     ctx.fillRect(cx - 1, cy - 1, 2, 2);
   }
 }

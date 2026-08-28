@@ -454,6 +454,84 @@
   white-space: normal;
 }
 
+/*
+ * THE FLIGHT HUD. Deliberately thin and top-anchored — the whole point of
+ * this redesign is that the flight itself is just the overworld canvas
+ * following the drone instead of the walker, so the "screen" underneath
+ * this bar is the real, full-detail town, not a separate minigame field.
+ * Bottom-right stays the joystick's alone; this never competes with it.
+ */
+.overworld__droneflight {
+  position: absolute;
+  left: 50%;
+  /* Clear of the Heat/Coverage stack (`.hud`), which owns the true top of
+   * the screen — found the hard way: at the district-card's own offset this
+   * sat directly behind the HUD, and a button back there is unclickable,
+   * not just visually crowded. */
+  top: calc(var(--step) * 3 + 150px);
+  transform: translateX(-50%);
+  width: min(320px, 90vw);
+  padding: 8px 12px;
+  background: rgba(20, 24, 32, 0.78);
+  border: 1px solid rgba(125, 211, 255, 0.4);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  pointer-events: auto;
+  z-index: 6;
+}
+
+.overworld__droneflight-label {
+  margin: 0;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #7dd3ff;
+}
+
+/* The battery, and the one number that actually matters mid-flight — no
+   label needed, the bar draining is the whole story. */
+.overworld__droneflight-battery {
+  height: 6px;
+  background: rgba(236, 226, 208, 0.15);
+}
+
+.overworld__droneflight-battery span {
+  display: block;
+  height: 100%;
+  background: #7dd3ff;
+  transition: width 120ms linear;
+}
+
+.overworld__droneflight-actions {
+  display: flex;
+  gap: 6px;
+}
+
+.overworld__droneflight-actions .overworld__prompt--drone {
+  position: static;
+  transform: none;
+  flex: 1;
+  text-align: center;
+  white-space: normal;
+  font-size: 12px;
+  padding: 8px 6px;
+}
+
+.overworld__droneflight-result {
+  margin: 0;
+  font-family: var(--font-mono);
+  font-size: 13px;
+  line-height: 1.4;
+  color: var(--b-paper);
+}
+
+.overworld__droneflight-result--confiscated,
+.overworld__droneflight-result--crashed {
+  color: #ff9a9a;
+}
+
 /* One control surface instead of four buttons: a fixed base, a knob that
    follows the drag and snaps back to center on release. */
 .joystick {

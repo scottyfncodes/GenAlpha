@@ -31,11 +31,6 @@ export const FOOT_REVEAL_RADIUS = 100;
  * over walking blind without making walking pointless. */
 export const GPS_REVEAL_RADIUS: Record<1 | 2 | 3, number> = { 1: 170, 2: 300, 3: 480 };
 
-/** A single recon flight's own reveal, in the `scouted` set — big enough to
- * matter, but "the drone" and "the town" are still two different amounts of
- * knowledge; see `systems/materials.ts` `flyRecon`. */
-export const DRONE_RECON_REVEAL_RADIUS = 260;
-
 function cellIndex(gx: number, gy: number): number {
   return gy * GRID_W + gx;
 }
