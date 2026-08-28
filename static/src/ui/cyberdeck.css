@@ -257,6 +257,52 @@
   margin-left: 4px;
 }
 
+/* Files — a longer-form list than `.cyberdeck__unlocks`, since each row
+   carries real body copy instead of one line plus a tier tag. Locked rows
+   stay in the list (dimmed, title withheld) so the list itself reads as a
+   map of what's still out there. */
+.cyberdeck__files {
+  list-style: none;
+  margin: 8px 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.cyberdeck__file {
+  border: 1px solid var(--term-dim);
+  background: rgba(61, 255, 154, 0.04);
+  padding: 8px 10px;
+  opacity: 0.5;
+}
+
+.cyberdeck__file.is-unlocked {
+  opacity: 1;
+  border-color: rgba(61, 255, 154, 0.5);
+}
+
+.cyberdeck__file-category {
+  display: block;
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  opacity: 0.6;
+  margin-bottom: 2px;
+}
+
+.cyberdeck__file-title {
+  display: block;
+  font-size: 13px;
+}
+
+.cyberdeck__file-body {
+  margin: 4px 0 0;
+  font-size: 12px;
+  line-height: 1.5;
+  opacity: 0.85;
+}
+
 /*
  * Trace/Cipher/the briefing were all built for the scene view's full-width
  * stage (`width: min(460px, 94vw)`) — inside the cyberdeck's own ~380px-wide

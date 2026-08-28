@@ -34,6 +34,8 @@ import { tierLabel } from '../systems/heat';
 import { discoveredEntries, undiscoveredCount } from '../systems/casefile';
 import { FEED_LAST_SEEN_FLAG, unreadFeedCount, visibleFeedEntries } from '../systems/feed';
 import { escalationStage } from '../world/escalation';
+import { unlockedFiles } from '../systems/files';
+import { FILES, type FileCategory } from '../content/files';
 import { Crew } from './Crew';
 import { SettingsPanel } from './SettingsPanel';
 import './hud.css';
@@ -65,6 +67,7 @@ type App =
   | 'littlejohn'
   | 'leads'
   | 'feed'
+  | 'files'
   | 'coverage'
   | 'heat'
   | 'crew'
@@ -108,6 +111,7 @@ export function Cyberdeck({ onClose }: { onClose: () => void }) {
         {app === 'littlejohn' && <LittleJohnApp onBack={() => setApp('home')} />}
         {app === 'leads' && <LeadsApp onBack={() => setApp('home')} />}
         {app === 'feed' && <FeedApp onBack={() => setApp('home')} />}
+        {app === 'files' && <FilesApp onBack={() => setApp('home')} />}
         {app === 'coverage' && <CoverageApp onBack={() => setApp('home')} />}
         {app === 'heat' && <HeatApp onBack={() => setApp('home')} />}
         {app === 'crew' && <CrewApp onBack={() => setApp('home')} />}
@@ -157,6 +161,10 @@ function CyberdeckHome({ onOpen, onClose }: { onOpen: (app: App) => void; onClos
             {unread > 0 && <span className="phone__app-badge">{unread}</span>}
           </span>
           <span>Feed</span>
+        </button>
+        <button className="cyberdeck__app" onClick={() => onOpen('files')}>
+          <span className="cyberdeck__app-icon">🗄️</span>
+          <span>Files{unlockedFiles(save).length > 0 ? ` (${unlockedFiles(save).length})` : ''}</span>
         </button>
         <button className="cyberdeck__app" onClick={() => onOpen('coverage')}>
           <span className="cyberdeck__app-icon">📡</span>
@@ -517,6 +525,49 @@ function FeedApp({ onBack }: { onBack: () => void }) {
             <p className="feed__row-body">{e.body}</p>
           </li>
         ))}
+      </ul>
+    </div>
+  );
+}
+
+const FILE_CATEGORY_LABEL: Record<FileCategory, string> = {
+  corporate: 'Corporate',
+  government: 'Government',
+  security: 'Security',
+  location: 'Location intelligence',
+  person: 'Person dossiers',
+  technology: 'Technology research',
+  hidden: 'Hidden',
+};
+
+/**
+ * Files: the hidden information layer, unlocked rather than carried — see
+ * `content/files.ts`'s own doc comment for why nothing here is a flag. A
+ * locked File still gets a row, title withheld, so the list itself is a map
+ * of what's still out there rather than a spoiler-free void; the requirement
+ * line is in-world flavor, not a debug readout of the actual predicate.
+ */
+function FilesApp({ onBack }: { onBack: () => void }) {
+  const save = useSave();
+  const unlocked = new Set(unlockedFiles(save).map((f) => f.id));
+
+  return (
+    <div className="cyberdeck__hack">
+      <Header onBack={onBack} title="Files" />
+      <p className="cyberdeck__hack-sub">
+        What the town’s own systems have let slip, once Aaron’s capable of reading it.
+      </p>
+      <ul className="cyberdeck__files">
+        {FILES.map((f) => {
+          const isUnlocked = unlocked.has(f.id);
+          return (
+            <li key={f.id} className={`cyberdeck__file ${isUnlocked ? 'is-unlocked' : ''}`}>
+              <span className="cyberdeck__file-category">{FILE_CATEGORY_LABEL[f.category]}</span>
+              <b className="cyberdeck__file-title">{isUnlocked ? f.title : 'Locked'}</b>
+              <p className="cyberdeck__file-body">{isUnlocked ? f.body : f.requirement}</p>
+            </li>
+          );
+        })}
       </ul>
     </div>
   );

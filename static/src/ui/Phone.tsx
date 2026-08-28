@@ -58,8 +58,8 @@ function PhoneHome({ onOpen, onClose }: { onOpen: (app: App) => void; onClose: (
           <span>Silk Road</span>
         </button>
         <button className="phone__app" onClick={() => onOpen('salvage')}>
-          <span className="phone__app-icon">📁</span>
-          <span>Files</span>
+          <span className="phone__app-icon">🔩</span>
+          <span>Salvage</span>
         </button>
       </div>
     </div>
@@ -67,12 +67,17 @@ function PhoneHome({ onOpen, onClose }: { onOpen: (app: App) => void; onClose: (
 }
 
 /**
- * Files: a folder, not a workbench. Blueprints and Build both moved to the
- * Garage (`ui/Garage.tsx`) — a place, not a phone screen, per the build
- * note: turning a blueprint into a thing means walking home and going out
- * to the garage for it. Selling salvage for SHDW stays here — parts are
- * parts, unrelated to where a build happens — and stays exactly as it
- * always worked.
+ * Salvage: raw parts turned into SHDW, nothing else — renamed off "Files"
+ * (what this screen used to be called, confusingly, back when Files meant
+ * "whatever's in the bag" instead of an actual information system). The
+ * real Files — corporate memos, government contracts, dossiers, the hidden
+ * layer of Bellhaven Aaron's tech reveals — live in the Cyberdeck now
+ * (`ui/Cyberdeck.tsx`'s `FilesApp`, `systems/files.ts`). Blueprints and
+ * Build both moved to the Garage (`ui/Garage.tsx`) — a place, not a phone
+ * screen, per the build note: turning a blueprint into a thing means
+ * walking home and going out to the garage for it. Selling salvage for
+ * SHDW stays here — parts are parts, unrelated to where a build happens —
+ * and stays exactly as it always worked.
  */
 function Salvage({ onBack }: { onBack: () => void }) {
   const save = useSave();
@@ -85,7 +90,7 @@ function Salvage({ onBack }: { onBack: () => void }) {
       <header className="salvage__head">
         <div>
           <p className="salvage__eyebrow">Whatever you picked up, whatever you cracked open</p>
-          <h2 className="salvage__title">Files</h2>
+          <h2 className="salvage__title">Salvage</h2>
         </div>
         <button className="salvage__back" onClick={onBack}>
           Done
