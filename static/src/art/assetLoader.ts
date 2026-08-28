@@ -16,8 +16,17 @@
  * Nothing in `world/draw.ts` calls into this module. See the art bible §6/§8
  * — wiring real per-object art into the live renderer is Run 2 production
  * work, not this run's.
+ *
+ * `drawAssetSlot`'s optional `frame` parameter (below) is the one addition
+ * since Run 1 — a manifest-sliced spritesheet, per
+ * `docs/art/genalpha-character-animation-architecture.md`. It's additive:
+ * every call site that never passes a `frame` (58 of the 61 slots don't
+ * declare `frames` at all, and won't ever have one to pass) draws exactly
+ * as it always has. `animation.ts` is what actually decides *which* frame
+ * to pass; this file only knows how to cut one out of a sheet once told.
  */
 import { ASSET_MANIFEST, type AnchorPoint, type AssetCategory, type AssetSlot } from './manifest';
+import { resolveFrameSourceRect, type SpriteFrame } from './animation';
 
 const SLOTS_BY_ID = new Map<string, AssetSlot>(ASSET_MANIFEST.map((s) => [s.id, s]));
 
@@ -130,8 +139,12 @@ const px = Math.round;
  * NOT drawn here — see `drawAnchorMarker`, kept separate so a caller can
  * show real art with an anchor marker overlaid too (useful for checking a
  * newly-dropped-in file lines up before trusting it).
+ *
+ * `frame`, when a caller passes one for an animated slot, becomes a third
+ * label line — there's no sheet to slice yet, but the placeholder can still
+ * say which cell of the eventual one it stands in for.
  */
-function drawPlaceholder(ctx: CanvasRenderingContext2D, slot: AssetSlot, boxX: number, boxY: number): void {
+function drawPlaceholder(ctx: CanvasRenderingContext2D, slot: AssetSlot, boxX: number, boxY: number, frame?: SpriteFrame): void {
   const { width: w, height: h, category } = slot;
   const color = categoryColor(category);
   const cell = Math.max(2, Math.round(Math.min(w, h) / 6));
@@ -169,7 +182,8 @@ function drawPlaceholder(ctx: CanvasRenderingContext2D, slot: AssetSlot, boxX: n
     ctx.fillStyle = 'rgba(20, 17, 15, 0.85)';
     ctx.fillText(slot.id, px(boxX) + 2, px(boxY) + 8, w - 4);
     ctx.fillStyle = 'rgba(20, 17, 15, 0.6)';
-    ctx.fillText(`${w}x${h}`, px(boxX) + 2, px(boxY) + h - 3, w - 4);
+    const dims = `${w}x${h}`;
+    ctx.fillText(frame ? `${dims} · frame ${frame.col},${frame.row}` : dims, px(boxX) + 2, px(boxY) + h - 3, w - 4);
     ctx.restore();
   }
 }
@@ -180,17 +194,37 @@ function drawPlaceholder(ctx: CanvasRenderingContext2D, slot: AssetSlot, boxX: n
  * exactly the slot's declared `width`x`height` — dropping a correctly-sized
  * file in is the entire integration step, nothing else in this function
  * changes. Until then, every slot draws its placeholder.
+ *
+ * `frame`, optional, is the animation extension: pass `{col, row}` (from
+ * `animation.ts`'s `frameForCharacter`, typically) to draw one cell of a
+ * slot's declared `frames` grid instead of the whole image. Backward
+ * compatible by construction — every existing call site that never passes
+ * a fourth argument keeps drawing the whole image, exactly as before this
+ * parameter existed. The slicing branch only ever runs when BOTH the slot
+ * declares `frames` AND the caller supplies one: a `frame` passed for a
+ * slot with no `frames` block is silently ignored (there's no grid to cut a
+ * cell out of), and a `frames`-bearing slot drawn with no `frame` argument
+ * draws its whole sheet image, unsliced — the same "nothing to do beyond
+ * the basic case" default every other slot already has.
  */
-export function drawAssetSlot(ctx: CanvasRenderingContext2D, slot: AssetSlot, x: number, y: number): void {
+export function drawAssetSlot(ctx: CanvasRenderingContext2D, slot: AssetSlot, x: number, y: number, frame?: SpriteFrame): void {
   ensureAssetLoading(slot);
   const entry = entryFor(slot);
   const { x: boxX, y: boxY } = topLeftFor(slot, x, y);
 
   if (entry.ready && entry.img) {
+    const rect = slot.frames && frame ? resolveFrameSourceRect(slot.frames, frame, entry.img.naturalWidth, entry.img.naturalHeight) : undefined;
+    if (rect) {
+      ctx.drawImage(entry.img, rect.sx, rect.sy, rect.sw, rect.sh, px(boxX), px(boxY), slot.width, slot.height);
+      return;
+    }
+    // No slicing to do — either this slot has no `frames` (58 of 61 today),
+    // the caller didn't pass one, or `resolveFrameSourceRect` declined a
+    // malformed grid. Same whole-image draw every slot has always had.
     ctx.drawImage(entry.img, px(boxX), px(boxY), slot.width, slot.height);
     return;
   }
-  drawPlaceholder(ctx, slot, boxX, boxY);
+  drawPlaceholder(ctx, slot, boxX, boxY, slot.frames ? frame : undefined);
 }
 
 /** A small crosshair + dot at the slot's true anchor point, independent of
@@ -214,5 +248,5 @@ export function drawAnchorMarker(ctx: CanvasRenderingContext2D, x: number, y: nu
   ctx.restore();
 }
 
-export type { AnchorPoint, AssetCategory, AssetSlot };
+export type { AnchorPoint, AssetCategory, AssetSlot, SpriteFrame };
 export { ASSET_MANIFEST };
