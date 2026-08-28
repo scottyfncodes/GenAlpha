@@ -113,6 +113,15 @@
   padding-top: var(--step);
 }
 
+.cyberdeck__map-locked {
+  margin: 0;
+  padding-top: calc(var(--step) * 2);
+  font-size: 13px;
+  line-height: 1.5;
+  opacity: 0.7;
+  text-align: center;
+}
+
 /* Hack and Rig — both plain scroll screens under the same header. */
 .cyberdeck__hack {
   height: 100%;

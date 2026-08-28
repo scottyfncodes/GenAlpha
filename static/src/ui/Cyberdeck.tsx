@@ -15,7 +15,7 @@ import { MissionBriefing } from './minigames/MissionBriefing';
 import { TraceMinigame } from './minigames/TraceMinigame';
 import { CipherMinigame } from './minigames/CipherMinigame';
 import { SKINS } from '../content/skins';
-import { deckTier, heatReliefFor, owns } from '../systems/market';
+import { deckTier, gpsTier, heatReliefFor, owns } from '../systems/market';
 import { DECK_TIERS, ITEMS_BY_ID } from '../content/economy';
 import type { RunOutcome } from '../systems/missions';
 import { MapView } from './MapView';
@@ -104,17 +104,25 @@ function CyberdeckHome({ onOpen, onClose }: { onOpen: (app: App) => void; onClos
 }
 
 /**
- * The Map app — live from tier 1 on, per the build note that even a Burner
- * Deck should already have "basic map/GPS functionality." Same `MapView`
- * the standalone screen (`ui/Map.tsx`) shows; this is that content inside
+ * The Map app — reachable from any deck tier, but the screen itself is
+ * dead until a GPS unit is built: the deck can run the software, it just
+ * has nothing to plot without a receiver. Same `MapView` the standalone
+ * screen (`ui/Map.tsx`) shows once unlocked; this is that content inside
  * the deck's own frame instead of its own full-screen overlay.
  */
 function MapApp({ onBack }: { onBack: () => void }) {
+  const save = useSave();
   return (
     <div className="cyberdeck__map">
       <Header onBack={onBack} title="Map" />
       <div className="cyberdeck__map-body">
-        <MapView />
+        {gpsTier(save) > 0 ? (
+          <MapView />
+        ) : (
+          <p className="cyberdeck__map-locked">
+            No receiver. Build a GPS unit — even the cheapest one — and this screen has something to draw.
+          </p>
+        )}
       </div>
     </div>
   );

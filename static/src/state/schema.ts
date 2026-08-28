@@ -280,6 +280,18 @@ export interface WorldState {
    * `explored` always wins where the two overlap.
    */
   exploration: ExplorationState;
+  /**
+   * ADDED in 0.9.0. Which districts (`world/locations.ts`'s `DISTRICTS`) the
+   * player can physically walk into, by id — see `world/districtlock.ts`.
+   * Sticky and one-directional: once a district's own thread has sent the
+   * player there, it stays open for good, even after that thread closes and
+   * the story's attention moves elsewhere. A district not yet in this list
+   * can still be *currently* accessible — any district a presently open
+   * scene targets is always walkable, whether or not it has been added here
+   * yet — this array only needs to hold the ones that should stay open once
+   * that's no longer true.
+   */
+  unlockedDistricts: string[];
 }
 
 export interface ExplorationState {

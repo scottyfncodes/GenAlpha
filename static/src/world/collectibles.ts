@@ -51,6 +51,21 @@ export const HIDDEN_PICKUPS: HiddenPickup[] = [
   { obstacleId: 'filler_53', cash: 15, respawnDays: 3 },
   { obstacleId: 'filler_54', itemId: 'cracked_chipset', respawnDays: 4 },
   { obstacleId: 'filler_55', itemId: 'trucks', respawnDays: 3 },
+  // Every bush obstacle `world/obstacles.ts` places was decorative until now
+  // — the seven below round out the last of them. Two things this fixes
+  // rather than just pads: `bushings` had no drop source anywhere in the
+  // game (not a single camera, junction box, or bush), which meant
+  // `craft_board_2` and `craft_slingshot` — the entire anti-drone tool
+  // line's first tier — were quietly uncraftable; and cash-only finds go
+  // from one to three, since Heat-free money was the single scarcest thing
+  // in the wild before this.
+  { obstacleId: 'filler_145', itemId: 'bushings', respawnDays: 4 },
+  { obstacleId: 'filler_146', cash: 20, respawnDays: 3 },
+  { obstacleId: 'filler_65', itemId: 'bushings', respawnDays: 5 },
+  { obstacleId: 'filler_66', itemId: 'bearings', quantity: 2, respawnDays: 4 },
+  { obstacleId: 'filler_67', itemId: 'cracked_chipset', respawnDays: 5 },
+  { obstacleId: 'filler_68', cash: 30, respawnDays: 4 },
+  { obstacleId: 'filler_69', itemId: 'wheels', quantity: 2, respawnDays: 3 },
 ];
 
 /** The obstacle ids `HIDDEN_PICKUPS` names, precomputed so Overworld.tsx can

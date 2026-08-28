@@ -54,6 +54,7 @@ import { WINDOW_ESCAPE_FLAG } from '../content/act1';
 import { SAFEHOUSE_ID } from '../content/safehouse';
 import { ALL_SCENES } from '../content/all';
 import { pendingScenes, scenesAt, type Scene } from '../systems/scenes';
+import { pendingDistrictIds } from './districtlock';
 import { SceneView } from '../ui/SceneView';
 import { HomeInteriorBackdrop } from './InteriorBackdrop';
 import { STREET_HACK_INTERACT_RADIUS, STREET_HACK_NODES, type StreetHackNode } from './streethacks';
@@ -226,7 +227,16 @@ function patrolPosition(route: PatrolRoute, state: PatrolState): { x: number; y:
 export function Overworld() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const save = useSave();
-  const { dispatch, heatAlertUntil, setNearbyHackNodeId, setCyberdeckOpen, cyberdeckOpen, setPlayerPos } = useGame();
+  const {
+    dispatch,
+    heatAlertUntil,
+    setNearbyHackNodeId,
+    setCyberdeckOpen,
+    cyberdeckOpen,
+    setPlayerPos,
+    droneMenuOpen,
+    setDroneMenuOpen,
+  } = useGame();
   const [nearby, setNearby] = useState<OverworldLocation | null>(null);
   /**
    * Which of the nine districts the player is standing in, shown as a
@@ -238,6 +248,15 @@ export function Overworld() {
    * where you already are.
    */
   const [districtCard, setDistrictCard] = useState<District | null>(null);
+  /**
+   * A brief line the other way round from `districtCard` — not "here's where
+   * you are" but "that's not open yet." Fired on the one frame a step across
+   * a locked district's own border gets rejected (see the movement block
+   * below and `world/districtlock.ts`), never while just standing next to
+   * one — the wall itself is the tell for that; this is only for the moment
+   * someone actually walks into it.
+   */
+  const [districtBump, setDistrictBump] = useState<District | null>(null);
   const [open, setOpen] = useState<OverworldLocation | null>(null);
   /** A brief line when a hidden bush gives something up — same "shown, not
    * silent" treatment as `spotted`, since there's no prompt to click for it. */
@@ -283,9 +302,6 @@ export function Overworld() {
    * instant the take-down prompt is tapped, cleared on either an actual
    * resolution or a free walk-away. */
   const [droneShootTarget, setDroneShootTarget] = useState<string | null>(null);
-  /** The small "Recon flight / Kamikaze strike" panel — the player's own
-   * drone, as opposed to the FLACK ones above. */
-  const [droneMenuOpen, setDroneMenuOpen] = useState(false);
   /** The flight currently in progress, if any — which mode, and for a
    * kamikaze run, which node it's aimed at. */
   const [droneFlight, setDroneFlight] = useState<
@@ -323,6 +339,12 @@ export function Overworld() {
    */
   const flagsRef = useRef(save.player.flags);
   flagsRef.current = save.player.flags;
+
+  /** Which districts are walkable right now — permanently unlocked ones plus
+   * whatever an open thread is currently pointing into. Refreshed every
+   * render rather than every frame: the frame loop below only ever reads
+   * `.current`, same reason `flagsRef` exists. */
+  const accessibleDistrictsRef = useRef<Set<string>>(new Set());
 
   /* Same reason as the flags: the draw loop needs the tier for the Language A
      edge-glitch at flagged+, and rebuilding the loop on every Heat tick would
@@ -374,6 +396,21 @@ export function Overworld() {
    */
   const pending = pendingScenes(save, ALL_SCENES);
   const next = pending[0] ?? null;
+  // Every district a currently open thread points into — the live half of
+  // district access, which needs no persistence at all (see
+  // `world/districtlock.ts`). Kept fresh every render so the frame loop's
+  // collision check never does this work itself.
+  const pendingDistricts = pendingDistrictIds(save, ALL_SCENES);
+  accessibleDistrictsRef.current = new Set([...save.world.unlockedDistricts, ...pendingDistricts]);
+  // The sticky half: the moment a thread points into a district, it stays
+  // walkable for good, even after that thread closes and `pendingDistricts`
+  // moves on. A plain no-op-safe dispatch (mirrors REVEAL_AREA) rather than
+  // anything gated on a transition, so a save loaded mid-thread still picks
+  // up the district it's already supposed to have.
+  useEffect(() => {
+    const ids = Array.from(pendingDistricts);
+    if (ids.length > 0) dispatch({ type: 'UNLOCK_DISTRICTS', ids });
+  }, [save, dispatch]);
 
   const enter = (loc: OverworldLocation) => {
     setOpen(loc);
@@ -421,6 +458,7 @@ export function Overworld() {
   const lastRevealPosRef = useRef({ x: -9999, y: -9999 });
   const districtRef = useRef<District | null>(null);
   const districtCardTimer = useRef<number | null>(null);
+  const districtBumpTimer = useRef<number | null>(null);
   const enterRef = useRef<(loc: OverworldLocation) => void>(() => {});
   const nearbyCameraRef = useRef<CameraNode | null>(null);
   const nearbyHackRef = useRef<StreetHackNode | null>(null);
@@ -614,11 +652,50 @@ export function Overworld() {
       const xBounds = confinedToHome ? HOME_BOUNDS.x : ([8, MAP_WIDTH - 8] as const);
       const yBounds = confinedToHome ? HOME_BOUNDS.y : ([8, MAP_HEIGHT - 8] as const);
 
+      /*
+       * District borders are a second, independent kind of wall — not a
+       * building blocking a tile, but a whole block the story hasn't sent
+       * the player to yet (see `accessibleDistrictsRef`, above, and
+       * `world/districtlock.ts`). `districtAt` returns null on the map's
+       * own outer margin (outside every district rect), which is always
+       * walkable — this only ever says no about ground that's actually
+       * inside a locked block.
+       */
+      const districtWalkable = (x: number, y: number): boolean => {
+        const d = districtAt(x, y);
+        return !d || accessibleDistrictsRef.current.has(d.id);
+      };
+      const bumpDistrict = (d: District) => {
+        setDistrictBump((prev) => (prev?.id === d.id ? prev : d));
+        if (districtBumpTimer.current) window.clearTimeout(districtBumpTimer.current);
+        districtBumpTimer.current = window.setTimeout(() => setDistrictBump(null), 2400);
+      };
+
       const nx = clamp(pos.current.x + (dx / len) * speed * dt, xBounds[0], xBounds[1]);
-      if (confinedToHome || !solid.some((l) => overlapsBuilding(nx, pos.current.y, l))) pos.current.x = nx;
+      if (confinedToHome) {
+        pos.current.x = nx;
+      } else {
+        const districtOkX = districtWalkable(nx, pos.current.y);
+        if (!solid.some((l) => overlapsBuilding(nx, pos.current.y, l)) && districtOkX) {
+          pos.current.x = nx;
+        } else if (!districtOkX) {
+          const blocked = districtAt(nx, pos.current.y);
+          if (blocked) bumpDistrict(blocked);
+        }
+      }
 
       const ny = clamp(pos.current.y + (dy / len) * speed * dt, yBounds[0], yBounds[1]);
-      if (confinedToHome || !solid.some((l) => overlapsBuilding(pos.current.x, ny, l))) pos.current.y = ny;
+      if (confinedToHome) {
+        pos.current.y = ny;
+      } else {
+        const districtOkY = districtWalkable(pos.current.x, ny);
+        if (!solid.some((l) => overlapsBuilding(pos.current.x, ny, l)) && districtOkY) {
+          pos.current.y = ny;
+        } else if (!districtOkY) {
+          const blocked = districtAt(pos.current.x, ny);
+          if (blocked) bumpDistrict(blocked);
+        }
+      }
 
       /*
        * Exploration: a foot reveal always, GPS's own larger passive radius
@@ -1336,6 +1413,12 @@ export function Overworld() {
         </div>
       )}
 
+      {districtBump && (
+        <div className="overworld__districtbump" role="status" key={`bump-${districtBump.id}`}>
+          Nothing pulling me toward {districtBump.label} yet.
+        </div>
+      )}
+
       {spotted && (
         <p className="overworld__spotted" role="status">
           {spotted}
@@ -1552,56 +1635,50 @@ export function Overworld() {
       )}
 
       {/*
-        The player's own drone — a toggle rather than a nearby-object prompt,
-        since a recon flight needs no target at all and a kamikaze run just
-        reads whichever nearby node (camera or junction box) the overworld's
-        own detection already found this frame. Only shown once a drone
-        exists to fly; an empty menu offering nothing isn't worth a button.
+        The player's own drone panel — opened via the HUD's own "Drone"
+        button (Hud.tsx), which is why there's no toggle here any more; only
+        the panel itself still lives in the overworld, since a kamikaze run
+        just reads whichever nearby node (camera or junction box) this
+        frame's own proximity check already found, and that data has nowhere
+        else to come from.
       */}
-      {playerDroneTier(save) > 0 && !open && !cyberdeckOpen && !droneShootTarget && (
-        <div className="overworld__dronemenu">
-          <button className="overworld__dronetoggle" onClick={() => setDroneMenuOpen((v) => !v)}>
-            {droneMenuOpen ? 'Close drone' : 'Drone'}
+      {droneMenuOpen && !open && !cyberdeckOpen && !droneShootTarget && (
+        <div className="overworld__dronepanel">
+          <button
+            className="overworld__prompt overworld__prompt--drone"
+            disabled={!canFlyRecon(save)}
+            onClick={() => {
+              setDroneMenuOpen(false);
+              setDroneFlight({ mode: 'recon', targetLabel: 'Bellhaven sweep' });
+            }}
+          >
+            Recon flight · Hit: Heat relief · Miss: Heat +{RECON_FAIL_HEAT_PENALTY}
           </button>
-          {droneMenuOpen && (
-            <div className="overworld__dronepanel">
+          {(() => {
+            const target: KamikazeTarget | null = nearbyCamera
+              ? { kind: 'camera', id: nearbyCamera.id }
+              : nearbyJunctionBox
+                ? { kind: 'junction', id: nearbyJunctionBox.id }
+                : null;
+            const targetLabel = nearbyCamera
+              ? 'FLACK Camera Housing'
+              : nearbyJunctionBox
+                ? `Tier ${nearbyJunctionBox.tier} junction box`
+                : '';
+            return (
               <button
                 className="overworld__prompt overworld__prompt--drone"
-                disabled={!canFlyRecon(save)}
+                disabled={!target || !canKamikaze(save, target)}
                 onClick={() => {
+                  if (!target) return;
                   setDroneMenuOpen(false);
-                  setDroneFlight({ mode: 'recon', targetLabel: 'Bellhaven sweep' });
+                  setDroneFlight({ mode: 'kamikaze', target, targetLabel });
                 }}
               >
-                Recon flight · Hit: Heat relief · Miss: Heat +{RECON_FAIL_HEAT_PENALTY}
+                {target ? `Kamikaze strike · ${targetLabel} · one-way` : 'Kamikaze strike · needs a camera or junction box in reach'}
               </button>
-              {(() => {
-                const target: KamikazeTarget | null = nearbyCamera
-                  ? { kind: 'camera', id: nearbyCamera.id }
-                  : nearbyJunctionBox
-                    ? { kind: 'junction', id: nearbyJunctionBox.id }
-                    : null;
-                const targetLabel = nearbyCamera
-                  ? 'FLACK Camera Housing'
-                  : nearbyJunctionBox
-                    ? `Tier ${nearbyJunctionBox.tier} junction box`
-                    : '';
-                return (
-                  <button
-                    className="overworld__prompt overworld__prompt--drone"
-                    disabled={!target || !canKamikaze(save, target)}
-                    onClick={() => {
-                      if (!target) return;
-                      setDroneMenuOpen(false);
-                      setDroneFlight({ mode: 'kamikaze', target, targetLabel });
-                    }}
-                  >
-                    {target ? `Kamikaze strike · ${targetLabel} · one-way` : 'Kamikaze strike · needs a camera or junction box in reach'}
-                  </button>
-                );
-              })()}
-            </div>
-          )}
+            );
+          })()}
         </div>
       )}
 

@@ -6,7 +6,7 @@ import { tierLabel, TIER_ORDER } from '../systems/heat';
 import { coverageLabel, coveragePercent, coverageTier } from '../systems/coverage';
 import { progressOf } from '../systems/mentors';
 import { MENTORS } from '../content/mentors';
-import { deckTier } from '../systems/market';
+import { deckTier, gpsTier, playerDroneTier } from '../systems/market';
 import { canHackStreetNode } from '../systems/streethacks';
 import { STREET_HACK_NODES } from '../world/streethacks';
 import { unreadFeedCount } from '../systems/feed';
@@ -30,8 +30,17 @@ export function Hud({
   onOpenBackpack: () => void;
 }) {
   const save = useSave();
-  const { dispatch, deleteSave, heatAlertUntil, nearbyHackNodeId, setCyberdeckOpen } = useGame();
+  const {
+    dispatch,
+    deleteSave,
+    heatAlertUntil,
+    nearbyHackNodeId,
+    setCyberdeckOpen,
+    droneMenuOpen,
+    setDroneMenuOpen,
+  } = useGame();
   const hasCyberdeck = deckTier(save) > 0;
+  const hasDrone = playerDroneTier(save) > 0;
   const unreadFeed = unreadFeedCount(save);
   const nearbyHackNode = nearbyHackNodeId ? STREET_HACK_NODES.find((n) => n.id === nearbyHackNodeId) : undefined;
   const cyberdeckBlinking = hasCyberdeck && Boolean(nearbyHackNode) && canHackStreetNode(save, nearbyHackNode!);
@@ -85,7 +94,10 @@ export function Hud({
 
   return (
     <div className="hud">
-      <Minimap />
+      {/* No GPS unit, no minimap — a fogged read of the town is exactly the
+          thing a Dead Reckoning Rig buys you. Before that, the player's own
+          memory of where they've walked is the only map there is. */}
+      {gpsTier(save) > 0 && <Minimap />}
       <Glitch active={tierUp} intensity={1}>
         <div
           className={`hud__heat hud__heat--${threshold_tier}${heatAlertActive ? ' hud__heat--alert' : ''}`}
@@ -180,6 +192,16 @@ export function Hud({
             onClick={() => setCyberdeckOpen(true)}
           >
             Cyberdeck
+          </button>
+        )}
+        {/* The actual Recon flight / Kamikaze strike panel still renders from
+            Overworld.tsx — a kamikaze target only exists there, read off
+            whatever camera or junction box the player's own proximity check
+            already found this frame. This button just owns the shared
+            open/close toggle, the same split Cyberdeck's own button uses. */}
+        {hasDrone && (
+          <button className="hud__toggle" onClick={() => setDroneMenuOpen(!droneMenuOpen)}>
+            {droneMenuOpen ? 'Close drone' : 'Drone'}
           </button>
         )}
         {/* Only offered once there is somebody on it. Before the first mentor

@@ -1,6 +1,7 @@
 import type { MarketEventInstance, SaveState } from './schema';
 import { SAVE_VERSION, createNewSave } from './defaults';
 import { prefersReducedMotion } from './env';
+import { districtsFromExploration } from '../world/districtlock';
 
 const KEY = 'static.save';
 
@@ -122,6 +123,22 @@ export function migrate(save: SaveState, prefersReduced = false): SaveState {
         explored: save.world?.exploration?.explored ?? base.world.exploration.explored,
         scouted: save.world?.exploration?.scouted ?? base.world.exploration.scouted,
       },
+      /*
+       * 0.8.0 -> 0.9.0 adds `unlockedDistricts`. A save from before district
+       * locking existed already stood on ground the new wall would otherwise
+       * spring up around, so it starts unlocked everywhere the fog-of-war
+       * grid already says the player has been — the same "nobody's map goes
+       * backwards" rule `exploration` itself follows above, applied to
+       * walkability instead of visibility. Home is unioned in regardless,
+       * same as a brand-new save.
+       */
+      unlockedDistricts: Array.from(
+        new Set([
+          ...base.world.unlockedDistricts,
+          ...(save.world?.unlockedDistricts ?? []),
+          ...districtsFromExploration(save.world?.exploration ?? base.world.exploration),
+        ]),
+      ),
     },
     settings: {
       ...base.settings,

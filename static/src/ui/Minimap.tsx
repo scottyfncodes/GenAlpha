@@ -2,6 +2,8 @@ import { useEffect, useRef } from 'react';
 import { useGame, useSave } from '../state/GameContext';
 import { visibleLocations } from '../world/locations';
 import { drawMapView } from '../world/mapview';
+import { ALL_SCENES } from '../content/all';
+import { nextObjectiveLocationId } from '../systems/scenes';
 import './minimap.css';
 
 const SIZE = 84;
@@ -36,8 +38,9 @@ export function Minimap() {
       player: playerPos,
       visibleLocations: visibleLocations(save.player.flags),
       detailed: false,
+      objectiveLocationId: nextObjectiveLocationId(save, ALL_SCENES),
     });
-  }, [save.world.exploration, playerPos, save.player.flags, dpr]);
+  }, [save, playerPos, dpr]);
 
   return (
     <button className="minimap" onClick={() => setMapOpen(true)} aria-label="Open map">

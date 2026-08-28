@@ -26,6 +26,7 @@ const LOCATION_DOT = '#f0c07a';
 const LOCATION_DOT_SCOUTED = 'rgba(240, 192, 122, 0.55)';
 const LOCATION_LABEL = '#ece2d0';
 const GRID_LINE = 'rgba(0, 0, 0, 0.18)';
+const OBJECTIVE_RING = '#e6402a';
 
 export interface MapViewOptions {
   ctx: CanvasRenderingContext2D;
@@ -37,6 +38,15 @@ export interface MapViewOptions {
   /** The full map screen draws location labels and a legend; the minimap
    * (barely 80px across) draws dots only. */
   detailed: boolean;
+  /**
+   * The current open thread's own location (`systems/scenes.ts`'s
+   * `nextObjectiveLocationId`), drawn regardless of fog state — this is a
+   * beacon the story is pointing the player toward, not a thing they found by
+   * exploring, so it's the one marker allowed to show through unrevealed
+   * ground. `null`/omitted draws nothing: Bellhaven, evening, nothing asking
+   * anything of you tonight.
+   */
+  objectiveLocationId?: string | null;
 }
 
 /** Whichever district's rect a point falls in — no fallback-to-nearest the
@@ -147,6 +157,25 @@ export function drawMapView(opts: MapViewOptions): void {
       ctx.fillStyle = LOCATION_LABEL;
       ctx.font = 'bold 10px var(--font-b, monospace)';
       ctx.fillText('Home', hx + 7, hy);
+    }
+  }
+
+  // The open thread's own location, always drawn — the one marker in this
+  // system allowed to point at ground the player hasn't set foot in, because
+  // it isn't showing what's there, it's showing where the story wants them.
+  if (opts.objectiveLocationId) {
+    const objLoc = LOCATIONS.find((l) => l.id === opts.objectiveLocationId);
+    if (objLoc) {
+      const ox = (objLoc.x + objLoc.w / 2) * sx;
+      const oy = (objLoc.y + objLoc.h / 2) * sy;
+      const r = detailed ? 10 : 6;
+      ctx.strokeStyle = OBJECTIVE_RING;
+      ctx.lineWidth = detailed ? 2 : 1.5;
+      ctx.setLineDash(detailed ? [4, 3] : [3, 2]);
+      ctx.beginPath();
+      ctx.arc(ox, oy, r, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.setLineDash([]);
     }
   }
 

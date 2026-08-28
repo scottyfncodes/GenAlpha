@@ -87,7 +87,8 @@ type Action =
   | { type: 'CRAFT_ITEM'; recipeId: string }
   | { type: 'CAUGHT'; tier: ThresholdTier }
   | { type: 'HACK_STREET_NODE'; nodeId: string; outcome: RunOutcome; level?: HackLevel }
-  | { type: 'REVEAL_AREA'; x: number; y: number; radius: number; kind?: 'explored' | 'scouted' };
+  | { type: 'REVEAL_AREA'; x: number; y: number; radius: number; kind?: 'explored' | 'scouted' }
+  | { type: 'UNLOCK_DISTRICTS'; ids: string[] };
 
 /**
  * Advancing the in-fiction clock, in one place. Both the explicit
@@ -296,6 +297,18 @@ function applyAction(state: SaveState | null, action: Action): SaveState | null 
     case 'REVEAL_AREA':
       return revealArea(state, action.x, action.y, action.radius, action.kind);
 
+    /** A district's own thread has sent the player there — see
+     * world/districtlock.ts. Same no-op-on-nothing-new shape as REVEAL_AREA,
+     * since Overworld.tsx dispatches this on every render a thread is open. */
+    case 'UNLOCK_DISTRICTS': {
+      const additions = action.ids.filter((id) => !state.world.unlockedDistricts.includes(id));
+      if (additions.length === 0) return state;
+      return {
+        ...state,
+        world: { ...state.world, unlockedDistricts: [...state.world.unlockedDistricts, ...additions] },
+      };
+    }
+
     /**
      * The drain writes cash, Heat history, town trust and the drained-wallet
      * log together, because the schema's own cross-module rule says a drain
@@ -372,6 +385,16 @@ interface GameApi {
   mapOpen: boolean;
   setMapOpen: (open: boolean) => void;
   /**
+   * Whether the drone launch panel (Recon flight / Kamikaze strike) is open —
+   * same reasoning as `cyberdeckOpen`: the HUD button that toggles it now
+   * lives in `Hud.tsx`, but the panel itself still renders from
+   * `Overworld.tsx`, since a kamikaze target has to come from the same
+   * proximity data that finds a nearby camera or junction box in the first
+   * place, and neither component is an ancestor of the other.
+   */
+  droneMenuOpen: boolean;
+  setDroneMenuOpen: (open: boolean) => void;
+  /**
    * The player's own position, throttled — `Overworld.tsx` only pushes an
    * update here when it's moved a few pixels since the last one, the same
    * "cheap to compare, not every frame" shape `nearbyHackNodeId` already
@@ -445,6 +468,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
   const [nearbyHackNodeId, setNearbyHackNodeId] = useState<string | null>(null);
   const [cyberdeckOpen, setCyberdeckOpen] = useState(false);
   const [mapOpen, setMapOpen] = useState(false);
+  const [droneMenuOpen, setDroneMenuOpen] = useState(false);
   const [playerPos, setPlayerPos] = useState<{ x: number; y: number } | null>(null);
 
   const value = useMemo<GameApi>(
@@ -462,10 +486,24 @@ export function GameProvider({ children }: { children: ReactNode }) {
       setCyberdeckOpen,
       mapOpen,
       setMapOpen,
+      droneMenuOpen,
+      setDroneMenuOpen,
       playerPos,
       setPlayerPos,
     }),
-    [save, newGame, continueGame, deleteSave, flag, heatAlertUntil, nearbyHackNodeId, cyberdeckOpen, mapOpen, playerPos],
+    [
+      save,
+      newGame,
+      continueGame,
+      deleteSave,
+      flag,
+      heatAlertUntil,
+      nearbyHackNodeId,
+      cyberdeckOpen,
+      mapOpen,
+      droneMenuOpen,
+      playerPos,
+    ],
   );
 
   return <GameCtx.Provider value={value}>{children}</GameCtx.Provider>;

@@ -49,6 +49,12 @@
   opacity: 0.4;
 }
 
+.mapview__swatch--objective {
+  background: none;
+  border: 1.5px dashed #e6402a;
+  border-radius: 50%;
+}
+
 .mapview__hint {
   margin: 0;
   font-size: 12px;

@@ -3,6 +3,8 @@ import { useGame, useSave } from '../state/GameContext';
 import { visibleLocations } from '../world/locations';
 import { drawMapView } from '../world/mapview';
 import { gpsTier, playerDroneTier } from '../systems/market';
+import { ALL_SCENES } from '../content/all';
+import { nextObjectiveLocationId } from '../systems/scenes';
 import './mapview.css';
 
 /**
@@ -47,6 +49,7 @@ export function MapView() {
         player: playerPos,
         visibleLocations: visibleLocations(save.player.flags),
         detailed: true,
+        objectiveLocationId: nextObjectiveLocationId(save, ALL_SCENES),
       });
     };
 
@@ -54,11 +57,12 @@ export function MapView() {
     const observer = new ResizeObserver(render);
     observer.observe(container);
     return () => observer.disconnect();
-  }, [save.world.exploration, playerPos, save.player.flags]);
+  }, [save, playerPos]);
 
   const gps = gpsTier(save);
   const drone = playerDroneTier(save);
   const knownCells = save.world.exploration.explored.length + save.world.exploration.scouted.length;
+  const hasObjective = Boolean(nextObjectiveLocationId(save, ALL_SCENES));
 
   return (
     <div className="mapview">
@@ -72,6 +76,11 @@ export function MapView() {
         <span className="mapview__legend-item">
           <i className="mapview__swatch mapview__swatch--scouted" /> Seen at a distance
         </span>
+        {hasObjective && (
+          <span className="mapview__legend-item">
+            <i className="mapview__swatch mapview__swatch--objective" /> Where you’re needed
+          </span>
+        )}
       </div>
       {gps === 0 && drone === 0 && knownCells < 40 && (
         <p className="mapview__hint">

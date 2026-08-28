@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
   backOut,
   canPulse,
@@ -37,6 +37,56 @@ export function TraceMinigame({
   const handle = (index: number) => {
     if (!canPulse(state, index)) return;
     setState((s) => pulse(s, index));
+  };
+
+  /**
+   * A flag, same idea as any deduction game gives you one for: a place to
+   * put "I think this is a trap" that isn't just held in your head, once an
+   * adjacent revealed node's own count makes that a real inference rather
+   * than a guess. Purely local, purely visual — it never touches `state`,
+   * costs nothing, and a flagged node still can't be pulsed by accident, the
+   * one rule that makes it worth using instead of just remembering.
+   */
+  const [flagged, setFlagged] = useState<Set<number>>(new Set());
+  const toggleFlag = (index: number) => {
+    setFlagged((prev) => {
+      const next = new Set(prev);
+      if (next.has(index)) next.delete(index);
+      else next.add(index);
+      return next;
+    });
+  };
+
+  // Long-press (touch) / right-click (mouse) to flag, tracked with a plain
+  // timer rather than a library — the one wrinkle is that a long-press's own
+  // release still fires a click a moment later, which would otherwise pulse
+  // the very node just flagged. `suppressClickRef` eats exactly that one
+  // click and nothing else.
+  const longPressTimer = useRef<number | null>(null);
+  const suppressClickRef = useRef(false);
+  const cancelLongPress = () => {
+    if (longPressTimer.current !== null) {
+      window.clearTimeout(longPressTimer.current);
+      longPressTimer.current = null;
+    }
+  };
+  const startLongPress = (index: number) => {
+    cancelLongPress();
+    longPressTimer.current = window.setTimeout(() => {
+      toggleFlag(index);
+      suppressClickRef.current = true;
+      longPressTimer.current = null;
+    }, 420);
+  };
+  const handleNodeClick = (index: number) => {
+    if (suppressClickRef.current) {
+      suppressClickRef.current = false;
+      return;
+    }
+    // A flagged node needs to be unflagged (another long-press) before a tap
+    // can pulse it — the whole point is protection from a misclick.
+    if (flagged.has(index)) return;
+    handle(index);
   };
 
   const finish = () => {
@@ -84,12 +134,14 @@ export function TraceMinigame({
           const reachable = canPulse(state, node.index);
           const isCurrent = node.index === state.current;
           const isTarget = node.index === state.target;
+          const isFlagged = !node.revealed && flagged.has(node.index);
           const cls = [
             'node',
             node.revealed ? `node--${node.spent ? 'spent' : node.type}` : 'node--hidden',
             reachable ? 'node--reachable' : '',
             isCurrent ? 'node--current' : '',
             isTarget ? 'node--target' : '',
+            isFlagged ? 'node--flagged' : '',
           ].join(' ');
 
           return (
@@ -97,12 +149,22 @@ export function TraceMinigame({
               key={node.index}
               className={cls}
               disabled={!reachable || done}
-              onClick={() => handle(node.index)}
-              aria-label={node.revealed ? node.type : 'unread node'}
+              onClick={() => handleNodeClick(node.index)}
+              onPointerDown={() => !node.revealed && startLongPress(node.index)}
+              onPointerUp={cancelLongPress}
+              onPointerLeave={cancelLongPress}
+              onContextMenu={(e) => {
+                e.preventDefault();
+                if (!node.revealed) toggleFlag(node.index);
+              }}
+              aria-label={
+                node.revealed ? node.type : isFlagged ? 'flagged, unread node' : 'unread node'
+              }
             >
               {isTarget && '◎'}
               {!isTarget && isCurrent && '●'}
-              {!isTarget && !isCurrent && showsCount(state, node) && node.adjacentTraps > 0
+              {!isTarget && !isCurrent && isFlagged && '⚑'}
+              {!isTarget && !isCurrent && !isFlagged && showsCount(state, node) && node.adjacentTraps > 0
                 ? node.adjacentTraps
                 : ''}
             </button>
@@ -122,7 +184,9 @@ export function TraceMinigame({
         {state.lastEvent === 'trap' && 'Tripwire. The system just leaned in.'}
         {state.lastEvent === 'dead_end' && 'Nothing behind it. Route around.'}
         {state.lastEvent === 'clean' && 'Clean. Keep going.'}
-        {!state.lastEvent && !done && 'Pulse a neighbouring node to read it.'}
+        {!state.lastEvent &&
+          !done &&
+          'Pulse a neighbouring node to read it. A number is how many of its own neighbours are worse than they look — long-press one you don’t trust yet to flag it.'}
       </p>
 
       {!done && (

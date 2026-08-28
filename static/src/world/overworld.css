@@ -74,6 +74,26 @@
   .overworld__district { animation: none; }
 }
 
+/* THE LOCKED-BORDER BUMP. Same top-centre slot the district nameplate
+   uses — the two never actually overlap, since a crossing the wall rejects
+   never counts as "entering" the district that plate announces — but tinted
+   toward Heat-red rather than the nameplate's neutral paper, so a glance
+   tells the two apart even mid-fade. */
+.overworld__districtbump {
+  position: absolute;
+  left: 50%;
+  top: calc(var(--step) * 3);
+  transform: translateX(-50%);
+  padding: 5px 18px;
+  background: rgba(20, 24, 32, 0.6);
+  border-top: 1px solid rgba(230, 64, 42, 0.5);
+  border-bottom: 1px solid rgba(230, 64, 42, 0.5);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--b-paper);
+  pointer-events: none;
+}
+
 .overworld__spotted {
   position: absolute;
   left: 50%;
@@ -413,30 +433,14 @@
   font-size: 12px;
 }
 
-/* The player's own drone — opposite corner from the joystick, so the two
-   never compete for the same thumb. */
-.overworld__dronemenu {
+/* The player's own drone panel — opposite corner from the joystick, so the
+   two never compete for the same thumb. Opened via the HUD's own "Drone"
+   button now (Hud.tsx), so this carries its own position rather than
+   inheriting one from a toggle wrapper the way it used to. */
+.overworld__dronepanel {
   position: absolute;
   left: var(--step);
   bottom: calc(env(safe-area-inset-bottom, 0px) + var(--step) * 6);
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 8px;
-}
-
-.overworld__dronetoggle {
-  background: rgba(20, 17, 15, 0.72);
-  color: #7dd3ff;
-  border: 1px solid #3a8cb0;
-  border-radius: 999px;
-  padding: 8px 16px;
-  font-family: var(--font-a);
-  font-weight: 700;
-  font-size: 13px;
-}
-
-.overworld__dronepanel {
   display: flex;
   flex-direction: column;
   gap: 6px;
