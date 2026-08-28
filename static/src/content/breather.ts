@@ -1,4 +1,5 @@
 import { MENTOR_DONE } from '../systems/mentors';
+import { HUNTED_CATCH_FLAG } from '../systems/consequences';
 import type { Scene } from '../systems/scenes';
 
 /**
@@ -48,6 +49,13 @@ const BREATHER: Scene = {
       lines: [
         { text: 'It is eleven and the kitchen light is on, which it is not, and Mom is sitting at the table with a cup of tea she has not been drinking.' },
         { text: 'There is a car across the street that has been there since Sunday. Neither of you mentions the car.' },
+        /*
+         * A player who has actually been picked up before — not just carried a
+         * high Heat number, but sat through the payphone call or the plastic
+         * chair — gets a Mom who is reacting to a specific memory, not a
+         * vague one. Still nothing she says directly; she doesn't do that.
+         */
+        { speaker: 'Mom', text: 'I know what a call like that sounds like now. I’d rather not learn it a second way.', requiresFlag: HUNTED_CATCH_FLAG },
         { speaker: 'Mom', text: 'Sit down a minute.' },
       ],
       choices: [

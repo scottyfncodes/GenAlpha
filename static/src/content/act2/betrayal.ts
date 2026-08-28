@@ -295,6 +295,7 @@ const LOW_DEJA: Scene = {
         { speaker: 'Deja', text: 'So we do it ourselves. That’s not a speech, that’s just the list. There isn’t another list.' },
         { text: 'She has been three steps ahead of everyone since Thursday, because stopping is not a thing her family has ever been able to afford, and grief has to go somewhere.' },
         { speaker: 'Deja', text: 'My mum’s crew have been keeping that town running for nineteen years and nobody’s ever come to save us either. You get used to it. You shouldn’t. You do.' },
+        { speaker: 'Deja', text: 'You know how to keep your head down when it actually matters. I haven’t forgotten that.', requiresFlag: 'deja_jobsite_covered' },
       ],
       effects: [
         { kind: 'flag', key: 'low_point_deja' },
@@ -413,6 +414,16 @@ const COMES_BACK: Scene = {
       lines: [
         { text: 'He looks about two years older, which at twelve is a thing that can happen in nine days.' },
         { text: 'He does not apologise. Nobody asks him to. There is a version of this where somebody tells him it wasn’t his fault and everybody feels better, and the four of you, without discussing it, decline to have that version.' },
+        /*
+         * The one thing Bishop can react to that nobody else in the crew can:
+         * whether the protagonist was the one who told him, and when. Gated on
+         * the flags `act2_7_telling_bishop` itself already writes, so this is a
+         * one-line callback rather than a new branch — `never_told_bishop`
+         * stays out of his dialogue entirely, because he was never told, and
+         * lands instead as narration in `nine_seconds` below.
+         */
+        { speaker: 'Bishop', text: 'You were the one who showed me. First. Before it was a thing everyone else had to find out.', requiresFlag: 'told_bishop_directly' },
+        { speaker: 'Bishop', text: 'Still would’ve rather heard it from you before I heard it in a room with eleven other people. Not going to say that twice.', requiresFlag: 'told_bishop_late' },
         { speaker: 'Bishop', text: 'I’ve got something.' },
       ],
       next: 'list',
@@ -432,6 +443,7 @@ const COMES_BACK: Scene = {
       lines: [
         { text: 'It takes him about nine seconds to give away the thing that made him worth talking to, and he does it without being asked, and without making anybody earn it.' },
         { text: 'Which is, you realise, exactly what he did in the summer — and this time he is not passing on somebody else’s. He knows precisely what it costs, because he has just watched what happens to people who hold things back and call it strategy.' },
+        { text: 'He still doesn’t know you knew before Thursday. Watching him hand over the biggest thing he has without being asked, you have another chance to say it, and you don’t take it.', requiresFlag: 'never_told_bishop' },
         { speaker: 'Bishop', text: 'It’s not a gift. I just don’t want to be the one who has it.' },
       ],
       effects: [

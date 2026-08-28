@@ -196,7 +196,7 @@ export function SceneView({ scene, onClose }: { scene: Scene; onClose: () => voi
 
       <Dialogue
         key={nodeId}
-        lines={visibleLines(node, save.heat.threshold_tier)}
+        lines={visibleLines(node, save.heat.threshold_tier, save.player.flags)}
         choices={visibleChoices(node, save.player.flags, save.economy.inventory.map((i) => i.itemId))}
         speed={CHARS_PER_TICK[save.settings.textSpeed] ?? 2}
         renderText={(t, speaker) => render(t, save, speaker)}

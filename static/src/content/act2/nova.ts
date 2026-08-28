@@ -106,6 +106,14 @@ const EASY_WAY: Scene = {
         { text: 'Ellen would give you the login in about four seconds. She would not ask why. She has offered it before, unprompted, the way other people offer you a lift.' },
         { text: 'The other way is a Tier 3 trace against a records host that has actual money spent on it, plus about a week of standing outside places with a notebook.' },
         { speaker: 'Milo', text: 'Both work.' },
+        /*
+         * A callback to his own mentor mission, not a lecture — the file's own
+         * design note is that the AI shortcut and using Ellen are the same
+         * temptation and the game never says so out loud. These stay oblique
+         * on purpose; neither names the parallel.
+         */
+        { speaker: 'Milo', text: 'You know which one I’d pick.', requiresFlag: 'milo_took_shortcut' },
+        { speaker: 'Milo', text: 'Yeah. Not going to tell you again.', requiresFlag: 'milo_did_legwork' },
         { text: 'That is the entire contribution Milo makes to this conversation, and he makes it while looking at you.' },
       ],
       choices: [

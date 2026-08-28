@@ -30,7 +30,10 @@ export interface Consequence {
   hurtDays: number;
 }
 
-const HUNTED_CATCH_FLAG = 'hunted_catch_count';
+/** Set the first time a `hunted`-tier catch lands. Exported so content can
+ * react to the player actually having been caught, not just to Heat itself —
+ * see the breather scene's kitchen-table line. */
+export const HUNTED_CATCH_FLAG = 'hunted_catch_count';
 /** Read by Overworld.tsx's speed calculation. Exported so the two files
  * can't drift on the flag's name. */
 export const HURT_UNTIL_DAY_FLAG = 'hurt_until_day';

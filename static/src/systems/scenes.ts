@@ -110,6 +110,20 @@ export interface SceneLine {
   /** Inverse: the line drops away once Heat reaches this tier. */
   maxTier?: ThresholdTier;
   /**
+   * ADDED for the dialogue audit's reactive-dialogue pass. The line only
+   * appears if this story flag is set — the same mechanism
+   * `SceneChoice.requiresFlag` has had since Act 1, now available to a plain
+   * line of narration or speech, not just a choice. This is what lets a scene
+   * that already exists gain a single sentence of reaction to something the
+   * player did somewhere else, without forking the node or writing a second
+   * copy of the scene. Use it for texture, not plot: nothing should be gated
+   * behind a flag combination a player could not have produced by playing
+   * normally, and a node must still read correctly with the line removed.
+   */
+  requiresFlag?: string;
+  /** Inverse of `requiresFlag`: the line drops away once this flag is set. */
+  hiddenIfFlag?: string;
+  /**
    * ADDED for the terminal-check opening beat. A line of screen text — a
    * headline, a price, a thread title — rather than narration or speech.
    * Rendered in its own monospace strip so a scrolled feed doesn't read as
@@ -332,11 +346,18 @@ export function isComplete(flags: StoryFlags, sceneId: string): boolean {
   return Boolean(flags[completionFlag(sceneId)]);
 }
 
-/** Lines the player actually sees, after Heat-reactive variants are resolved. */
-export function visibleLines(node: SceneNode, tier: ThresholdTier): SceneLine[] {
+/**
+ * Lines the player actually sees, after Heat-reactive and flag-reactive
+ * variants are resolved. `flags` defaults to empty rather than being
+ * required, so every existing call site (and every test that only cares
+ * about Heat gating) keeps working unchanged.
+ */
+export function visibleLines(node: SceneNode, tier: ThresholdTier, flags: StoryFlags = {}): SceneLine[] {
   return node.lines.filter((l) => {
     if (l.minTier && !atLeast(tier, l.minTier)) return false;
     if (l.maxTier && atLeast(tier, l.maxTier)) return false;
+    if (l.requiresFlag && !flags[l.requiresFlag]) return false;
+    if (l.hiddenIfFlag && flags[l.hiddenIfFlag]) return false;
     return true;
   });
 }
@@ -450,9 +471,12 @@ export function validateScene(scene: Scene, locationIds: string[]): string[] {
         problems.push(`${at(key)}: real run also carries a heat effect — that charges twice`);
       }
     }
-    // A node whose every line is Heat-gated renders empty at the wrong tier.
-    if (node.lines.length > 0 && node.lines.every((l) => l.minTier || l.maxTier)) {
-      problems.push(`${at(key)}: every line is tier-gated — this node can render empty`);
+    // A node whose every line is Heat- or flag-gated can render empty.
+    if (
+      node.lines.length > 0 &&
+      node.lines.every((l) => l.minTier || l.maxTier || l.requiresFlag || l.hiddenIfFlag)
+    ) {
+      problems.push(`${at(key)}: every line is gated — this node can render empty`);
     }
     const terminal = !node.end
       ? !node.next && !node.choices?.length && !node.minigame
