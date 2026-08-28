@@ -1,19 +1,23 @@
 # The GenAlpha Art Bible
 
-**Status: approved-to-review.** This document establishes the visual foundation
-that future custom artwork plugs into. It is derived entirely from the game as
-it actually renders today — `src/world/draw.ts` and its neighbors are the
-source of truth throughout; nothing here is aspirational or copied from a
-design document that predates the code. Where the implementation and an older
-design note (the in-code comments cite a "Style Guide 07" and a "map redesign
-brief" — neither exists as a file in this repository) disagree, the
-implementation wins, because it's the only version anyone has actually seen
-run.
+**Status: Run 1 approved; foundation frozen.** This document establishes the
+visual foundation that future custom artwork plugs into. It is derived
+entirely from the game as it actually renders today — `src/world/draw.ts` and
+its neighbors are the source of truth throughout; nothing here is
+aspirational or copied from a design document that predates the code. Where
+the implementation and an older design note (the in-code comments cite a
+"Style Guide 07" and a "map redesign brief" — neither exists as a file in
+this repository) disagree, the implementation wins, because it's the only
+version anyone has actually seen run.
 
 This is Run 1 of the custom asset pipeline: art direction and the asset-slot
 system only. **No finished custom artwork ships in this run.** Every
-dimension and anchor below is either measured off the live renderer or
-explicitly marked `PROPOSED / REQUIRES APPROVAL`.
+dimension and anchor below is either measured off the live renderer, or was
+`PROPOSED / REQUIRES APPROVAL` and has since been approved (character size
+parity, §2; the UI icon base grid, §3 — both recorded at the Run 1 review
+checkpoint, `docs/art/genalpha-art-pipeline-run1-review.md`), or remains an
+open design recommendation awaiting approval
+(`docs/art/genalpha-character-animation-architecture.md`).
 
 ---
 
@@ -201,18 +205,21 @@ units, not to display scale):
 order: player < car ≈ tree < truck < house-width < house-height <
 landmark, which is the order every existing table above already implies.)*
 
-**A gap worth flagging rather than papering over:** the game today draws
-adult NPCs, cops, and the player at the **same sprite budget** (16×22, or the
-same procedural proportions). There is no adult/child size distinction baked
-into any character dimension table — only the player's own collision box is
-deliberately shortened, and that shortening isn't mirrored in the sprite
-size. Custom character art can go either way (introduce a true adult/child
-height difference, or preserve the current "everyone reads the same size"
-convention) — **this is a PROPOSED decision for Run 2, not resolved here**,
-because it changes what "character" as an asset category means. The asset
-slot manifest (§6) currently locks all humanoid character slots to the
-existing 16×22 box so nothing is blocked on the decision; revisiting it only
-requires widening that one box, not restructuring the manifest.
+**Character size parity — APPROVED.** The game today draws adult NPCs, cops,
+and the player at the **same sprite budget** (16×22, or the same procedural
+proportions); only the player's own collision box is deliberately shortened,
+and that shortening isn't mirrored in the sprite size. **Decision: Player and
+NPCs use the same 16×22 world-space sprite budget initially. No separate
+adult/child size system.** This is a starting default, not a permanent
+constraint — every `AssetSlot` already declares its own `width`/`height`
+independently (§6), so a future character *class* (an adult vs. a kid, a
+vehicle-scale character, anything with a real reason to differ) can simply
+declare a different box on its own slot without restructuring the manifest
+or touching any other slot's dimensions. Nothing in the schema hard-codes
+16×22 as a universal ceiling or floor for "character" — it's this run's
+measured default for the two slots that exist today
+(`character.player`, `character.npc.person`), not a rule the category
+itself enforces.
 
 ---
 
@@ -234,7 +241,7 @@ explicitly and the recommendation is marked accordingly.
 | **Terrain** (ground, road, sidewalk, curb) | tiled at the **16×16** base unit; road width is per-tier (§2 table) | top-left, tiled fill (no single-object anchor) | `ROAD_WIDTH`, `TILE` |
 | **Technology** (camera, plate scanner, security gate, junction box, ATM/phone hack node, drone) | **12×12** (drone body) to **16×16** (camera, most street-hack nodes) — small, fixed-size, deliberately *not* scaled to the location it stands at, because these are point objects, not architecture | center (camera/hack/junction nodes are stored and drawn by center point) | `drawSabotageCamera` (`size = 16`), `drawDrone` (`armR = 6`) |
 | **Effect / decal** (Gen A mark, sabotage scar) | drawn to fit whatever surface hosts it (a wall mark scales to the wall it's tagging); the Gen A mark component itself is authored on a **100×100 viewBox** and scaled by its container | explicit origin, per-instance (see `WallMark`'s own `x, y` plus the surface it's keyed to) | `GenAMark.tsx`, `drawGenAMark`/`drawSabotageScar` |
-| **UI icon** | **PROPOSED / REQUIRES APPROVAL — no existing instances.** HUD iconography today is text/CSS/SVG-drawn inline (`Hud.tsx`), not sourced from image assets at all. Recommend a **24×24** base grid (matches neither the 16px world tile nor an arbitrary web-icon size, splitting the difference so icons stay crisp at both the in-game HUD scale and a settings/menu scale) if and when UI ships as image assets. Not wired into anything this run. | center | none — greenfield |
+| **UI icon** | **APPROVED — 24×24 base grid.** No existing instances to measure against — HUD iconography today is text/CSS/SVG-drawn inline (`Hud.tsx`), not sourced from image assets at all. 24×24 (matches neither the 16px world tile nor an arbitrary web-icon size, splitting the difference so icons stay crisp at both the in-game HUD scale and a settings/menu scale) is the approved **baseline canvas**, not a fill requirement — an icon's own glyph can and often should sit inside it with transparent padding rather than touch every edge, the same restraint the rest of this game's iconography (see the Gen A mark, §6) already shows. Still not wired into anything this run. | center | none — greenfield |
 
 **Modular sizing rule for new art:** author small and medium props as
 multiples of **8px** (half a tile) where the object doesn't already have a
@@ -474,10 +481,13 @@ against it directly:
   the one the game actually plays with.
 - No perspective or visual-direction change — none was found to be
   necessary, and §1 states that explicitly rather than silently.
-- The one open design question this audit surfaced — whether custom
-  character art should introduce an adult/child size distinction the current
-  sprite budget doesn't have (§2) — is flagged `PROPOSED / REQUIRES APPROVAL`
-  and left unresolved, not decided unilaterally.
+- Two open questions this audit surfaced (character size parity, §2; the UI
+  icon base grid, §3) have since been **approved** at the Run 1 review
+  checkpoint — see `docs/art/genalpha-art-pipeline-run1-review.md` for the
+  checkpoint record and `docs/art/genalpha-character-animation-architecture.md`
+  for the one design question the checkpoint left open (how a manifest slot's
+  declared `frames` block should actually be sliced and animated) — a design
+  recommendation only, not yet implemented.
 
 Run 2 (finished asset production) begins only on separate, explicit
 authorization.

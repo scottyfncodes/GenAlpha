@@ -99,8 +99,10 @@ const DIRECTIONS = ['left', 'down', 'up', 'right'] as const;
 export const ASSET_MANIFEST: AssetSlot[] = [
   /* ================================================================ *
    * CHARACTERS — bottom-center (feet), art bible §2/§4. The player and
-   * ambient NPCs share one sprite budget today (16x22); see the art
-   * bible's flagged PROPOSED note on an adult/child size split.
+   * ambient NPCs share one sprite budget (16x22) — APPROVED as this run's
+   * default at the Run 1 review checkpoint, not a hard ceiling: each slot
+   * declares its own width/height, so a future character class with a real
+   * reason to differ just declares a different box on its own slot.
    * ================================================================ */
   {
     id: 'character.player',
@@ -257,11 +259,13 @@ export const ASSET_MANIFEST: AssetSlot[] = [
   { id: 'effect.sparkle', category: 'effect', label: 'Hidden-pickup sparkle', description: 'One soft pixel over a bush that still has something in it, on a slow twinkle cycle.', width: 2, height: 2, anchor: 'explicit', layer: 'obstacles', sourceRef: 'draw.ts drawSparkle' },
 
   /* ================================================================ *
-   * UI ICON — PROPOSED / REQUIRES APPROVAL. No existing instances; HUD
-   * iconography today is text/CSS/SVG-drawn inline (ui/Hud.tsx), not
-   * image-asset-backed at all. Included so the manifest schema and
-   * gallery cover the category the art bible calls out, not wired to
+   * UI ICON — 24x24 base grid APPROVED at the Run 1 review checkpoint
+   * (docs/art/genalpha-art-pipeline-run1-review.md). No existing instances
+   * still; HUD iconography today is text/CSS/SVG-drawn inline (ui/Hud.tsx),
+   * not image-asset-backed at all. A baseline canvas, not a fill
+   * requirement — see the art bible §3. Included so the manifest schema
+   * and gallery cover the category the art bible calls out, not wired to
    * anything.
    * ================================================================ */
-  { id: 'ui-icon.generic', category: 'ui-icon', label: 'Generic UI icon (proposed)', description: 'PROPOSED base grid for future image-asset HUD icons. Nothing in the game reads this slot today.', width: 24, height: 24, anchor: 'center', layer: 'player', sourceRef: 'none — greenfield, see the art bible §3' },
+  { id: 'ui-icon.generic', category: 'ui-icon', label: 'Generic UI icon', description: 'Approved 24x24 base grid for future image-asset HUD icons. A baseline, not a fill requirement — preserve transparent padding where appropriate. Nothing in the game reads this slot today.', width: 24, height: 24, anchor: 'center', layer: 'player', sourceRef: 'none — greenfield, see the art bible §3' },
 ];
