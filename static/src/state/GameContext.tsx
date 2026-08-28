@@ -30,6 +30,7 @@ import {
   markRelocated,
   sabotageCamera,
   sellMaterial,
+  sellMaterialForCash,
   type KamikazeTarget,
 } from '../systems/materials';
 import { applyCatch } from '../systems/consequences';
@@ -88,6 +89,7 @@ type Action =
   | { type: 'FLY_RECON'; hit: boolean }
   | { type: 'KAMIKAZE_STRIKE'; target: KamikazeTarget; hit: boolean }
   | { type: 'SELL_MATERIAL'; itemId: string }
+  | { type: 'SELL_MATERIAL_CASH'; itemId: string }
   | { type: 'CRAFT_ITEM'; recipeId: string }
   | { type: 'CAUGHT'; tier: ThresholdTier }
   | { type: 'HACK_STREET_NODE'; nodeId: string; outcome: RunOutcome; level?: HackLevel }
@@ -286,6 +288,9 @@ function applyAction(state: SaveState | null, action: Action): SaveState | null 
 
     case 'SELL_MATERIAL':
       return sellMaterial(state, action.itemId);
+
+    case 'SELL_MATERIAL_CASH':
+      return sellMaterialForCash(state, action.itemId);
 
     case 'CRAFT_ITEM':
       return craft(state, action.recipeId);

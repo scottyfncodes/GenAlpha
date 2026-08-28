@@ -213,6 +213,12 @@
   opacity: 0.65;
 }
 
+.salvage__row-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
 .salvage__row button {
   border: 2px solid currentColor;
   background: none;
@@ -223,6 +229,15 @@
 }
 
 .salvage__row button:disabled { opacity: 0.4; }
+
+/* Player-Freedom Audit item #8 — deliberately the quieter of the two
+   options, since it's the worse rate: a dashed border instead of solid,
+   the same "here, but not the one to reach for first" language the rest
+   of this UI uses for a secondary action. */
+.salvage__cashout {
+  border-style: dashed !important;
+  opacity: 0.75;
+}
 
 .salvage__reason {
   margin-left: 8px;

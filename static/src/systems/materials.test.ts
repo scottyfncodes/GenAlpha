@@ -6,6 +6,7 @@ import {
   canFlyRecon,
   canKamikaze,
   canSabotage,
+  cashValueOf,
   collectHidden,
   craft,
   destroyJunctionBox,
@@ -13,8 +14,10 @@ import {
   flyRecon,
   kamikazeStrike,
   rollJunctionBoxLoot,
+  sellMaterialForCash,
 } from './materials';
 import { createNewSave } from '../state/defaults';
+import { SHDW } from '../content/economy';
 import { CAMERA_NODES } from '../world/collectibles';
 import { JUNCTION_BOX_NODES } from '../world/junctionboxes';
 
@@ -261,5 +264,27 @@ describe('kamikaze strikes', () => {
     const save = createNewSave('Wren');
     save.economy.inventory = [{ itemId: 'scout_drone', quantity: 1, acquiredVia: 'crafted' }];
     expect(kamikazeStrike(save, { kind: 'camera', id: 'not_a_real_node' }, true)).toEqual(save);
+  });
+});
+
+describe('sellMaterialForCash / cashValueOf — Player-Freedom Audit item #8', () => {
+  it('pays cash, not SHDW, and consumes one unit', () => {
+    const save = createNewSave('Wren');
+    save.economy.inventory = [{ itemId: 'hard_drive', quantity: 2, acquiredVia: 'found' }];
+    const after = sellMaterialForCash(save, 'hard_drive');
+    expect(after.economy.cashOnHand).toBe(save.economy.cashOnHand + cashValueOf('hard_drive'));
+    expect(after.economy.inventory.find((i) => i.itemId === 'hard_drive')?.quantity).toBe(1);
+    expect(after.economy.cryptoWallets).toEqual(save.economy.cryptoWallets);
+  });
+
+  it('is a safe no-op without the material on hand', () => {
+    const save = createNewSave('Wren');
+    expect(sellMaterialForCash(save, 'hard_drive')).toBe(save);
+  });
+
+  it('pays worse than the SHDW route, at today’s SHDW price — the whole point', () => {
+    const shdwCut = 0.8 * SHDW.basePrice; // hard_drive's sellValueShdw
+    expect(cashValueOf('hard_drive')).toBeLessThan(shdwCut);
+    expect(cashValueOf('hard_drive')).toBeGreaterThan(0);
   });
 });

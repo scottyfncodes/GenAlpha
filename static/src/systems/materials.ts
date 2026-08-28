@@ -3,7 +3,7 @@ import { JUNCTION_BOX_SALVAGE, MATERIALS_BY_ID, RECIPES } from '../content/mater
 import { BLUEPRINTS } from '../content/blueprints';
 import { isBlueprintUnlocked, unlockBlueprint } from './blueprints';
 import { mulberry32, seedFrom } from './rng';
-import { BOLT_CUTTERS, PLAYER_DRONE_TIERS } from '../content/economy';
+import { BOLT_CUTTERS, PLAYER_DRONE_TIERS, SHDW } from '../content/economy';
 import {
   CAMERA_NODES,
   HIDDEN_PICKUPS,
@@ -408,6 +408,28 @@ export function sellMaterial(save: SaveState, itemId: string): SaveState {
   const material = MATERIALS_BY_ID[itemId];
   if (!material || !owns(save, itemId)) return save;
   return addShdw(removeItem(save, itemId), material.sellValueShdw);
+}
+
+/**
+ * Player-Freedom Audit item #8: a quick, worse-rate cash sale, so the story
+ * promise of "build your own tech" (Act 1 beat 1b — content/act1.ts's
+ * `B1B_THE_IDEA`) isn't stuck behind whichever of Fenwick Lot (locked until
+ * `resistance_hint_found`, the *last* beat) or a built cyberdeck (itself
+ * something to build) happens first. Junction boxes stay the free knowledge
+ * economy either way — this only ever touches materials, never blueprints,
+ * and the rate is deliberately worse than selling the same haul for SHDW
+ * and waiting to cash that out later (`cashValueOf`), so there's still a
+ * real reason to wait once the real economy is actually reachable.
+ */
+export function cashValueOf(itemId: string): number {
+  const material = MATERIALS_BY_ID[itemId];
+  if (!material) return 0;
+  return Math.max(1, Math.round(material.sellValueShdw * SHDW.basePrice * 0.5));
+}
+
+export function sellMaterialForCash(save: SaveState, itemId: string): SaveState {
+  if (!owns(save, itemId)) return save;
+  return addCash(removeItem(save, itemId), cashValueOf(itemId));
 }
 
 /** A recipe needs its blueprint before it needs its parts — knowing salvage

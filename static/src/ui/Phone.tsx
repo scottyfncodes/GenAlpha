@@ -5,6 +5,7 @@ import { FenwickLot } from './FenwickLot';
 import { SilkRoad } from './SilkRoad';
 import { MATERIALS } from '../content/materials';
 import { quantityOf } from '../systems/market';
+import { cashValueOf } from '../systems/materials';
 import './phone.css';
 
 /**
@@ -121,14 +122,30 @@ function Salvage({ onBack }: { onBack: () => void }) {
                   <span>× {quantityOf(save, m.itemId)}</span>
                 </div>
                 <p className="salvage__effect">{m.description}</p>
-                <button
-                  onClick={() => {
-                    dispatch({ type: 'SELL_MATERIAL', itemId: m.itemId });
-                    setNote(`Sold for ${m.sellValueShdw} SHDW.`);
-                  }}
-                >
-                  Sell · {m.sellValueShdw} SHDW
-                </button>
+                <div className="salvage__row-actions">
+                  <button
+                    onClick={() => {
+                      dispatch({ type: 'SELL_MATERIAL', itemId: m.itemId });
+                      setNote(`Sold for ${m.sellValueShdw} SHDW.`);
+                    }}
+                  >
+                    Sell · {m.sellValueShdw} SHDW
+                  </button>
+                  {/* Player-Freedom Audit item #8: a worse-rate cash-out,
+                      no Fenwick Lot and no built cyberdeck required — see
+                      systems/materials.ts's own cashValueOf doc comment for
+                      why the rate is deliberately worse than waiting. */}
+                  <button
+                    className="salvage__cashout"
+                    onClick={() => {
+                      const cash = cashValueOf(m.itemId);
+                      dispatch({ type: 'SELL_MATERIAL_CASH', itemId: m.itemId });
+                      setNote(`Quick sale, no questions — $${cash}.`);
+                    }}
+                  >
+                    Quick cash · ${cashValueOf(m.itemId)}
+                  </button>
+                </div>
               </li>
             ))}
           </ul>
