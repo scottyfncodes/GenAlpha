@@ -44,8 +44,8 @@ import './cyberdeck.css';
 
 /**
  * The cyberdeck: its own device, its own screen, separate from the phone.
- * The phone is now just the early-game door — Silk Road and Files — the kind
- * of thing a Bellhaven kid already has. This is the thing Aaron built
+ * The phone is now just the early-game door — Fenwick Lot, Silk Road, and
+ * Salvage — the kind of thing a Bellhaven kid already has. This is the thing Aaron built
  * (`content/materials.ts` `craft_cyberdeck`), and it's grown into the command
  * centre: the one door into cracking an ATM or a phone line, plus everything
  * that used to be scattered across the phone and the HUD — Little John,

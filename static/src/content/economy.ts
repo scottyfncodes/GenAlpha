@@ -303,6 +303,20 @@ export const ITEMS_BY_ID: Record<string, GoodsItem> = Object.fromEntries(
 );
 
 /**
+ * The one door Aaron has and nobody else does — Silk Road, narrowed down
+ * from a second general store to exactly this: the top of each build line,
+ * the tier the ordinary Wednesday table never carries (`content/market.ts`'s
+ * own "the market never sold tier skips" — this is the one place that
+ * stops being true). Deliberately short. A secret door, not another
+ * Walmart — see `ui/SilkRoad.tsx`. Fenwick Lot (`ui/FenwickLot.tsx`, still
+ * the same `ITEMS` catalog and the same `systems/market.ts` pricing) is
+ * everything else `gear`/`intel`/`safehouse` has to offer, and excludes
+ * these four so they stay genuinely exclusive to the one door that sells
+ * them.
+ */
+export const SILK_ROAD_ITEM_IDS = new Set<string>(['board_5', 'cyberdeck_5', 'gps_3', 'strike_drone']);
+
+/**
  * Which item each mechanical hook looks for. The systems that care read these
  * constants rather than string literals, so a rename is one edit and a typo is
  * a type error instead of a silently dead effect.

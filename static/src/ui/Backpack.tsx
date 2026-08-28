@@ -85,7 +85,7 @@ function BackpackHome({
         <span className="backpack__tile-icon">📱</span>
         <span className="backpack__tile-copy">
           <b>Phone</b>
-          <span>Silk Road</span>
+          <span>Fenwick Lot, Silk Road, Salvage</span>
         </span>
       </button>
 

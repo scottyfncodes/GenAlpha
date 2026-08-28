@@ -60,7 +60,7 @@ import { HomeInteriorBackdrop } from './InteriorBackdrop';
 import { STREET_HACK_INTERACT_RADIUS, STREET_HACK_NODES, type StreetHackNode } from './streethacks';
 import { canHackStreetNode, HACK_KIND_TOOL } from '../systems/streethacks';
 import { drawTown } from './draw';
-import { Market } from '../ui/Market';
+import { FenwickLot } from '../ui/FenwickLot';
 import { Garage } from '../ui/Garage';
 import { DroneShoot } from '../ui/minigames/DroneShoot';
 import {
@@ -2029,7 +2029,7 @@ export function Overworld() {
         </div>
       )}
 
-      {market && <Market onClose={() => setMarket(false)} />}
+      {market && <FenwickLot onClose={() => setMarket(false)} />}
       {garageOpen && <Garage onClose={() => setGarageOpen(false)} />}
 
       {/* Hidden rather than just covered when a location card, the

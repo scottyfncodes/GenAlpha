@@ -1,31 +1,35 @@
 import { useState } from 'react';
 import { useSave } from '../state/GameContext';
 import { useGame } from '../state/GameContext';
-import { Market } from './Market';
+import { FenwickLot } from './FenwickLot';
+import { SilkRoad } from './SilkRoad';
 import { MATERIALS } from '../content/materials';
 import { quantityOf } from '../systems/market';
 import './phone.css';
 
 /**
- * The market, and now the salvage economy, live behind a phone screen instead
- * of only a physical table — per the build note, the market shouldn't have to
- * wait on a story flag to be worth opening. Both apps are exactly the same
- * `systems/market.ts` / `systems/materials.ts` this always was; the phone is
- * a second door into the same room, not a second economy.
+ * Fenwick Lot, Silk Road, and now the salvage economy, all live behind a
+ * phone screen instead of only a physical table — per the build note, the
+ * market shouldn't have to wait on a story flag to be worth opening. All
+ * three are exactly the same `systems/market.ts` / `systems/materials.ts`
+ * this always was; the phone is a second door into the same rooms, not a
+ * second economy. Fenwick Lot and Silk Road used to be one screen wearing
+ * Silk Road's name — see `ui/FenwickLot.tsx`/`ui/SilkRoad.tsx` for why
+ * they're two doors now, one ordinary and one not.
  *
- * The phone's own home screen is deliberately down to two apps now — Little
- * John, Leads and Feed all moved into the Cyberdeck (`ui/Cyberdeck.tsx`) once
- * that's built, because none of them are "a kid's first device" any more,
- * they're what a built computer manages. What's left here is what a phone
- * still is even after the deck exists: the door into the market, and a place
- * to check what's actually in a bag.
+ * The phone's own home screen is deliberately down to three apps now —
+ * Little John, Leads and Feed all moved into the Cyberdeck
+ * (`ui/Cyberdeck.tsx`) once that's built, because none of them are "a kid's
+ * first device" any more, they're what a built computer manages. What's
+ * left here is what a phone still is even after the deck exists: the two
+ * doors into the market, and a place to check what's actually in a bag.
  *
  * `.phone__body` carries a `transform`, which — deliberately — gives
- * `Market`'s own `position: fixed` a new containing block. Market fills the
- * phone's screen instead of the whole viewport without a single line of
- * Market's own CSS changing.
+ * `FenwickLot`/`SilkRoad`'s own `position: fixed` a new containing block.
+ * Either fills the phone's screen instead of the whole viewport without a
+ * single line of their own CSS changing.
  */
-type App = 'home' | 'market' | 'salvage';
+type App = 'home' | 'fenwick' | 'silkroad' | 'salvage';
 
 export function Phone({ onClose }: { onClose: () => void }) {
   const [app, setApp] = useState<App>('home');
@@ -33,7 +37,8 @@ export function Phone({ onClose }: { onClose: () => void }) {
   return (
     <div className="phone" role="dialog" aria-label="Phone">
       <div className="phone__body">
-        {app === 'market' && <Market onClose={() => setApp('home')} />}
+        {app === 'fenwick' && <FenwickLot onClose={() => setApp('home')} />}
+        {app === 'silkroad' && <SilkRoad onClose={() => setApp('home')} />}
         {app === 'salvage' && <Salvage onBack={() => setApp('home')} />}
         {app === 'home' && (
           <PhoneHome onOpen={setApp} onClose={onClose} />
@@ -53,7 +58,11 @@ function PhoneHome({ onOpen, onClose }: { onOpen: (app: App) => void; onClose: (
         </button>
       </div>
       <div className="phone__apps">
-        <button className="phone__app" onClick={() => onOpen('market')}>
+        <button className="phone__app" onClick={() => onOpen('fenwick')}>
+          <span className="phone__app-icon">🏚️</span>
+          <span>Fenwick Lot</span>
+        </button>
+        <button className="phone__app" onClick={() => onOpen('silkroad')}>
           <span className="phone__app-icon">🐪</span>
           <span>Silk Road</span>
         </button>

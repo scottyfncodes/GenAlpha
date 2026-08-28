@@ -1,0 +1,17 @@
+/*
+ * Silk Road reuses `market.css`'s shell almost entirely — same fiction, same
+ * economy underneath — so this only overrides what actually needs to read
+ * as a different door: no orange/red Fenwick riso ink, a duller gold
+ * instead, and an intro line where the ticker used to sit.
+ */
+.silk-road .market__title {
+  text-shadow: 1.5px -1px 0 #7a5c1e;
+}
+
+.silk-road__intro {
+  margin: var(--step) 0 0;
+  font-size: 13px;
+  line-height: 1.5;
+  opacity: 0.8;
+  font-style: italic;
+}

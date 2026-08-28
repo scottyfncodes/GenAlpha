@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useGame, useSave } from '../state/GameContext';
-import { ITEMS } from '../content/economy';
+import { ITEMS, SILK_ROAD_ITEM_IDS } from '../content/economy';
 import {
   categoryLabel,
   netWorth,
@@ -16,7 +16,12 @@ import type { ItemCategory } from '../state/schema';
 import './market.css';
 
 /**
- * The market (module 03's UI notes, and module 07's).
+ * Fenwick Lot: the everyday technology economy (module 03's UI notes, and
+ * module 07's), renamed off "Silk Road" once Silk Road narrowed down to its
+ * own small door (`ui/SilkRoad.tsx`) instead of naming this whole screen.
+ * Same table, same Ines, same Wednesday (`content/market.ts`'s opening
+ * scene already calls this place Fenwick Lot) — just the honest name for
+ * the general market instead of the market's own cute branding for itself.
  *
  * "A scrappy resistance-run trading app, not a polished stock ticker." This is
  * the screen where the two-language system does its most pointed work: it is
@@ -27,13 +32,15 @@ import './market.css';
  * Everything here reads from `systems/market.ts`. This component computes no
  * price and decides no availability — if a button is disabled, the reason came
  * from `unavailableReason` and is printed next to it. Never a dead button.
+ * `SILK_ROAD_ITEM_IDS` is excluded from every section here — those four stay
+ * exclusive to the one door that actually sells them.
  */
 const ORDER: ItemCategory[] = ['gear', 'intel', 'safehouse'];
 
 /** The reducer's action union isn't exported; this is the honest way to name it. */
 type MarketAction = Parameters<ReturnType<typeof useGame>['dispatch']>[0];
 
-export function Market({ onClose }: { onClose: () => void }) {
+export function FenwickLot({ onClose }: { onClose: () => void }) {
   const save = useSave();
   const { dispatch } = useGame();
   const [note, setNote] = useState<string | null>(null);
@@ -45,11 +52,11 @@ export function Market({ onClose }: { onClose: () => void }) {
   };
 
   return (
-    <div className="market lang-b" role="dialog" aria-label="Silk Road">
+    <div className="market lang-b" role="dialog" aria-label="Fenwick Lot">
       <header className="market__head">
         <div>
           <p className="market__eyebrow">Built goods, no questions</p>
-          <h2 className="market__title">Silk Road 🐪</h2>
+          <h2 className="market__title">Fenwick Lot</h2>
         </div>
         <button className="market__close" onClick={onClose}>
           Done
@@ -84,7 +91,7 @@ export function Market({ onClose }: { onClose: () => void }) {
         <section key={category} className="market__section">
           <h3 className="market__section-title">{categoryLabel(category)}</h3>
           <ul className="market__list">
-            {ITEMS.filter((i) => i.category === category).map((item) => {
+            {ITEMS.filter((i) => i.category === category && !SILK_ROAD_ITEM_IDS.has(i.itemId)).map((item) => {
               const price = priceOf(save, item.itemId);
               const dir = priceDirection(save, item.itemId);
               const held = quantityOf(save, item.itemId);
