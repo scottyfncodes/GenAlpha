@@ -860,9 +860,13 @@ export function Overworld() {
       // The physical-obstacle progression (`world/clearables.ts`) — a fence
       // cut or a gate overridden stops blocking movement for good the
       // moment its flag lands, same as it stops being drawn solid below.
-      const clearedIds = new Set(
-        CLEARABLE_OBSTACLES.filter((c) => flagsRef.current[c.flag]).map((c) => c.id),
-      );
+      // Board-tier traversal (Audit item #2, `Obstacle.minBoardTier`) joins
+      // the same set: nothing to persist there, it's just today's board
+      // tier compared against the number on the fence, fresh every frame.
+      const clearedIds = new Set([
+        ...CLEARABLE_OBSTACLES.filter((c) => flagsRef.current[c.flag]).map((c) => c.id),
+        ...activeObstacles.filter((o) => o.minBoardTier && boardTierRef.current >= o.minBoardTier).map((o) => o.id),
+      ]);
       // A bush hiding a salvage find is walkable, full stop — that's the only
       // tell it ever gives, so it can't also be a wall.
       const solidObstacles = activeObstacles.filter(

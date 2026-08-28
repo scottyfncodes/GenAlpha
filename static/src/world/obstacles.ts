@@ -97,6 +97,18 @@ export interface Obstacle {
    * rather than sitting at its endgame density from day one.
    */
   minStage?: 1 | 2 | 3;
+  /**
+   * Player-Freedom Audit item #2: board-tier traversal, not just speed. Set
+   * only on three fence segments, one per district, each already meaningful
+   * ground on its own — a rider at this board tier or above just goes
+   * through, no interaction, no flag, nothing to persist (`boardTier` is
+   * already live, derived fresh off owned inventory every frame, the same
+   * number `Overworld.tsx`'s own speed multiplier reads). Rendered the same
+   * "cut" way an audit-item-#1 clearable is (`world/draw.ts`'s
+   * `drawFenceCut`) once it stops blocking — a board doesn't leave a
+   * different mark than bolt cutters do, it's still just an open fence.
+   */
+  minBoardTier?: 1 | 2 | 3 | 4 | 5;
 }
 
 export const OBSTACLES: Obstacle[] = [
@@ -224,7 +236,10 @@ export const OBSTACLES: Obstacle[] = [
    * than there were last week." `minStage` keeps it off the map entirely
    * until the story's actually gone on long enough to earn it.
    */
-  { id: 'filler_58', x: 664, y: 316, w: 60, h: 16, kind: 'fence', minStage: 2 },
+  // Hasty chain-link, thrown up as the rollout escalates (minStage 2) — the
+  // kind of barrier a Motorized Deck's own weight and speed just goes
+  // through rather than around. See `Obstacle.minBoardTier`'s own comment.
+  { id: 'filler_58', x: 664, y: 316, w: 60, h: 16, kind: 'fence', minStage: 2, minBoardTier: 3 },
   // Plate scanners on the Crossroads' own approaches. Two at stage 0 —
   // the busiest corner in town already reads every plate that crosses it —
   // and a third that goes up as the rollout advances.
@@ -252,7 +267,10 @@ export const OBSTACLES: Obstacle[] = [
   // the fourth, and a deliberate gap at the north-east corner.
   { id: 'civic_fence_w', x: 1390, y: 26, w: 8, h: 140, kind: 'fence' },
   { id: 'civic_fence_n', x: 1402, y: 22, w: 120, h: 8, kind: 'fence' },
-  { id: 'civic_fence_e', x: 1584, y: 26, w: 8, h: 96, kind: 'fence' },
+  // The Data Centre's own east perimeter — the full Hoverboard clears it
+  // clean, a second, independent way in besides the cyberdeck-hacked gate
+  // on the south side. See `Obstacle.minBoardTier`'s own comment.
+  { id: 'civic_fence_e', x: 1584, y: 26, w: 8, h: 96, kind: 'fence', minBoardTier: 5 },
   { id: 'civic_gate', x: 1420, y: 164, w: 46, h: 12, kind: 'gate' },
   { id: 'civic_fence_s', x: 1500, y: 164, w: 82, h: 8, kind: 'fence' },
   { id: 'civic_bollard', x: 1400, y: 164, w: 12, h: 12, kind: 'rock' },
@@ -376,7 +394,10 @@ export const OBSTACLES: Obstacle[] = [
   { id: 'filler_75', x: 1308, y: 386, w: 114, h: 10, kind: 'fence' },
   { id: 'works_gate_n', x: 1440, y: 386, w: 46, h: 12, kind: 'gate' },
   { id: 'filler_76', x: 1502, y: 386, w: 90, h: 10, kind: 'fence' },
-  { id: 'filler_77', x: 1520, y: 400, w: 8, h: 100, kind: 'fence' }, // the Annex fence line itself…
+  // The Annex fence line itself. A Prototype Hoverboard clears the whole
+  // run, not just the gap further south the story already knows about —
+  // see `Obstacle.minBoardTier`'s own comment.
+  { id: 'filler_77', x: 1520, y: 400, w: 8, h: 100, kind: 'fence', minBoardTier: 4 },
   { id: 'filler_78', x: 1520, y: 552, w: 8, h: 66, kind: 'fence' }, // …with the gap the story keeps re-opening
   { id: 'filler_79', x: 1148, y: 700, w: 130, h: 12, kind: 'fence', minStage: 1 },
   { id: 'works_gate_scrap', x: 1342, y: 700, w: 46, h: 14, kind: 'gate' },
