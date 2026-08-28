@@ -749,10 +749,28 @@ function DeviceSettingsApp({ onBack }: { onBack: () => void }) {
         {rig > 0 ? `${deckNameForTier(rig)} — build ${rig} of 5.` : 'Nothing built yet. Salvage is out there.'}
       </p>
       <dl className="cyberdeck__stats">
+        <dt>Deck tier</dt>
+        <dd>{rig > 0 ? `${rig} — what this rig can physically reach` : 'Not built yet'}</dd>
         <dt>Hacking skill</dt>
-        <dd>{skillTier > 0 ? `Tier ${skillTier}` : 'Self-taught, so far'}</dd>
+        <dd>
+          {skillTier > 0
+            ? `Tier ${skillTier} — how well you work a system once you’re in`
+            : 'Self-taught, so far — how well you work a system once you’re in'}
+        </dd>
       </dl>
+      {/*
+        Player-Freedom Audit item #9: two numbers that both read as
+        "hacking got better" unless something says otherwise. Copy only —
+        the mechanics underneath (`HACK_KIND_MIN_TIER` for the deck tier,
+        `skillTier` feeding the minigame's own pulse/guess budget) are
+        unchanged.
+      */}
       <p className="cyberdeck__hack-sub" style={{ marginTop: 'calc(var(--step) * 1.5)' }}>
+        Two different numbers, on purpose. Deck tier decides what you can even reach — the target
+        kind, the housing, the door. Hacking skill decides how well you do once you’re inside it.
+        Building gets you somewhere new; the mentor lessons make you better once you’re there.
+      </p>
+      <p className="cyberdeck__hack-sub">
         What this build can reach — the tool opens it, the tier reads it:
       </p>
       <ul className="cyberdeck__unlocks">
