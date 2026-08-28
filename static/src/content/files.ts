@@ -108,6 +108,36 @@ export const FILES: FileEntry[] = [
     body: 'A login history for a tool that isn’t supposed to have a login history — timestamps, query counts, nothing about who or why. Somebody built this to be quiet. It isn’t, quite.',
     requirement: 'Earn trusted access to it yourself.',
   },
+  /*
+   * Player-Freedom Audit item #7: Files tied to a place, not a stat —
+   * `systems/files.ts`'s own `locationExplored` checks the fog-of-war grid
+   * directly, so unlocking one of these means standing there, once, on
+   * foot. Nothing here is new information the game hasn't already put on
+   * screen at that exact spot (`world/locations.ts`'s own blurbs and
+   * ambient text) — these are what it looks like once Aaron's actually
+   * written it down for himself instead of just having walked past it.
+   */
+  {
+    id: 'location_annex_notes',
+    category: 'location',
+    title: 'Annex — Field Notes',
+    body: 'Nothing official. Just what Aaron actually saw, in his own shorthand: the fence, the gap, how many trucks on a given night, which nights there aren’t any. The kind of file that only exists because somebody stood there long enough to write it.',
+    requirement: 'Go stand at the Annex fence yourself.',
+  },
+  {
+    id: 'location_data_center_notes',
+    category: 'location',
+    title: 'Data Centre — Field Notes',
+    body: 'No sign, no windows, a chiller loud enough to hear from the street — and now a page of what that actually looks like up close: the gate arm, the guard hut, the exact hour the car park fills. You don’t get this from a headline.',
+    requirement: 'Go stand outside the Data Centre yourself.',
+  },
+  {
+    id: 'location_camera_pole_notes',
+    category: 'location',
+    title: 'Pole 5-C — Field Notes',
+    body: 'A grey pole, a small sticker with a number on it, and — up close, not from across the street — two cables going into two different boxes. Whatever this actually is, it started with somebody willing to walk over and look.',
+    requirement: 'Go stand at the pole yourself.',
+  },
 ];
 
 export const FILES_BY_ID: Record<string, FileEntry> = Object.fromEntries(FILES.map((f) => [f.id, f]));

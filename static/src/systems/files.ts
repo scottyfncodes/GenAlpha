@@ -3,6 +3,23 @@ import { FILES, type FileEntry } from '../content/files';
 import { coveragePercent } from './coverage';
 import { deckTier, gpsTier, playerDroneTier, shdwHeld } from './market';
 import { escalationStage } from '../world/escalation';
+import { CELL, cellStatus, exploredSnapshot } from '../world/exploration';
+import { LOCATIONS } from '../world/locations';
+
+/**
+ * Whether the player has physically stood in a location's own footprint —
+ * `explored` specifically, not `scouted`: a File gated on this is supposed
+ * to read as "you were there," and a drone flying past at a distance isn't
+ * that. Same centre-point stand-in `world/mapview.ts`'s own `locationKnown`
+ * already uses for "is this location known yet" on the map screen.
+ */
+function locationExplored(save: SaveState, locationId: string): boolean {
+  const loc = LOCATIONS.find((l) => l.id === locationId);
+  if (!loc) return false;
+  const gx = Math.floor((loc.x + loc.w / 2) / CELL);
+  const gy = Math.floor((loc.y + loc.h / 2) / CELL);
+  return cellStatus(exploredSnapshot(save.world.exploration), gx, gy) === 'explored';
+}
 
 /**
  * Whether a File is unlocked — a pure predicate over the save, not a stored
@@ -41,6 +58,14 @@ function unlockedWhen(save: SaveState, id: string): boolean {
       return shdwHeld(save) > 0;
     case 'hidden_ai_access_log':
       return save.skills.aiToolAccess.unlocked;
+    // Player-Freedom Audit item #7 — gated on having physically stood
+    // somewhere, not a stat threshold. Exploration itself is progression.
+    case 'location_annex_notes':
+      return locationExplored(save, 'annex_fence');
+    case 'location_data_center_notes':
+      return locationExplored(save, 'data_center');
+    case 'location_camera_pole_notes':
+      return locationExplored(save, 'camera_pole_5th');
     default:
       return false;
   }
