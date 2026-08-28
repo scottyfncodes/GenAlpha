@@ -31,11 +31,11 @@ export function SilkRoad({ onClose }: { onClose: () => void }) {
   const items = ITEMS.filter((i) => SILK_ROAD_ITEM_IDS.has(i.itemId));
 
   return (
-    <div className="market lang-b silk-road" role="dialog" aria-label="Silk Road">
+    <div className="market lang-b silk-road" role="dialog" aria-label="Slik Rd">
       <header className="market__head">
         <div>
           <p className="market__eyebrow">Nobody advertises this door</p>
-          <h2 className="market__title">Silk Road 🐪</h2>
+          <h2 className="market__title">Slik Rd 🐫</h2>
         </div>
         <button className="market__close" onClick={onClose}>
           Done

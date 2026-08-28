@@ -63,8 +63,8 @@ function PhoneHome({ onOpen, onClose }: { onOpen: (app: App) => void; onClose: (
           <span>Fenwick Lot</span>
         </button>
         <button className="phone__app" onClick={() => onOpen('silkroad')}>
-          <span className="phone__app-icon">🐪</span>
-          <span>Silk Road</span>
+          <span className="phone__app-icon">🐫</span>
+          <span>Slik Rd</span>
         </button>
         <button className="phone__app" onClick={() => onOpen('salvage')}>
           <span className="phone__app-icon">🔩</span>
