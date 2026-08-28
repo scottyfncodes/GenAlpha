@@ -150,6 +150,27 @@ export const BLUEPRINTS: Blueprint[] = [
     tier: 3,
     description: 'An armour pattern traced off something that used to be a housing.',
   },
+  {
+    itemId: 'bp_gps_1',
+    name: 'Dead Reckoning Rig — build plan',
+    recipeId: 'craft_gps_1',
+    tier: 1,
+    description: 'A hand-drawn grid over a photocopied street map, corrected in three different pens.',
+  },
+  {
+    itemId: 'bp_gps_2',
+    name: 'Triangulation Rig — build plan',
+    recipeId: 'craft_gps_2',
+    tier: 2,
+    description: 'The maths for reading three signals against each other instead of guessing off one.',
+  },
+  {
+    itemId: 'bp_gps_3',
+    name: 'Ghost Positioning Rig — build plan',
+    recipeId: 'craft_gps_3',
+    tier: 3,
+    description: 'The whole thing, redrawn to explain why it never once has to ask anybody where it is.',
+  },
 ];
 
 export const BLUEPRINTS_BY_ID: Record<string, Blueprint> = Object.fromEntries(

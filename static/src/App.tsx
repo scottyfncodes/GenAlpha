@@ -7,6 +7,7 @@ import { SettingsPanel } from './ui/SettingsPanel';
 import { Crew } from './ui/Crew';
 import { Backpack } from './ui/Backpack';
 import { Cyberdeck } from './ui/Cyberdeck';
+import { Map } from './ui/Map';
 import { Ending } from './ui/Ending';
 import { Lockdown } from './ui/Lockdown';
 import { setMuted, startAmbient, stopAmbient } from './systems/audio';
@@ -26,7 +27,7 @@ const Workbench = import.meta.env.DEV
   : null;
 
 function Shell() {
-  const { save, newGame, continueGame, cyberdeckOpen, setCyberdeckOpen } = useGame();
+  const { save, newGame, continueGame, cyberdeckOpen, setCyberdeckOpen, mapOpen, setMapOpen } = useGame();
   const [workbench, setWorkbench] = useState(false);
   const [settings, setSettings] = useState(false);
   const [crew, setCrew] = useState(false);
@@ -87,6 +88,7 @@ function Shell() {
       {settings && <SettingsPanel onClose={() => setSettings(false)} />}
       {backpack && <Backpack onClose={() => setBackpack(false)} />}
       {cyberdeckOpen && <Cyberdeck onClose={() => setCyberdeckOpen(false)} />}
+      {mapOpen && <Map onClose={() => setMapOpen(false)} />}
       {/* Above everything: a sweep can land while any other panel is open. */}
       <Lockdown />
       {save.player.currentChapter === 'ending' && !endingSeen && (

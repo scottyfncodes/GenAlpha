@@ -12,6 +12,7 @@ import {
   BURNER_PHONE,
   DECK_TIERS,
   DRONE_TOOL_TIERS,
+  GPS_TIERS,
   ITEMS,
   PLAYER_DRONE_TIERS,
   ITEMS_BY_ID,
@@ -199,6 +200,14 @@ export function boardTier(save: SaveState): number {
  * actually in reach. */
 export function deckTier(save: SaveState): number {
   return highestTierOwned(save, DECK_TIERS);
+}
+
+/** No GPS (0) up to the Ghost Positioning Rig (3) — a separate axis from
+ * the deck's own tier: what the map screen and the minimap draw as
+ * `explored` while it's carried (`world/exploration.ts`
+ * `GPS_REVEAL_RADIUS`), not what the player can do once they get there. */
+export function gpsTier(save: SaveState): number {
+  return highestTierOwned(save, GPS_TIERS);
 }
 
 /** No tool (0) up to the EMP Gun (3) — what a drone encounter turns into,

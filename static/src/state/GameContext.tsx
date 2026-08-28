@@ -44,6 +44,7 @@ import {
 import { resolveStreetHack, type HackLevel } from '../systems/streethacks';
 import type { SabotageActionId } from '../world/collectibles';
 import { HOME_LOCATION_ID } from '../world/locations';
+import { revealArea } from '../world/exploration';
 
 /** How long the "you can be caught right now" window stays open after a Heat
  * tier crossing — long enough to be a real window, short enough that it
@@ -85,7 +86,8 @@ type Action =
   | { type: 'SELL_MATERIAL'; itemId: string }
   | { type: 'CRAFT_ITEM'; recipeId: string }
   | { type: 'CAUGHT'; tier: ThresholdTier }
-  | { type: 'HACK_STREET_NODE'; nodeId: string; outcome: RunOutcome; level?: HackLevel };
+  | { type: 'HACK_STREET_NODE'; nodeId: string; outcome: RunOutcome; level?: HackLevel }
+  | { type: 'REVEAL_AREA'; x: number; y: number; radius: number; kind?: 'explored' | 'scouted' };
 
 /**
  * Advancing the in-fiction clock, in one place. Both the explicit
@@ -288,6 +290,12 @@ function applyAction(state: SaveState | null, action: Action): SaveState | null 
     case 'HACK_STREET_NODE':
       return resolveStreetHack(state, action.nodeId, action.outcome, action.level);
 
+    /** Foot exploration, GPS's own passive radius, and a drone recon flight
+     * all funnel through the same call — see world/exploration.ts for why
+     * this is a safe no-op on ground already known. */
+    case 'REVEAL_AREA':
+      return revealArea(state, action.x, action.y, action.radius, action.kind);
+
     /**
      * The drain writes cash, Heat history, town trust and the drained-wallet
      * log together, because the schema's own cross-module rule says a drain
@@ -356,6 +364,24 @@ interface GameApi {
    */
   cyberdeckOpen: boolean;
   setCyberdeckOpen: (open: boolean) => void;
+  /**
+   * Whether the full map screen is open — same reasoning as `cyberdeckOpen`:
+   * both the HUD's own minimap (tap to expand) and the cyberdeck's Map app
+   * need to open it, and neither is an ancestor of the other.
+   */
+  mapOpen: boolean;
+  setMapOpen: (open: boolean) => void;
+  /**
+   * The player's own position, throttled — `Overworld.tsx` only pushes an
+   * update here when it's moved a few pixels since the last one, the same
+   * "cheap to compare, not every frame" shape `nearbyHackNodeId` already
+   * uses. Lives here rather than as a prop because the minimap is mounted
+   * in `Hud.tsx`, a sibling of `Overworld`, not a descendant of it — this is
+   * the only thing the two share a parent for. Null before the overworld's
+   * first frame has run.
+   */
+  playerPos: { x: number; y: number } | null;
+  setPlayerPos: (pos: { x: number; y: number }) => void;
 }
 
 const GameCtx = createContext<GameApi | null>(null);
@@ -418,6 +444,8 @@ export function GameProvider({ children }: { children: ReactNode }) {
 
   const [nearbyHackNodeId, setNearbyHackNodeId] = useState<string | null>(null);
   const [cyberdeckOpen, setCyberdeckOpen] = useState(false);
+  const [mapOpen, setMapOpen] = useState(false);
+  const [playerPos, setPlayerPos] = useState<{ x: number; y: number } | null>(null);
 
   const value = useMemo<GameApi>(
     () => ({
@@ -432,8 +460,12 @@ export function GameProvider({ children }: { children: ReactNode }) {
       setNearbyHackNodeId,
       cyberdeckOpen,
       setCyberdeckOpen,
+      mapOpen,
+      setMapOpen,
+      playerPos,
+      setPlayerPos,
     }),
-    [save, newGame, continueGame, deleteSave, flag, heatAlertUntil, nearbyHackNodeId, cyberdeckOpen],
+    [save, newGame, continueGame, deleteSave, flag, heatAlertUntil, nearbyHackNodeId, cyberdeckOpen, mapOpen, playerPos],
   );
 
   return <GameCtx.Provider value={value}>{children}</GameCtx.Provider>;

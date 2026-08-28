@@ -18,6 +18,7 @@ import { SKINS } from '../content/skins';
 import { deckTier, heatReliefFor, owns } from '../systems/market';
 import { DECK_TIERS, ITEMS_BY_ID } from '../content/economy';
 import type { RunOutcome } from '../systems/missions';
+import { MapView } from './MapView';
 import './cyberdeck.css';
 
 /**
@@ -28,7 +29,7 @@ import './cyberdeck.css';
  * an ATM or a phone line. Same `App`-per-screen shape as `Phone.tsx`, on
  * purpose — the player already knows how to drive this.
  */
-type App = 'home' | 'hack' | 'rig';
+type App = 'home' | 'hack' | 'rig' | 'map';
 
 const LEVEL_LABEL: Record<HackLevel, string> = {
   quick: 'Quick read',
@@ -65,6 +66,7 @@ export function Cyberdeck({ onClose }: { onClose: () => void }) {
       <div className="cyberdeck__body">
         {app === 'hack' && <HackApp onBack={() => setApp('home')} onDone={onClose} />}
         {app === 'rig' && <RigApp onBack={() => setApp('home')} />}
+        {app === 'map' && <MapApp onBack={() => setApp('home')} />}
         {app === 'home' && <CyberdeckHome onOpen={setApp} onClose={onClose} />}
       </div>
     </div>
@@ -84,6 +86,10 @@ function CyberdeckHome({ onOpen, onClose }: { onOpen: (app: App) => void; onClos
         </button>
       </div>
       <div className="cyberdeck__apps">
+        <button className="cyberdeck__app" onClick={() => onOpen('map')}>
+          <span className="cyberdeck__app-icon">🗺️</span>
+          <span>Map</span>
+        </button>
         <button className="cyberdeck__app" onClick={() => onOpen('hack')}>
           <span className="cyberdeck__app-icon">🔓</span>
           <span>Hack{nearby ? ' — in range' : ''}</span>
@@ -92,6 +98,23 @@ function CyberdeckHome({ onOpen, onClose }: { onOpen: (app: App) => void; onClos
           <span className="cyberdeck__app-icon">🛠️</span>
           <span>Rig</span>
         </button>
+      </div>
+    </div>
+  );
+}
+
+/**
+ * The Map app — live from tier 1 on, per the build note that even a Burner
+ * Deck should already have "basic map/GPS functionality." Same `MapView`
+ * the standalone screen (`ui/Map.tsx`) shows; this is that content inside
+ * the deck's own frame instead of its own full-screen overlay.
+ */
+function MapApp({ onBack }: { onBack: () => void }) {
+  return (
+    <div className="cyberdeck__map">
+      <Header onBack={onBack} title="Map" />
+      <div className="cyberdeck__map-body">
+        <MapView />
       </div>
     </div>
   );

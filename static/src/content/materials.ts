@@ -412,4 +412,44 @@ export const RECIPES: Recipe[] = [
     description: 'Armour plate cut from the same stock as everything else in this town, bolted on until the thing can survive reaching a defended target.',
     blueprintItemId: 'bp_strike_drone',
   },
+  /*
+   * The GPS line — a separate build from the deck (`content/economy.ts`'s
+   * own note on why), same trade-up shape as every other line here.
+   */
+  {
+    id: 'craft_gps_1',
+    label: 'Dead Reckoning Rig',
+    inputs: [
+      { itemId: 'hard_drive', quantity: 1 },
+      { itemId: 'logic_board', quantity: 1 },
+      { itemId: 'battery_pack', quantity: 1 },
+    ],
+    outputItemId: 'gps_1',
+    description: 'A hard drive holding a map that doesn’t update itself, and just enough logic to guess a position off it.',
+    blueprintItemId: 'bp_gps_1',
+  },
+  {
+    id: 'craft_gps_2',
+    label: 'Triangulation Rig',
+    inputs: [
+      { itemId: 'gps_1', quantity: 1 },
+      { itemId: 'cracked_chipset', quantity: 2 },
+      { itemId: 'battery_pack', quantity: 1 },
+    ],
+    outputItemId: 'gps_2',
+    description: 'Reads three signals against each other instead of one dead-reckoned guess — most of the neighbourhood, roughly, updated as you walk.',
+    blueprintItemId: 'bp_gps_2',
+  },
+  {
+    id: 'craft_gps_3',
+    label: 'Ghost Positioning Rig',
+    inputs: [
+      { itemId: 'gps_2', quantity: 1 },
+      { itemId: 'air_gapped_drive', quantity: 2 },
+      { itemId: 'graphics_card', quantity: 1 },
+    ],
+    outputItemId: 'gps_3',
+    description: 'Close to the whole town, live, and it never once has to call out to anything that would notice it asking.',
+    blueprintItemId: 'bp_gps_3',
+  },
 ];

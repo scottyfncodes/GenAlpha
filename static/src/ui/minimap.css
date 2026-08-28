@@ -1,0 +1,32 @@
+.minimap {
+  /* Fixed, not absolute — `.hud` (the nearest positioned ancestor) is
+     top-anchored with no explicit height, so its own box only wraps its
+     flex children's content height, not the full viewport. `bottom` against
+     that box lands well above the actual screen edge. Fixed positions
+     against the viewport itself, which is what every corner reference here
+     actually means. */
+  position: fixed;
+  right: var(--step);
+  bottom: calc(var(--step) + env(safe-area-inset-bottom, 0px));
+  width: 84px;
+  height: 84px;
+  padding: 0;
+  border: 1px solid rgba(236, 226, 208, 0.35);
+  background: #0a0c11;
+  overflow: hidden;
+  cursor: pointer;
+  /* A corner clipped off, same shape language the phone/cyberdeck screens
+     already use for their own devices — this reads as a piece of hardware,
+     not a browser-chrome map widget. */
+  clip-path: polygon(0 0, 100% 0, 100% 100%, 10px 100%, 0 calc(100% - 10px));
+}
+
+.minimap:hover,
+.minimap:focus-visible {
+  border-color: rgba(236, 226, 208, 0.7);
+}
+
+.minimap__canvas {
+  display: block;
+  image-rendering: pixelated;
+}

@@ -197,6 +197,21 @@ describe('recon flights', () => {
     const afterStrike = flyRecon(strike, true);
     expect(strike.heat.current - afterStrike.heat.current).toBeGreaterThan(scout.heat.current - afterScout.heat.current);
   });
+
+  /** See world/exploration.ts and world/exploration.test.ts for the reveal
+   * mechanics themselves; this just pins that a recon flight is actually
+   * wired to them. */
+  it('a clean flight scouts a patch of the map; a scrubbed one scouts nothing', () => {
+    const clean = createNewSave('Wren');
+    clean.economy.inventory = [{ itemId: 'scout_drone', quantity: 1, acquiredVia: 'crafted' }];
+    const afterClean = flyRecon(clean, true);
+    expect(afterClean.world.exploration.scouted.length).toBeGreaterThan(0);
+
+    const scrubbed = createNewSave('Wren');
+    scrubbed.economy.inventory = [{ itemId: 'scout_drone', quantity: 1, acquiredVia: 'crafted' }];
+    const afterScrubbed = flyRecon(scrubbed, false);
+    expect(afterScrubbed.world.exploration).toEqual(scrubbed.world.exploration);
+  });
 });
 
 describe('kamikaze strikes', () => {

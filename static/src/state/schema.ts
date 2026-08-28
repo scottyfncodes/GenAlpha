@@ -26,14 +26,15 @@ export type StoryFlags = Record<string, boolean | string | number>;
 export interface PlayerState {
   name: string;
   /**
-   * ADDED in 0.6.0. The player's own hacking handle, generated at game
-   * start (`systems/names.ts` `randomHandle`) — what every kid character
-   * (and the player's own narration) calls the player in dialogue, mirroring
-   * the "only adults use a kid's real name" rule the game already applies to
-   * every other kid. Adult-voiced lines still use `name`. Every kid keeps
-   * their own real name; the player is the only one with a handle. A save
-   * migrated from before this field existed falls back to `name` itself
-   * (see `state/defaults.ts`), which is exactly the old behaviour: no handle
+   * ADDED in 0.6.0. The player's own hacking handle — typed at the title
+   * screen, not generated, the one identity on that screen the player is
+   * building on purpose. What every kid character (and the player's own
+   * narration) calls the player in dialogue, mirroring the "only adults use
+   * a kid's real name" rule the game already applies to every other kid.
+   * Adult-voiced lines still use `name`. Every kid keeps their own real
+   * name; the player is the only one with a handle. A save migrated from
+   * before this field existed falls back to `name` itself (see
+   * `state/defaults.ts`), which is exactly the old behaviour: no handle
    * ever chosen, so kids called you by your name too.
    */
   handle: string;
@@ -264,6 +265,26 @@ export interface WorldState {
    * Only the two facts that can't be re-derived live here.
    */
   surveillance: SurveillanceState;
+  /**
+   * ADDED in 0.8.0. What the protagonist actually knows about Bellhaven,
+   * not what the game knows exists — see `world/exploration.ts`. Both are
+   * flat arrays of grid-cell indices (`world/exploration.ts`'s own `CELL`
+   * size) rather than a 2D array or a bitset: a save file should stay
+   * readable JSON, and a `number[]` of the cells actually visited is far
+   * smaller than a fixed grid for most of the game, when most of the map is
+   * still fog. `explored` is cells the player has actually stood in range
+   * of (on foot, or GPS's own passive radius around them); `scouted` is
+   * cells known only at a distance (drone recon) — the map screen draws
+   * these two differently on purpose, since "I've been there" and "I've
+   * seen that with the drone" are supposed to read as different things.
+   * `explored` always wins where the two overlap.
+   */
+  exploration: ExplorationState;
+}
+
+export interface ExplorationState {
+  explored: number[];
+  scouted: number[];
 }
 
 export interface SurveillanceState {

@@ -12,6 +12,8 @@ import {
 } from '../world/collectibles';
 import { JUNCTION_BOX_NODES, JUNCTION_BOX_RISK } from '../world/junctionboxes';
 import { DRONE_TAKEDOWN_BY_TOOL_TIER } from '../world/drones';
+import { HOME_LOCATION_ID, LOCATIONS, MAP_HEIGHT, MAP_WIDTH } from '../world/locations';
+import { DRONE_RECON_REVEAL_RADIUS, revealArea } from '../world/exploration';
 import { DRONE_SHOOT_MISS_COOLDOWN_DAYS, DRONE_SHOOT_MISS_HEAT_PENALTY } from './droneshoot';
 import {
   KAMIKAZE_FAIL_HEAT_PENALTY,
@@ -305,7 +307,7 @@ export function flyRecon(save: SaveState, hit: boolean): SaveState {
   if (!canFlyRecon(save)) return save;
   const tier = playerDroneTier(save) as PlayerDroneTier;
   const delta = hit ? -RECON_SUCCESS_HEAT_RELIEF[tier] : RECON_FAIL_HEAT_PENALTY;
-  return {
+  const withHeat = {
     ...save,
     heat: applyHeat(save.heat, {
       eventId: hit ? 'recon_flight_clean' : 'recon_flight_scrubbed',
@@ -313,6 +315,50 @@ export function flyRecon(save: SaveState, hit: boolean): SaveState {
       logToHistory: true,
     }),
   };
+  // Only a landed flight scouts anything — a scrubbed one still cost Heat
+  // and still didn't see the town, same as the intel it didn't bring back.
+  if (!hit) return withHeat;
+  const target = reconTarget(save);
+  return revealArea(withHeat, target.x, target.y, DRONE_RECON_REVEAL_RADIUS, 'scouted');
+}
+
+/**
+ * Where a clean recon flight actually looks. There's no target picked by
+ * the player — `playerdrone.ts`'s whole point is "launch from anywhere, any
+ * time" — so the patch is centred a few streets out from wherever the
+ * airframe launched, in a direction seeded off the flight itself rather
+ * than `Math.random`: two flights from the same spot on the same day still
+ * don't scout the same patch twice in a row, and a reducer stays a pure
+ * function of its input.
+ */
+function reconTarget(save: SaveState): { x: number; y: number } {
+  const origin =
+    LOCATIONS.find((l) => l.id === save.player.currentLocation) ??
+    LOCATIONS.find((l) => l.id === HOME_LOCATION_ID)!;
+  const cx = origin.x + origin.w / 2;
+  const cy = origin.y + origin.h / 2;
+  const rand = mulberry32(seedFrom(`recon:${save.world.day}:${save.heat.history.length}`));
+  const angle = rand() * Math.PI * 2;
+  const distance = 320 + rand() * 160;
+  return {
+    // Reflected off the map edge rather than clamped onto it. Home sits
+    // close enough to the north-west corner that a clamp collapses a wide
+    // spread of angles onto the same boundary point — which, worked
+    // through, is a flight that lands back inside the ground its own
+    // starting patch already explored. A bounce keeps the actual distance
+    // travelled rather than truncating it into the wall.
+    x: reflect(cx + Math.cos(angle) * distance, MAP_WIDTH),
+    y: reflect(cy + Math.sin(angle) * distance, MAP_HEIGHT),
+  };
+}
+
+/** Mirrors a value back into `[0, max]` — once is enough here, since the
+ * longest recon flight (480px) is well inside both of the map's own
+ * dimensions and can only ever overshoot one edge, never bounce twice. */
+function reflect(v: number, max: number): number {
+  if (v < 0) return -v;
+  if (v > max) return 2 * max - v;
+  return v;
 }
 
 /** A camera or a junction box, already in reach — the same two nearby

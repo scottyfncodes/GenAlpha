@@ -110,6 +110,18 @@ export function migrate(save: SaveState, prefersReduced = false): SaveState {
       ...save.world,
       day,
       surveillance: { ...base.world.surveillance, ...save.world?.surveillance },
+      /*
+       * 0.7.0 -> 0.8.0 adds `exploration`. A save from before it existed
+       * gets `base`'s own starting patch around Home rather than an empty
+       * grid — nobody's map goes backwards, the same rule `reducedFlicker`
+       * follows for a pre-existing player. `explored`/`scouted` are merged
+       * as their own arrays (not spread) so a save that somehow carries only
+       * one of the two subtree keys still gets a whole, valid shape out.
+       */
+      exploration: {
+        explored: save.world?.exploration?.explored ?? base.world.exploration.explored,
+        scouted: save.world?.exploration?.scouted ?? base.world.exploration.scouted,
+      },
     },
     settings: {
       ...base.settings,

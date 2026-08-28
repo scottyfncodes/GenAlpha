@@ -170,6 +170,36 @@ export const ITEMS: GoodsItem[] = [
     effect: 'Everything the last four builds were practice for. Whatever still has a chip in it, this reads it.',
   },
   /*
+   * The GPS line — a separate build from the deck, on purpose. The deck
+   * decides what a player can *do* once they know where something is; this
+   * decides how much of Bellhaven they know about in the first place, live,
+   * without having to walk it first. Same trade-up shape as every other
+   * line (`craft_gps_2` consumes a Dead Reckoning Rig, and so on) — see
+   * `world/exploration.ts`'s `GPS_REVEAL_RADIUS` for what each tier
+   * actually reveals around the player as they carry it.
+   */
+  {
+    itemId: 'gps_1',
+    name: 'Dead Reckoning Rig',
+    basePrice: 130,
+    category: 'gear',
+    effect: 'Enough to tell you which street you’re actually on. Doesn’t know the next block over yet.',
+  },
+  {
+    itemId: 'gps_2',
+    name: 'Triangulation Rig',
+    basePrice: 280,
+    category: 'gear',
+    effect: 'Most of the neighbourhood, roughly, updated as you walk.',
+  },
+  {
+    itemId: 'gps_3',
+    name: 'Ghost Positioning Rig',
+    basePrice: 540,
+    category: 'gear',
+    effect: 'Close to the whole town, live — built to work without ever calling out to anything that would notice.',
+  },
+  /*
    * Physical tools — the first layer, before the deck ever gets to do
    * anything. `systems/streethacks.ts` (`HACK_KIND_TOOL`) and
    * `systems/materials.ts` (`canSabotage`) both check ownership alongside
@@ -285,6 +315,10 @@ export const INTEL_TIP = 'intel_tip';
  * `boardTier`/`deckTier` read these to find the highest tier currently owned. */
 export const BOARD_TIERS = ['board_1', 'board_2', 'board_3', 'board_4', 'board_5'] as const;
 export const DECK_TIERS = ['cyberdeck_1', 'cyberdeck_2', 'cyberdeck_3', 'cyberdeck_4', 'cyberdeck_5'] as const;
+/** Ordered low to high, same shape again — how much of the map a player's
+ * own build reveals passively, not just how it looks doing it
+ * (`systems/market.ts` `gpsTier`, `world/exploration.ts`). */
+export const GPS_TIERS = ['gps_1', 'gps_2', 'gps_3'] as const;
 /** Ordered low to high, same shape as `BOARD_TIERS`/`DECK_TIERS` — the tier
  * a player can reach determines how a drone encounter goes, not which
  * button they press (`systems/market.ts` `droneToolTier`, `world/drones.ts`). */

@@ -10,6 +10,7 @@ import { deckTier } from '../systems/market';
 import { canHackStreetNode } from '../systems/streethacks';
 import { STREET_HACK_NODES } from '../world/streethacks';
 import { unreadFeedCount } from '../systems/feed';
+import { Minimap } from './Minimap';
 import './hud.css';
 
 /**
@@ -84,6 +85,7 @@ export function Hud({
 
   return (
     <div className="hud">
+      <Minimap />
       <Glitch active={tierUp} intensity={1}>
         <div
           className={`hud__heat hud__heat--${threshold_tier}${heatAlertActive ? ' hud__heat--alert' : ''}`}

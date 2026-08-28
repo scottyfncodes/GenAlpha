@@ -1,0 +1,57 @@
+.mapview {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  height: 100%;
+  min-height: 0;
+}
+
+.mapview__canvas-wrap {
+  flex: 1;
+  min-height: 0;
+  position: relative;
+  border: 1px solid rgba(236, 226, 208, 0.28);
+  background: #0a0c11;
+}
+
+.mapview__canvas {
+  display: block;
+  image-rendering: pixelated;
+}
+
+.mapview__legend {
+  display: flex;
+  gap: var(--step);
+  font-size: 12px;
+  opacity: 0.85;
+}
+
+.mapview__legend-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.mapview__swatch {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 2px;
+}
+
+.mapview__swatch--explored {
+  background: #f0c07a;
+  opacity: 0.9;
+}
+
+.mapview__swatch--scouted {
+  background: #f0c07a;
+  opacity: 0.4;
+}
+
+.mapview__hint {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.4;
+  opacity: 0.7;
+}

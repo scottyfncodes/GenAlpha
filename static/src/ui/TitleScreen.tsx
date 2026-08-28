@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { GenAMark } from './GenAMark';
 import { TitleEye } from './TitleEye';
 import { hasSave } from '../state/persistence';
-import { backupNameFor, collidingCharacter, randomHandle } from '../systems/names';
+import { backupNameFor, collidingCharacter } from '../systems/names';
 import './title-screen.css';
 
 /**
@@ -30,18 +30,19 @@ export function TitleScreen({
   onContinue: () => void;
 }) {
   const [name, setName] = useState('');
-  /** Picked, not typed — one fresh pull from the pool whenever the naming
-   * panel first mounts, and Shuffle takes it from there. No kid in
-   * Bellhaven has one of these to collide with any more, so there's nothing
-   * left to validate the way the real name below still needs to be. */
-  const [handle, setHandle] = useState(() => randomHandle());
+  /** Typed, not picked — the player's own hacking handle, what every kid
+   * character (and the player's own narration) calls them from here on.
+   * No collision check the way the real name below needs one: nobody in
+   * Bellhaven already has a handle to bump into, and a hacker name is the
+   * one thing on this screen that's allowed to just be whatever they typed. */
+  const [handle, setHandle] = useState('');
   const [naming, setNaming] = useState(false);
   const canContinue = hasSave();
   /** Live, not just at submit — the player should know *before* they hit
    * Start that this is going to rename somebody, not find out three scenes
    * in when a stranger called Robyn shows up expecting to be Ellen. */
   const collision = collidingCharacter(name);
-  const canStart = Boolean(name.trim());
+  const canStart = Boolean(name.trim()) && Boolean(handle.trim());
 
   return (
     <main className={`title title--claimed ${naming ? 'title--naming' : ''}`}>
@@ -109,7 +110,7 @@ export function TitleScreen({
                 maxLength={16}
                 autoFocus
                 onChange={(e) => setName(e.target.value)}
-                onKeyDown={(e) => e.key === 'Enter' && canStart && onStart(name.trim(), handle)}
+                onKeyDown={(e) => e.key === 'Enter' && canStart && onStart(name.trim(), handle.trim())}
               />
               {collision && (
                 <p className="title__namenote">
@@ -119,27 +120,24 @@ export function TitleScreen({
               )}
 
               {/* Adults still use the name above; every kid — and the
-                  player's own narration — uses this instead. Picked, not
-                  typed: nobody has to invent a cool handle on the spot, just
-                  shuffle until one feels right. */}
-              <p className="title__handle-label" id="handle-label">
-                Your handle
-              </p>
-              <div className="title__handle" role="group" aria-labelledby="handle-label">
-                <span className="title__handle-value">{handle}</span>
-                <button
-                  type="button"
-                  className="title__handle-shuffle"
-                  onClick={() => setHandle((current) => randomHandle(current))}
-                >
-                  🔀 Shuffle
-                </button>
-              </div>
+                  player's own narration — uses this instead. Typed, not
+                  picked: this is the one identity on the screen the player
+                  is building on purpose, not the one the world already gave
+                  them. */}
+              <label htmlFor="handle">Hacker name</label>
+              <input
+                id="handle"
+                className="title__handle-value"
+                value={handle}
+                maxLength={16}
+                onChange={(e) => setHandle(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && canStart && onStart(name.trim(), handle.trim())}
+              />
 
               <button
                 className="title__btn title__btn--primary"
                 disabled={!canStart}
-                onClick={() => onStart(name.trim(), handle)}
+                onClick={() => onStart(name.trim(), handle.trim())}
               >
                 Start
               </button>

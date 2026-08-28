@@ -41,7 +41,8 @@ import {
   rollJunctionBoxLoot,
   type KamikazeTarget,
 } from '../systems/materials';
-import { boardTier, droneToolTier, owns, playerDroneTier } from '../systems/market';
+import { boardTier, droneToolTier, gpsTier, owns, playerDroneTier } from '../systems/market';
+import { FOOT_REVEAL_RADIUS, GPS_REVEAL_RADIUS } from './exploration';
 import { consequenceFor, HURT_UNTIL_DAY_FLAG } from '../systems/consequences';
 import { MATERIALS_BY_ID } from '../content/materials';
 import { JUNCTION_BOX_NODES, JUNCTION_BOX_RISK, type JunctionBoxNode } from './junctionboxes';
@@ -225,7 +226,7 @@ function patrolPosition(route: PatrolRoute, state: PatrolState): { x: number; y:
 export function Overworld() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const save = useSave();
-  const { dispatch, heatAlertUntil, setNearbyHackNodeId, setCyberdeckOpen, cyberdeckOpen } = useGame();
+  const { dispatch, heatAlertUntil, setNearbyHackNodeId, setCyberdeckOpen, cyberdeckOpen, setPlayerPos } = useGame();
   const [nearby, setNearby] = useState<OverworldLocation | null>(null);
   /**
    * Which of the nine districts the player is standing in, shown as a
@@ -413,6 +414,11 @@ export function Overworld() {
   const keys = useRef<Set<string>>(new Set());
   const touch = useRef({ dx: 0, dy: 0 });
   const nearbyRef = useRef<OverworldLocation | null>(null);
+  /** Where the exploration grid was last revealed from — a cheap "did we
+   * actually move" gate so `REVEAL_AREA` dispatches on real steps, not every
+   * animation frame while the player stands still. See the reveal block
+   * further down for why a few pixels of slop is fine here. */
+  const lastRevealPosRef = useRef({ x: -9999, y: -9999 });
   const districtRef = useRef<District | null>(null);
   const districtCardTimer = useRef<number | null>(null);
   const enterRef = useRef<(loc: OverworldLocation) => void>(() => {});
@@ -613,6 +619,37 @@ export function Overworld() {
 
       const ny = clamp(pos.current.y + (dy / len) * speed * dt, yBounds[0], yBounds[1]);
       if (confinedToHome || !solid.some((l) => overlapsBuilding(pos.current.x, ny, l))) pos.current.y = ny;
+
+      /*
+       * Exploration: a foot reveal always, GPS's own larger passive radius
+       * on top of it while a rig is carried — both throttled by distance
+       * moved rather than by time, so a player who's stopped moving costs
+       * nothing here at all. `REVEAL_AREA` is itself a safe no-op once an
+       * area is fully known (`world/exploration.ts`), so the throttle is a
+       * dispatch-count optimisation, not a correctness one — it's fine if a
+       * frame slips through at slightly under 24px.
+       */
+      if (!confinedToHome) {
+        const moved = Math.hypot(
+          pos.current.x - lastRevealPosRef.current.x,
+          pos.current.y - lastRevealPosRef.current.y,
+        );
+        if (moved > 24) {
+          lastRevealPosRef.current = { x: pos.current.x, y: pos.current.y };
+          setPlayerPos({ x: pos.current.x, y: pos.current.y });
+          dispatch({ type: 'REVEAL_AREA', x: pos.current.x, y: pos.current.y, radius: FOOT_REVEAL_RADIUS });
+          const gps = gpsTier(saveRef.current);
+          if (gps > 0) {
+            dispatch({
+              type: 'REVEAL_AREA',
+              x: pos.current.x,
+              y: pos.current.y,
+              radius: GPS_REVEAL_RADIUS[gps as 1 | 2 | 3],
+              kind: 'scouted',
+            });
+          }
+        }
+      }
 
       const district = districtAt(pos.current.x, pos.current.y);
       if (district?.id !== districtRef.current?.id) {
