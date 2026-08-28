@@ -410,6 +410,24 @@
   cursor: default;
 }
 
+/* The physical-obstacle progression (`world/clearables.ts`) — same
+   "this costs something" red-accent language every other costed act on
+   this list uses. Fence and gate share one rule; there's nothing about
+   either that needs its own colour, only its own label and requirement. */
+.overworld__prompt--fence,
+.overworld__prompt--gate {
+  background: var(--b-red);
+  color: var(--b-paper);
+  border-color: var(--b-ink);
+  font-size: 13px;
+}
+
+.overworld__prompt--fence:disabled,
+.overworld__prompt--gate:disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+
 /* A drone, in its own accent (the same magenta `draw.ts` draws its status
    light in) rather than the standard Heat-red every fixed point object
    uses — the one thing on this list that's also watching back. */

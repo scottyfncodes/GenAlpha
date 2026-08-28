@@ -10,7 +10,7 @@ import {
   type District,
   type OverworldLocation,
 } from './locations';
-import { OBSTACLES } from './obstacles';
+import { OBSTACLES, OBSTACLES_BY_ID } from './obstacles';
 import { marksAtStage } from './marks';
 import { NPCS, wanderPos } from './npcs';
 import { PATROL_ROUTES, activeRoutes, patrolTuning, type PatrolRoute } from './patrols';
@@ -42,6 +42,7 @@ import {
   type KamikazeTarget,
 } from '../systems/materials';
 import { boardTier, droneToolTier, gpsTier, owns, playerDroneTier } from '../systems/market';
+import { CLEARABLE_OBSTACLES, type ClearableObstacle } from './clearables';
 import { FOOT_REVEAL_RADIUS, GPS_REVEAL_RADIUS } from './exploration';
 import { consequenceFor, HURT_UNTIL_DAY_FLAG } from '../systems/consequences';
 import { MATERIALS_BY_ID } from '../content/materials';
@@ -308,6 +309,12 @@ export function Overworld() {
   /** The junction box close enough to crack open right now, if any — same
    * "spending Heat is a decision, not a walk" reasoning a camera gets. */
   const [nearbyJunctionBox, setNearbyJunctionBox] = useState<JunctionBoxNode | null>(null);
+  /** The one clearable fence or gate close enough to act on right now, if
+   * any — see `world/clearables.ts`. Lowest priority of everything on this
+   * list: there are exactly two of these in the whole game, so they never
+   * need to compete for the player's attention the way a street's worth of
+   * cameras or junction boxes would. */
+  const [nearbyClearable, setNearbyClearable] = useState<ClearableObstacle | null>(null);
   /**
    * How many cameras a given box actually carries *today* — stage-gated
    * (`world/coverage.ts`, `systems/coverage.ts`), because a box that will
@@ -628,6 +635,7 @@ export function Overworld() {
   const nearbyCameraRef = useRef<CameraNode | null>(null);
   const nearbyHackRef = useRef<StreetHackNode | null>(null);
   const nearbyJunctionBoxRef = useRef<JunctionBoxNode | null>(null);
+  const nearbyClearableRef = useRef<ClearableObstacle | null>(null);
   const nearbyDroneRef = useRef<{ id: string; x: number; y: number } | null>(null);
   /**
    * Whichever camera/hack/junction node is currently in range and tappable,
@@ -849,9 +857,17 @@ export function Overworld() {
       // just invisible before its day, it isn't solid yet either.
       const stage = escalationStage(saveRef.current.world.day);
       const activeObstacles = OBSTACLES.filter((o) => !o.minStage || stage >= o.minStage);
+      // The physical-obstacle progression (`world/clearables.ts`) — a fence
+      // cut or a gate overridden stops blocking movement for good the
+      // moment its flag lands, same as it stops being drawn solid below.
+      const clearedIds = new Set(
+        CLEARABLE_OBSTACLES.filter((c) => flagsRef.current[c.flag]).map((c) => c.id),
+      );
       // A bush hiding a salvage find is walkable, full stop — that's the only
       // tell it ever gives, so it can't also be a wall.
-      const solidObstacles = activeObstacles.filter((o) => !HIDDEN_PICKUP_OBSTACLE_IDS.has(o.id));
+      const solidObstacles = activeObstacles.filter(
+        (o) => !HIDDEN_PICKUP_OBSTACLE_IDS.has(o.id) && !clearedIds.has(o.id),
+      );
       const blockers: { x: number; y: number; w: number; h: number }[] = [...solidLocations, ...solidObstacles];
       const solid = blockers.filter((l) => !overlapsBuilding(pos.current.x, pos.current.y, l));
 
@@ -1208,6 +1224,30 @@ export function Overworld() {
         setTappedNodeId((id) => (closestJunctionBox ? id : null));
       }
 
+      /*
+       * The physical-obstacle progression — exactly two fixed points on the
+       * whole map (`world/clearables.ts`), so this doesn't need the
+       * relocate/respawn/tap machinery every other node table above does.
+       * No tap-to-reveal step either: with only two of these in the entire
+       * game, the prompt can just show the moment the player's in range.
+       */
+      let closestClearable: ClearableObstacle | null = null;
+      let closestClearableDist = JUNCTION_BOX_INTERACT_RADIUS;
+      for (const target of CLEARABLE_OBSTACLES) {
+        if (flagsRef.current[target.flag]) continue;
+        const o = OBSTACLES_BY_ID[target.id];
+        if (!o) continue;
+        const dist = Math.hypot(o.x + o.w / 2 - pos.current.x, o.y + o.h / 2 - pos.current.y);
+        if (dist < closestClearableDist) {
+          closestClearableDist = dist;
+          closestClearable = target;
+        }
+      }
+      if (closestClearable?.id !== nearbyClearableRef.current?.id) {
+        nearbyClearableRef.current = closestClearable;
+        setNearbyClearable(closestClearable);
+      }
+
       // One shared record of whatever's currently tappable, in the same
       // camera > hack > junction priority order the prompt panels below
       // already use — the canvas tap handler hit-tests against this rather
@@ -1549,6 +1589,7 @@ export function Overworld() {
         { w: PLAYER_W, h: PLAYER_H },
         activeObstacles,
         sparklingObstacleIds,
+        clearedIds,
         npcDraw,
         patrolDraw,
         cameraDraw,
@@ -1862,6 +1903,41 @@ export function Overworld() {
         ) : (
           <p className="overworld__taphint">Tap the junction box for a closer look.</p>
         )
+      )}
+
+      {/*
+        The physical-obstacle progression (`world/clearables.ts`, Audit
+        item #1). No tap-to-reveal step, unlike everything else on this
+        list — the prompt shows the moment the player's in range, since
+        there are only ever two of these to run into in the whole game.
+        Disabled with the reason named, same rule the camera/hack prompts
+        already follow: the fence is still a fence whether or not you can
+        do anything about it yet, and the game says why rather than
+        staying silent about it.
+      */}
+      {!nearby && !nearbyCamera && !nearbyHack && !nearbyJunctionBox && nearbyClearable && !open && (
+        <div className="overworld__sabotage">
+          <p className="overworld__why">{nearbyClearable.lockedHint}</p>
+          <button
+            className={`overworld__prompt overworld__prompt--${nearbyClearable.kind}`}
+            disabled={!nearbyClearable.requires(save)}
+            onClick={() => {
+              dispatch({
+                type: 'SET_FLAGS',
+                flags: { [nearbyClearable.flag]: true },
+              });
+              dispatch({
+                type: 'ADD_HEAT',
+                eventId: `clear_${nearbyClearable.id}`,
+                delta: nearbyClearable.heatCost,
+                logToHistory: true,
+              });
+              showPickup(nearbyClearable.toastKicker, nearbyClearable.toastDetail, 2400);
+            }}
+          >
+            {nearbyClearable.actionLabel} · Heat +{nearbyClearable.heatCost}
+          </button>
+        </div>
       )}
 
       {/* Last in the priority order, same as a junction box — except this

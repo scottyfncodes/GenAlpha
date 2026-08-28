@@ -152,6 +152,7 @@ export function MapShot() {
         { w: 10, h: 8 },
         stageObstacles,
         new Set<string>(),
+        new Set<string>(),
         NPCS.map((n) => ({ ...wanderPos(n, now), kind: n.kind, id: n.id })),
         head(PATROL_ROUTES, vanCount, patrolTuning(v.tier, v.stage).detectionRadius),
         cameras.map((c) => ({ x: c.x, y: c.y, facing: c.facing, dismantlable: false, damaged: v.damaged })),

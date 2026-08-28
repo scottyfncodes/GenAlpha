@@ -401,6 +401,12 @@ export function drawTown(
   playerSize: { w: number; h: number },
   obstacles: Obstacle[],
   sparklingObstacleIds: Set<string>,
+  /** The handful of obstacles the physical-obstacle progression has cleared
+   * (`world/clearables.ts`) — drawn breached/open rather than removed, so a
+   * cut fence still reads as a cut fence instead of quietly not being there
+   * any more. Collision is filtered separately by the caller; this only
+   * ever changes what gets painted. */
+  clearedObstacleIds: Set<string>,
   npcs: { x: number; y: number; kind: NpcKind; facing: 1 | -1; id: string }[],
   patrols: { x: number; y: number; radius: number }[],
   cameraNodes: { x: number; y: number; facing: number; dismantlable: boolean; damaged: boolean }[],
@@ -463,7 +469,7 @@ export function drawTown(
   for (const p of STREETLIGHT_POINTS) drawStreetlight(ctx, p);
 
   for (const obstacle of obstacles) {
-    drawObstacle(ctx, obstacle, tier, now);
+    drawObstacle(ctx, obstacle, tier, now, clearedObstacleIds.has(obstacle.id));
     if (sparklingObstacleIds.has(obstacle.id)) drawSparkle(ctx, obstacle, now);
   }
   for (const loc of locations) drawLocation(ctx, loc, here?.id === loc.id, tier, now);
@@ -545,7 +551,13 @@ export function drawTown(
  * dispatches to one of four cheap, flat shapes, matching the sprite budget
  * everything else on this canvas keeps to.
  */
-function drawObstacle(ctx: CanvasRenderingContext2D, obstacle: Obstacle, tier: ThresholdTier, now: number) {
+function drawObstacle(
+  ctx: CanvasRenderingContext2D,
+  obstacle: Obstacle,
+  tier: ThresholdTier,
+  now: number,
+  cleared: boolean,
+) {
   switch (obstacle.kind) {
     case 'tree':
       return drawTree(ctx, obstacle);
@@ -556,7 +568,7 @@ function drawObstacle(ctx: CanvasRenderingContext2D, obstacle: Obstacle, tier: T
     case 'hedge':
       return drawHedge(ctx, obstacle);
     case 'fence':
-      return drawFence(ctx, obstacle);
+      return cleared ? drawFenceCut(ctx, obstacle) : drawFence(ctx, obstacle);
     case 'car':
       return drawParkedCar(ctx, obstacle);
     case 'bin':
@@ -574,7 +586,7 @@ function drawObstacle(ctx: CanvasRenderingContext2D, obstacle: Obstacle, tier: T
     case 'scanner':
       return drawPlateScanner(ctx, obstacle, now);
     case 'gate':
-      return drawSecurityGate(ctx, obstacle);
+      return cleared ? drawSecurityGateOpen(ctx, obstacle) : drawSecurityGate(ctx, obstacle);
     case 'bench':
       return drawParkBench(ctx, obstacle);
     case 'playground':
@@ -836,6 +848,28 @@ function drawSecurityGate(ctx: CanvasRenderingContext2D, o: Obstacle) {
   for (let x = o.x + 7; x < o.x + o.w - 4; x += 10) {
     ctx.fillRect(px(x), px(armY), 5, 4);
   }
+}
+
+/**
+ * The one gate on the map that can be overridden — `world/clearables.ts`.
+ * Same posts, same shadow, but the arm itself is drawn raised: swung flush
+ * against the near post instead of spanning the gap, the standard "boom
+ * barrier up" read. Never removed from the scene entirely — the gate is
+ * still the reason this is a checkpoint, it's just not doing its job any
+ * more, on purpose, because of something the player did.
+ */
+function drawSecurityGateOpen(ctx: CanvasRenderingContext2D, o: Obstacle) {
+  ctx.fillStyle = 'rgba(0,0,0,0.2)';
+  ctx.fillRect(px(o.x), px(o.y + o.h - 1), o.w, 2);
+
+  ctx.fillStyle = PALETTE.gatePost;
+  ctx.fillRect(px(o.x), px(o.y), 5, o.h);
+  ctx.fillRect(px(o.x + o.w - 4), px(o.y + o.h * 0.35), 4, o.h * 0.65);
+
+  ctx.fillStyle = PALETTE.gateArm;
+  ctx.fillRect(px(o.x + 4), px(o.y + 1), 4, o.h - 2);
+  ctx.fillStyle = PALETTE.gateArmDark;
+  ctx.fillRect(px(o.x + 4), px(o.y + 1), 4, 3);
 }
 
 /**
@@ -1285,6 +1319,33 @@ function drawFence(ctx: CanvasRenderingContext2D, o: Obstacle) {
 
   ctx.fillStyle = PALETTE.chainPost;
   ctx.fillRect(px(o.x), px(o.y + o.h - 3), o.w, 3);
+}
+
+/**
+ * The one fence on the map that can be cut — `world/clearables.ts`. Same
+ * posts as an ordinary `drawFence` (the frame that was always there), no
+ * mesh between them, and two loose diagonal strokes reading as severed
+ * chain-link rather than a wall that was simply never drawn. Reads as
+ * "somebody did this to it," not "there's a gap in the level geometry."
+ */
+function drawFenceCut(ctx: CanvasRenderingContext2D, o: Obstacle) {
+  ctx.strokeStyle = PALETTE.chainPost;
+  ctx.lineWidth = 3;
+  ctx.beginPath();
+  ctx.moveTo(px(o.x + 2), px(o.y));
+  ctx.lineTo(px(o.x + 2), px(o.y + o.h));
+  ctx.moveTo(px(o.x + o.w - 2), px(o.y));
+  ctx.lineTo(px(o.x + o.w - 2), px(o.y + o.h));
+  ctx.stroke();
+
+  ctx.strokeStyle = PALETTE.chainLink;
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(px(o.x + 1), px(o.y + o.h * 0.3));
+  ctx.lineTo(px(o.x + o.w - 1), px(o.y + o.h * 0.55));
+  ctx.moveTo(px(o.x + o.w - 1), px(o.y + o.h * 0.35));
+  ctx.lineTo(px(o.x + 1), px(o.y + o.h * 0.62));
+  ctx.stroke();
 }
 
 /** A parked car, kerbside — a flat body and a glass strip, no wheel nubs and

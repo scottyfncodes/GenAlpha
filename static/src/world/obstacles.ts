@@ -585,3 +585,5 @@ export const OBSTACLES: Obstacle[] = [
   { id: 'filler_121', x: 2, y: 40, w: 20, h: 88, kind: 'hedge' },
   { id: 'filler_122', x: 1584, y: 600, w: 14, h: 120, kind: 'hedge' },
 ];
+
+export const OBSTACLES_BY_ID: Record<string, Obstacle> = Object.fromEntries(OBSTACLES.map((o) => [o.id, o]));
