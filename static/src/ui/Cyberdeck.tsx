@@ -239,6 +239,7 @@ function HackApp({ onBack, onDone }: { onBack: () => void; onDone: () => void })
   const { dispatch, nearbyHackNodeId } = useGame();
   const [level, setLevel] = useState<HackLevel | null>(null);
   const [briefed, setBriefed] = useState(false);
+  const [toolAssisted, setToolAssisted] = useState(false);
 
   const node = nearbyHackNodeId ? STREET_HACK_NODES.find((n) => n.id === nearbyHackNodeId) ?? null : null;
 
@@ -296,6 +297,21 @@ function HackApp({ onBack, onDone }: { onBack: () => void; onDone: () => void })
     onDone();
   };
 
+  /**
+   * Tool Assist — Milo's actual mentor payoff, not a passive flag. Both his
+   * branches grant `aiToolAccess.unlocked`; `trustedMode` is which lesson
+   * landed. His own words for it: "You find the thing, you write down what
+   * you think it means, and then you let the machine argue with you." So
+   * this only ever softens a run already committed to (after Start is a
+   * step too late to matter here, but the cost lands before the pulse/guess
+   * budget does, same as every other cost in this game) — never a solve,
+   * never free, and cheaper for the player who actually learned the
+   * discipline than for the one who took the shortcut version of the lesson.
+   */
+  const canAssist = save.skills.aiToolAccess.unlocked && tier > 1;
+  const assistHeatCost = save.skills.aiToolAccess.trustedMode ? 2 : 5;
+  const minigameTier = (toolAssisted ? Math.max(1, tier - 1) : tier) as 1 | 2 | 3 | 4;
+
   if (!briefed) {
     return (
       <div className="scene__stage">
@@ -310,6 +326,26 @@ function HackApp({ onBack, onDone }: { onBack: () => void; onDone: () => void })
           onStart={() => setBriefed(true)}
           onCancel={() => setLevel(null)}
         />
+        {canAssist && (
+          <div className="cyberdeck__toolassist">
+            <button
+              disabled={toolAssisted}
+              onClick={() => {
+                setToolAssisted(true);
+                dispatch({
+                  type: 'ADD_HEAT',
+                  eventId: `tool_assist_${node.id}`,
+                  delta: assistHeatCost,
+                  logToHistory: true,
+                });
+              }}
+            >
+              {toolAssisted
+                ? 'Tool assist applied — one tier easier this run'
+                : `Ask the tool · one tier easier · Heat +${assistHeatCost}`}
+            </button>
+          </div>
+        )}
       </div>
     );
   }
@@ -321,7 +357,7 @@ function HackApp({ onBack, onDone }: { onBack: () => void; onDone: () => void })
           skinId={node.skinId}
           config={buildCipherConfig({
             missionId: node.id,
-            tier,
+            tier: minigameTier,
             skillTier: save.skills.hacking.tier,
             heatTier: save.heat.threshold_tier,
             deckTier: deckTier(save),
@@ -333,7 +369,7 @@ function HackApp({ onBack, onDone }: { onBack: () => void; onDone: () => void })
           skinId={node.skinId}
           config={buildTraceConfig({
             missionId: node.id,
-            tier,
+            tier: minigameTier,
             skinId: node.skinId,
             skillTier: save.skills.hacking.tier,
             heatTier: save.heat.threshold_tier,

@@ -303,6 +303,30 @@
   opacity: 0.85;
 }
 
+/* Tool Assist — Milo's own mentor payoff, sitting right under the briefing
+   it modifies rather than inside it (`ui/minigames/MissionBriefing.tsx`
+   stays untouched; every other call site of it doesn't need to know this
+   exists). Costed the same directness as everything else on that card. */
+.cyberdeck__toolassist {
+  padding: 0 calc(var(--step) * 3) calc(var(--step) * 2);
+}
+
+.cyberdeck__toolassist button {
+  width: 100%;
+  background: rgba(61, 255, 154, 0.08);
+  border: 1px dashed var(--term-text);
+  color: var(--term-text);
+  padding: 10px 12px;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  text-align: left;
+}
+
+.cyberdeck__toolassist button:disabled {
+  opacity: 0.6;
+  border-style: solid;
+}
+
 /*
  * Trace/Cipher/the briefing were all built for the scene view's full-width
  * stage (`width: min(460px, 94vw)`) — inside the cyberdeck's own ~380px-wide

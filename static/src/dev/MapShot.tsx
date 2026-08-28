@@ -158,6 +158,7 @@ export function MapShot() {
         cameras.map((c) => ({ x: c.x, y: c.y, facing: c.facing, dismantlable: false, damaged: v.damaged })),
         STREET_HACK_NODES.map((n) => ({ x: n.x, y: n.y, kind: n.kind, hackable: false, damaged: false })),
         JUNCTION_BOX_NODES.map((n) => ({ x: n.x, y: n.y, tier: n.tier, crackable: false, damaged: false })),
+        null,
         head(DRONE_ROUTES, droneCount, droneTuning(v.tier, v.stage).detectionRadius).map((d) => ({
           ...d,
           takeable: false,

@@ -412,6 +412,10 @@ export function drawTown(
   cameraNodes: { x: number; y: number; facing: number; dismantlable: boolean; damaged: boolean }[],
   hackNodes: { x: number; y: number; kind: 'atm' | 'phone' | 'building'; hackable: boolean; damaged: boolean }[],
   junctionBoxNodes: { x: number; y: number; tier: 1 | 2 | 3 | 4 | 5; crackable: boolean; damaged: boolean }[],
+  /** Bishop's dead drop — `null` whenever `resistanceIntel` isn't unlocked,
+   * which is what actually keeps it hidden (see `world/deaddrop.ts`); this
+   * never draws a locked or dimmed version, only nothing at all. */
+  deadDrop: { x: number; y: number; checkable: boolean } | null,
   drones: { x: number; y: number; radius: number; takeable: boolean }[],
   cops: { x: number; y: number; radius: number }[],
   /** Poles the player has taken apart at least once — see
@@ -503,6 +507,11 @@ export function drawTown(
   // Junction boxes — always visible, on cooldown or not, same "locked door
   // is still a door" rule everything else on this list follows.
   for (const j of junctionBoxNodes) drawJunctionBox(ctx, j, now);
+
+  // Bishop's dead drop — the one exception to "locked door is still a
+  // door" above: this door doesn't exist to draw until resistanceIntel
+  // says it does.
+  if (deadDrop) drawDeadDrop(ctx, deadDrop.x, deadDrop.y, deadDrop.checkable, now);
 
   // Detection rings under the vans, so a van sitting still doesn't visually
   // "arrive" on top of its own danger zone.
@@ -5201,6 +5210,31 @@ function drawJunctionBox(
   ctx.globalAlpha = 1;
 
   if (node.damaged) drawSabotageDamage(ctx, x, y, size, now);
+}
+
+/**
+ * Bishop's dead drop (`world/deaddrop.ts`, Player-Freedom Audit item #4) —
+ * a loose paving slab, not a cabinet. Deliberately the plainest shape on
+ * this canvas: the whole point is that nobody without `resistanceIntel`
+ * would look at it twice, and the caller never even adds it to the draw
+ * list without that flag, so there's nothing here for a player who hasn't
+ * earned it to notice in the first place. The Gen A mark's own faded red
+ * (`PALETTE.genA`), because it's the same resistance, not a new one.
+ */
+function drawDeadDrop(ctx: CanvasRenderingContext2D, x: number, y: number, checkable: boolean, now: number) {
+  const size = 12;
+  const px0 = px(x - size / 2);
+  const py0 = px(y - size / 2);
+
+  if (checkable) drawPulseGlow(ctx, px0 + size / 2, py0 + size / 2, size / 2, now);
+
+  ctx.fillStyle = PALETTE.pavingDark;
+  ctx.fillRect(px0, py0, size, size);
+  ctx.strokeStyle = PALETTE.genA;
+  ctx.globalAlpha = checkable ? 0.8 : 0.35;
+  ctx.lineWidth = 1;
+  ctx.strokeRect(px0 + 1.5, py0 + 1.5, size - 3, size - 3);
+  ctx.globalAlpha = 1;
 }
 
 /**

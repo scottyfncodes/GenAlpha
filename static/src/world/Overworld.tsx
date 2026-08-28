@@ -43,6 +43,7 @@ import {
 } from '../systems/materials';
 import { boardTier, droneToolTier, gpsTier, owns, playerDroneTier } from '../systems/market';
 import { CLEARABLE_OBSTACLES, type ClearableObstacle } from './clearables';
+import { canCheckDeadDrop, DEAD_DROP_CASH, DEAD_DROP_POS } from './deaddrop';
 import { FOOT_REVEAL_RADIUS, GPS_REVEAL_RADIUS } from './exploration';
 import { consequenceFor, HURT_UNTIL_DAY_FLAG } from '../systems/consequences';
 import { MATERIALS_BY_ID } from '../content/materials';
@@ -337,6 +338,10 @@ export function Overworld() {
    * need to compete for the player's attention the way a street's worth of
    * cameras or junction boxes would. */
   const [nearbyClearable, setNearbyClearable] = useState<ClearableObstacle | null>(null);
+  /** Whether the player is standing over Bishop's dead drop right now — a
+   * plain boolean rather than a node object, since there's only ever the
+   * one and it either exists for this player yet or it doesn't. */
+  const [nearbyDeadDrop, setNearbyDeadDrop] = useState(false);
   /**
    * How many cameras a given box actually carries *today* — stage-gated
    * (`world/coverage.ts`, `systems/coverage.ts`), because a box that will
@@ -658,6 +663,7 @@ export function Overworld() {
   const nearbyHackRef = useRef<StreetHackNode | null>(null);
   const nearbyJunctionBoxRef = useRef<JunctionBoxNode | null>(null);
   const nearbyClearableRef = useRef<ClearableObstacle | null>(null);
+  const nearbyDeadDropRef = useRef(false);
   const nearbyDroneRef = useRef<{ id: string; x: number; y: number } | null>(null);
   /**
    * Whichever camera/hack/junction node is currently in range and tappable,
@@ -1274,6 +1280,22 @@ export function Overworld() {
         setNearbyClearable(closestClearable);
       }
 
+      /*
+       * Bishop's dead drop (`world/deaddrop.ts`) — genuinely absent from
+       * this check entirely without `resistanceIntel`, not merely
+       * unpromptable, so there's nothing here for a player who hasn't
+       * earned it to stumble onto early.
+       */
+      const deadDropUnlocked = saveRef.current.skills.resistanceIntel.unlocked;
+      const deadDropDist = deadDropUnlocked
+        ? Math.hypot(DEAD_DROP_POS.x - pos.current.x, DEAD_DROP_POS.y - pos.current.y)
+        : Infinity;
+      const isNearDeadDrop = deadDropUnlocked && deadDropDist < JUNCTION_BOX_INTERACT_RADIUS;
+      if (isNearDeadDrop !== nearbyDeadDropRef.current) {
+        nearbyDeadDropRef.current = isNearDeadDrop;
+        setNearbyDeadDrop(isNearDeadDrop);
+      }
+
       // One shared record of whatever's currently tappable, in the same
       // camera > hack > junction priority order the prompt panels below
       // already use — the canvas tap handler hit-tests against this rather
@@ -1593,6 +1615,10 @@ export function Overworld() {
         scarDraw.push({ x: node.x, y: node.y, tagged: scarDraw.length % 2 === 0 });
       }
 
+      const deadDropDraw = saveRef.current.skills.resistanceIntel.unlocked
+        ? { x: DEAD_DROP_POS.x, y: DEAD_DROP_POS.y, checkable: canCheckDeadDrop(saveRef.current) }
+        : null;
+
       // Flying replaces the camera's own subject — same real town, same
       // day/stage-derived lists above, just following the drone instead of
       // the walker. This is the one line that makes "the same view, just
@@ -1621,6 +1647,7 @@ export function Overworld() {
         cameraDraw,
         hackDraw,
         junctionBoxDraw,
+        deadDropDraw,
         droneDraw,
         copDraw,
         scarDraw,
@@ -1962,6 +1989,32 @@ export function Overworld() {
             }}
           >
             {nearbyClearable.actionLabel} · Heat +{nearbyClearable.heatCost}
+          </button>
+        </div>
+      )}
+
+      {/*
+        Bishop's dead drop (`world/deaddrop.ts`, Audit item #4) — lowest
+        priority of everything on this list, same as a clearable, and for
+        the same reason: there's exactly one of these too. Still shows the
+        "already checked" reason once collected rather than just vanishing,
+        the same "locked door is still a door" rule the rest of this list
+        follows once it's actually visible at all.
+      */}
+      {!nearby && !nearbyCamera && !nearbyHack && !nearbyJunctionBox && !nearbyClearable && nearbyDeadDrop && !open && (
+        <div className="overworld__sabotage">
+          <p className="overworld__why">
+            A loose slab, the kind you’d only look twice at if somebody told you to. Bishop told you to.
+          </p>
+          <button
+            className="overworld__prompt overworld__prompt--junction"
+            disabled={!canCheckDeadDrop(save)}
+            onClick={() => {
+              dispatch({ type: 'CHECK_DEAD_DROP' });
+              showPickup('DEAD DROP', `$${DEAD_DROP_CASH}, and a little less heat on you.`, 2400);
+            }}
+          >
+            {canCheckDeadDrop(save) ? 'Check the drop' : 'Already checked — give it a few days'}
           </button>
         </div>
       )}
