@@ -93,12 +93,18 @@ const SPEED = 58; // world units per second
 /**
  * Walking (index 0, implicit — nothing to look up) up through the Hoverboard
  * at tier 5. `boardTier` (systems/market.ts) reads which one's owned; this is
- * purely the speed curve, indexed board-tier 1 to array index 0. Steeper than
- * the old curve on purpose, off a lower walking base: each tier has to read
- * as a real jump, not a rounding error, for the slower walk above to actually
- * feel like it's building toward something.
+ * purely the speed curve, indexed board-tier 1 to array index 0.
+ *
+ * The top two tiers came down a second time — at the old 3.2x, The
+ * Hoverboard (tier 5) outran even a tier-1 drone in flight, which on the
+ * newly-slower walking base (`SPEED`, above) made the endgame board the
+ * single fastest way to blow through the fog-of-war/GPS/drone system this
+ * whole redesign is about, undoing the point of any of it. Flattened to a
+ * steady +0.3 per tier instead of an accelerating curve, so the last jump
+ * is no bigger than any other and the ceiling (2.6x) lands in the same
+ * range as a mid-tier drone rather than above every drone tier there is.
  */
-const BOARD_SPEED: readonly number[] = [1.4, 1.7, 2.1, 2.6, 3.2];
+const BOARD_SPEED: readonly number[] = [1.4, 1.7, 2.0, 2.3, 2.6];
 /** Sprint, on foot only — a board already covers "faster" once you own one.
  * Real movement expression instead of pure point-to-point transit: Shift,
  * or the touch Run button, for as long as it's held. */
