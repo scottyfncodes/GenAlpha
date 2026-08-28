@@ -5531,9 +5531,14 @@ function drawPlayer(
 
   drawBoard(ctx, cx, feetY, boardTier, now);
 
+  // Riding, not walking — a board tier means the feet are planted on a
+  // deck, not stepping, so the leg animation holds the same neutral frame
+  // standing still uses regardless of how fast the board itself is moving.
+  const onBoard = boardTier > 0;
+
   if (spriteSheetReady()) {
     const direction = facingDirection(facing);
-    const frame = CHARACTERS[0][direction][walkFrame(now, moving)];
+    const frame = CHARACTERS[0][direction][walkFrame(now, moving && !onBoard)];
     drawSpriteTile(ctx, frame, cx, feetY - CHARACTER_DRAW_SIZE.h / 2, CHARACTER_DRAW_SIZE.w, CHARACTER_DRAW_SIZE.h);
     return;
   }
@@ -5543,7 +5548,7 @@ function drawPlayer(
   const neckY = headCy + headR;
   const hipY = feetY - 6;
 
-  const stride = moving ? (Math.floor(now / 220) % 2 === 0 ? 1 : -1) : 0;
+  const stride = moving && !onBoard ? (Math.floor(now / 220) % 2 === 0 ? 1 : -1) : 0;
 
   // A backpack behind the spine — chunkier than a bare "holdover" bag on
   // purpose, with its own strap line, since a skater's backpack is half the
