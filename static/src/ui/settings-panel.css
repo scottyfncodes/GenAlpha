@@ -4,7 +4,14 @@
   max-width: 420px;
   margin: 0 auto;
   padding: calc(var(--step) * 2);
-  z-index: 20;
+  /*
+   * Above the Backpack (z-index 40) and the Cyberdeck (z-index 45) — both
+   * now open this as a nested door (`ui/Backpack.tsx`, `ui/Cyberdeck.tsx`'s
+   * `SettingsApp`) rather than only from the bare HUD, so it has to win the
+   * stack against whichever of them is open behind it, not just against the
+   * world underneath both.
+   */
+  z-index: 47;
   max-height: 76%;
   overflow: auto;
 }

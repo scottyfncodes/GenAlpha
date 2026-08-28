@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useGame, useSave } from '../state/GameContext';
 import { MATERIALS, RECIPES } from '../content/materials';
 import { canCraft } from '../systems/materials';
-import { owns } from '../systems/market';
+import { isBlueprintUnlocked } from '../systems/blueprints';
 import './garage.css';
 
 /**
@@ -15,10 +15,11 @@ import './garage.css';
  * only turning a blueprint into a thing is tied to a place now.
  *
  * No separate blueprint list — a recipe already only shows up here once
- * its blueprint's owned (`owns(save, r.blueprintItemId)`), so a list of
- * owned blueprints right above it was just the same handful of names said
- * twice. Anyone curious which files are still out there can already read
- * that off which recipes are missing.
+ * its blueprint's unlocked (`isBlueprintUnlocked`, knowledge rather than an
+ * inventory item — see `systems/blueprints.ts`), so a list of unlocked
+ * blueprints right above it was just the same handful of names said twice.
+ * Anyone curious which files are still out there can already read that off
+ * which recipes are missing.
  *
  * Opens exactly the way the market table does: from the Garage location's
  * own card (`Overworld.tsx`, `open.garage`), never from the phone.
@@ -27,7 +28,7 @@ export function Garage({ onClose }: { onClose: () => void }) {
   const save = useSave();
   const { dispatch } = useGame();
   const [note, setNote] = useState<string | null>(null);
-  const buildableRecipes = RECIPES.filter((r) => owns(save, r.blueprintItemId));
+  const buildableRecipes = RECIPES.filter((r) => isBlueprintUnlocked(save, r.blueprintItemId));
 
   return (
     <div className="garage lang-b">

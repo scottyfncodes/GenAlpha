@@ -111,25 +111,76 @@
   pointer-events: none;
 }
 
-/* A hidden find, confirmed without a prompt to click — walking into the
-   right bush is the whole interaction, so this is the only acknowledgement
-   it happened. Sits below `spotted` so the two never compete for the same
-   line. */
-.overworld__picked {
+/*
+ * A hidden find, confirmed without a prompt to click — walking into the
+ * right bush or cracking a box is the whole interaction, so this is the
+ * only acknowledgement it happened. A real card rather than a thin strip
+ * of text: a small kicker line over a bold headline, same two-tier
+ * hierarchy a real pickup-feedback popup uses, popping in and settling
+ * rather than just appearing.
+ *
+ * Positioned by viewport percentage rather than a `--step` offset from the
+ * top on purpose — a fixed small offset used to land this squarely behind
+ * the HUD's own Heat/Coverage stack (`z-index: 5`, and taller than this
+ * offset accounted for whenever an info panel was expanded). Sitting in
+ * the upper-third by percentage stays clear of the HUD at any screen size
+ * without having to track its height, and clear of the joystick/minimap
+ * anchored to the bottom corners.
+ */
+.overworld__pickup {
   position: absolute;
   left: 50%;
-  top: calc(var(--step) * 11);
-  transform: translateX(-50%);
-  margin: 0;
-  background: rgba(232, 210, 74, 0.9);
-  color: #20262f;
-  border: 1px solid var(--b-ink);
-  padding: 6px 14px;
-  font-family: var(--font-mono);
-  font-size: 12px;
-  letter-spacing: 0.04em;
-  white-space: nowrap;
+  top: 26%;
+  transform: translate(-50%, -50%);
+  z-index: 6;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  min-width: 160px;
+  max-width: 86vw;
+  padding: 10px 20px;
+  background: rgba(20, 24, 32, 0.92);
+  border: 1px solid rgba(232, 210, 74, 0.6);
+  box-shadow: 0 0 0 1px var(--b-ink), 0 6px 18px rgba(0, 0, 0, 0.35);
   pointer-events: none;
+  animation: pickup-pop 2s ease-out forwards;
+}
+
+.overworld__pickup-kicker {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: #e8d24a;
+}
+
+.overworld__pickup-detail {
+  font-family: var(--font-a);
+  font-weight: 700;
+  font-size: 16px;
+  color: var(--b-paper);
+  text-align: center;
+  white-space: nowrap;
+}
+
+/* Pop in over the first beat, hold, then fade — the timeout that clears
+   `picked` (Overworld.tsx) is the real source of truth for how long it's
+   on screen; this animation just has to last at least as long as the
+   shortest of the two durations that timeout ever uses (1.8s) without
+   clipping the longer one (2.4s), so it holds at full opacity past 90%
+   rather than tying its own end to either number exactly. */
+@keyframes pickup-pop {
+  0% { opacity: 0; transform: translate(-50%, -50%) scale(0.85); }
+  12% { opacity: 1; transform: translate(-50%, -50%) scale(1.04); }
+  20% { transform: translate(-50%, -50%) scale(1); }
+  85% { opacity: 1; }
+  100% { opacity: 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .overworld__pickup { animation: none; }
 }
 
 /* A real consequence, not ambient pressure — centred, wider, and allowed to

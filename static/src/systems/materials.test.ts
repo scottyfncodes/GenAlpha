@@ -74,23 +74,24 @@ describe('canCraft — blueprint gating', () => {
     expect(canCraft(save, 'craft_signal_jammer')).toBe(false);
   });
 
-  it('refuses a recipe with the blueprint but not enough materials', () => {
+  it('refuses a recipe with the blueprint unlocked but not enough materials', () => {
     const save = createNewSave('Wren');
-    save.economy.inventory = [{ itemId: 'bp_signal_jammer', quantity: 1, acquiredVia: 'theft' }];
+    save.player.flags = { bp_signal_jammer_unlocked: true };
     expect(canCraft(save, 'craft_signal_jammer')).toBe(false);
   });
 
-  it('allows it once both the blueprint and the materials are on hand, and craft does not consume the file', () => {
+  it('allows it once both the blueprint and the materials are on hand, and craft never touches the flag or the inventory', () => {
     const save = createNewSave('Wren');
+    save.player.flags = { bp_signal_jammer_unlocked: true };
     save.economy.inventory = [
-      { itemId: 'bp_signal_jammer', quantity: 1, acquiredVia: 'theft' },
       { itemId: 'hard_drive', quantity: 2, acquiredVia: 'found' },
       { itemId: 'cracked_chipset', quantity: 1, acquiredVia: 'found' },
     ];
     expect(canCraft(save, 'craft_signal_jammer')).toBe(true);
     const after = craft(save, 'craft_signal_jammer');
     expect(after.economy.inventory.find((i) => i.itemId === 'signal_jammer')?.quantity).toBe(1);
-    expect(after.economy.inventory.find((i) => i.itemId === 'bp_signal_jammer')?.quantity).toBe(1);
+    expect(after.economy.inventory.find((i) => i.itemId === 'bp_signal_jammer')).toBeUndefined();
+    expect(after.player.flags.bp_signal_jammer_unlocked).toBe(true);
     expect(after.economy.inventory.find((i) => i.itemId === 'hard_drive')).toBeUndefined();
   });
 });
@@ -108,7 +109,11 @@ describe('junction boxes', () => {
     const save = createNewSave('Wren');
     const loot = rollJunctionBoxLoot(save, tier1);
     const after = destroyJunctionBox(save, tier1.id);
-    expect(after.economy.inventory.find((i) => i.itemId === loot.itemId)?.quantity).toBe(loot.quantity);
+    if (loot.kind === 'blueprint') {
+      expect(after.player.flags[`${loot.itemId}_unlocked`]).toBe(true);
+    } else {
+      expect(after.economy.inventory.find((i) => i.itemId === loot.itemId)?.quantity).toBe(loot.quantity);
+    }
     expect(after.heat.current).toBeGreaterThan(save.heat.current);
     expect(canDestroyJunctionBox(after, tier1)).toBe(false);
   });
@@ -231,7 +236,11 @@ describe('kamikaze strikes', () => {
     const after = kamikazeStrike(save, { kind: 'junction', id: junction.id }, true);
     // Rolled off the post-removal save, exactly as `kamikazeStrike` does.
     const loot = rollJunctionBoxLoot({ ...save, economy: { ...save.economy, inventory: [] } }, junction);
-    expect(after.economy.inventory.find((i) => i.itemId === loot.itemId)?.quantity).toBe(loot.quantity);
+    if (loot.kind === 'blueprint') {
+      expect(after.player.flags[`${loot.itemId}_unlocked`]).toBe(true);
+    } else {
+      expect(after.economy.inventory.find((i) => i.itemId === loot.itemId)?.quantity).toBe(loot.quantity);
+    }
     expect(after.economy.inventory.find((i) => i.itemId === 'recon_drone')).toBeUndefined();
   });
 

@@ -1,15 +1,17 @@
 /**
- * Build plans — the file a recipe needs before it can be built at all.
+ * Build plans — the diagram a recipe needs before it can be built at all.
  * Knowing salvage will make a Rebuilt Deck isn't the same as having the
- * actual diagram for one; a blueprint is what closes that gap. Each is a
- * plain inventory item (owned via `systems/market.ts` `grantItem`/`owns`,
- * same as any other good) rather than a new kind of state, so nothing here
- * needed a save-schema change.
+ * actual diagram for one; a blueprint is what closes that gap. Knowledge,
+ * not cargo: owning one is a flag on `player.flags` (`systems/blueprints.ts`
+ * `isBlueprintUnlocked`/`unlockBlueprint`), never an `economy.inventory`
+ * entry — it can't be sold, dropped, or lost, the way a real diagram
+ * memorised is exactly as permanent as a diagram burned.
  *
- * Found exactly one way: destroying a junction box (`world/junctionboxes.ts`).
- * `tier` isn't cosmetic — it's the number a junction box's own Heat cost and
- * respawn window scale off of, so a Hoverboard's diagram is guarded by
- * something that actually costs more to crack than a Scrap Deck's.
+ * Found by destroying a junction box (`world/junctionboxes.ts`), or drone
+ * kamikaze into one. `tier` isn't cosmetic — it's the number a junction
+ * box's own Heat cost and respawn window scale off of, so a Hoverboard's
+ * diagram is guarded by something that actually costs more to crack than a
+ * Scrap Deck's.
  */
 export interface Blueprint {
   itemId: string;

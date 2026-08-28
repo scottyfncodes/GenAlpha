@@ -278,9 +278,25 @@ export function Overworld() {
    */
   const [districtBump, setDistrictBump] = useState<District | null>(null);
   const [open, setOpen] = useState<OverworldLocation | null>(null);
-  /** A brief line when a hidden bush gives something up — same "shown, not
-   * silent" treatment as `spotted`, since there's no prompt to click for it. */
-  const [picked, setPicked] = useState<string | null>(null);
+  /**
+   * A pickup toast — same "shown, not silent" treatment as `spotted`, since
+   * there's no prompt to click for a hidden-bush find. Structured (a small
+   * kicker line, a bold headline) rather than one flat sentence, so a find
+   * reads as a real event, not a status update — see `showPickup` and
+   * `overworld__pickup` below.
+   */
+  const [picked, setPicked] = useState<{ id: number; kicker: string; detail: string } | null>(null);
+  const pickedTimerRef = useRef<number | null>(null);
+  const pickedIdRef = useRef(0);
+  const showPickup = (kicker: string, detail: string, durationMs = 2000) => {
+    pickedIdRef.current += 1;
+    const id = pickedIdRef.current;
+    setPicked({ id, kicker, detail });
+    if (pickedTimerRef.current) window.clearTimeout(pickedTimerRef.current);
+    pickedTimerRef.current = window.setTimeout(() => {
+      setPicked((p) => (p?.id === id ? null : p));
+    }, durationMs);
+  };
   /** The camera close enough to dismantle right now, if any — this one keeps
    * its prompt, since spending Heat on purpose is a decision, not a walk. */
   const [nearbyCamera, setNearbyCamera] = useState<CameraNode | null>(null);
@@ -1008,8 +1024,7 @@ export function Overworld() {
           pickup.cash ? `$${pickup.cash}` : null,
         ].filter(Boolean);
         const found = parts.length > 0 ? parts.join(' + ') : 'salvage';
-        setPicked(`Found: ${found}`);
-        window.setTimeout(() => setPicked((m) => (m === `Found: ${found}` ? null : m)), 1600);
+        showPickup('FOUND', found, 1800);
       }
       contactRef.current = stillTouching;
 
@@ -1671,9 +1686,10 @@ export function Overworld() {
       )}
 
       {picked && (
-        <p className="overworld__picked" role="status">
-          {picked}
-        </p>
+        <div className="overworld__pickup" role="status" key={picked.id}>
+          <span className="overworld__pickup-kicker">{picked.kicker}</span>
+          <span className="overworld__pickup-detail">{picked.detail}</span>
+        </div>
       )}
 
       {caught && (
@@ -1834,9 +1850,9 @@ export function Overworld() {
                 // state (`rollJunctionBoxLoot` is seeded, not random).
                 const loot = rollJunctionBoxLoot(save, nearbyJunctionBox);
                 dispatch({ type: 'DESTROY_JUNCTION_BOX', nodeId: nearbyJunctionBox.id });
-                const label = `Found: ${loot.quantity > 1 ? `${loot.quantity}× ` : ''}${loot.name}`;
-                setPicked(label);
-                window.setTimeout(() => setPicked((m) => (m === label ? null : m)), 2200);
+                const kicker = loot.kind === 'blueprint' ? 'BLUEPRINT FOUND' : 'FOUND';
+                const detail = `${loot.quantity > 1 ? `${loot.quantity}× ` : ''}${loot.name}`;
+                showPickup(kicker, detail, 2400);
               }}
             >
               Tier {nearbyJunctionBox.tier} junction box · Heat +

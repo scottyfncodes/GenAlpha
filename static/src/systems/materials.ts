@@ -1,6 +1,7 @@
 import type { SaveState } from '../state/schema';
 import { JUNCTION_BOX_SALVAGE, MATERIALS_BY_ID, RECIPES } from '../content/materials';
 import { BLUEPRINTS } from '../content/blueprints';
+import { isBlueprintUnlocked, unlockBlueprint } from './blueprints';
 import { mulberry32, seedFrom } from './rng';
 import { BOLT_CUTTERS, PLAYER_DRONE_TIERS } from '../content/economy';
 import {
@@ -190,7 +191,7 @@ export type JunctionBoxLoot =
  * it can name the find in the toast without a second source of truth.
  */
 export function rollJunctionBoxLoot(save: SaveState, node: { id: string; tier: 1 | 2 | 3 | 4 | 5 }): JunctionBoxLoot {
-  const unfound = BLUEPRINTS.filter((b) => b.tier === node.tier && !owns(save, b.itemId));
+  const unfound = BLUEPRINTS.filter((b) => b.tier === node.tier && !isBlueprintUnlocked(save, b.itemId));
   const rand = mulberry32(seedFrom(`${node.id}:${save.world.day}:${unfound.length}`));
 
   if (unfound.length > 0) {
@@ -219,7 +220,10 @@ export function destroyJunctionBox(save: SaveState, nodeId: string): SaveState {
   const risk = JUNCTION_BOX_RISK[node.tier];
   const loot = rollJunctionBoxLoot(save, node);
 
-  const withItem = grantItem(save, loot.itemId, loot.quantity, 'theft');
+  // Knowledge, not cargo — a blueprint unlocks a flag; anything else still
+  // lands in the inventory the way it always has.
+  const withItem =
+    loot.kind === 'blueprint' ? unlockBlueprint(save, loot.itemId) : grantItem(save, loot.itemId, loot.quantity, 'theft');
   const withHeat = {
     ...withItem,
     heat: applyHeat(withItem.heat, {
@@ -383,9 +387,10 @@ export function kamikazeStrike(save: SaveState, target: KamikazeTarget, hit: boo
     s = grantItem(s, camera.itemId, 2, 'theft');
   } else {
     // Same roll an on-foot crack would make — flying a drone into a box is a
-    // different way in, not a different box.
+    // different way in, not a different box. Same knowledge-vs-cargo split
+    // destroyJunctionBox uses, too.
     const loot = rollJunctionBoxLoot(s, junction!);
-    s = grantItem(s, loot.itemId, loot.quantity, 'theft');
+    s = loot.kind === 'blueprint' ? unlockBlueprint(s, loot.itemId) : grantItem(s, loot.itemId, loot.quantity, 'theft');
   }
 
   const withHeat = {
@@ -405,14 +410,17 @@ export function sellMaterial(save: SaveState, itemId: string): SaveState {
   return addShdw(removeItem(save, itemId), material.sellValueShdw);
 }
 
-/** A recipe needs its file before it needs its parts — knowing salvage will
- * eventually make a Rebuilt Deck isn't the same as having the diagram for
- * one. `blueprintItemId` is checked with plain `owns`, same as any other
- * item; the file itself never gets consumed by building, only found. */
+/** A recipe needs its blueprint before it needs its parts — knowing salvage
+ * will eventually make a Rebuilt Deck isn't the same as having the diagram
+ * for one. `blueprintItemId` is checked as unlocked knowledge
+ * (`systems/blueprints.ts`), never consumed by building, only found. */
 export function canCraft(save: SaveState, recipeId: string): boolean {
   const recipe = RECIPES.find((r) => r.id === recipeId);
   if (!recipe) return false;
-  return owns(save, recipe.blueprintItemId) && recipe.inputs.every((i) => quantityOf(save, i.itemId) >= i.quantity);
+  return (
+    isBlueprintUnlocked(save, recipe.blueprintItemId) &&
+    recipe.inputs.every((i) => quantityOf(save, i.itemId) >= i.quantity)
+  );
 }
 
 export function craft(save: SaveState, recipeId: string): SaveState {

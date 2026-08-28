@@ -51,7 +51,7 @@
 /* The phone's own tile — bigger and first, since it's the door to
    everything with an economy behind it (the market, the files, SHDW, the
    case file). */
-.backpack__phone {
+.backpack__tile {
   width: 100%;
   display: flex;
   align-items: center;
@@ -65,23 +65,23 @@
   font-family: var(--font-a);
 }
 
-.backpack__phone-icon {
+.backpack__tile-icon {
   font-size: 30px;
   flex: none;
 }
 
-.backpack__phone-copy {
+.backpack__tile-copy {
   display: flex;
   flex-direction: column;
   gap: 2px;
   font-size: 13px;
 }
 
-.backpack__phone-copy b {
+.backpack__tile-copy b {
   font-size: 15px;
 }
 
-.backpack__phone-copy span {
+.backpack__tile-copy span {
   opacity: 0.7;
   font-size: 11px;
 }

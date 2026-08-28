@@ -4,7 +4,6 @@ import { TitleScreen } from './ui/TitleScreen';
 import { Hud } from './ui/Hud';
 import { Overworld } from './world/Overworld';
 import { SettingsPanel } from './ui/SettingsPanel';
-import { Crew } from './ui/Crew';
 import { Backpack } from './ui/Backpack';
 import { Cyberdeck } from './ui/Cyberdeck';
 import { Map } from './ui/Map';
@@ -30,7 +29,6 @@ function Shell() {
   const { save, newGame, continueGame, cyberdeckOpen, setCyberdeckOpen, mapOpen, setMapOpen } = useGame();
   const [workbench, setWorkbench] = useState(false);
   const [settings, setSettings] = useState(false);
-  const [crew, setCrew] = useState(false);
   const [backpack, setBackpack] = useState(false);
   /** Act 3's finale sets `currentChapter` to `'ending'` and just closes its
    * own scene — there's nothing else marking a finished game as finished.
@@ -78,15 +76,9 @@ function Shell() {
   return (
     <div className="game">
       <Overworld />
-      <Hud
-        onOpenWorkbench={() => setWorkbench(true)}
-        onOpenSettings={() => setSettings(true)}
-        onOpenCrew={() => setCrew(true)}
-        onOpenBackpack={() => setBackpack(true)}
-      />
-      {crew && <Crew onClose={() => setCrew(false)} />}
+      <Hud onOpenWorkbench={() => setWorkbench(true)} onOpenBackpack={() => setBackpack(true)} />
       {settings && <SettingsPanel onClose={() => setSettings(false)} />}
-      {backpack && <Backpack onClose={() => setBackpack(false)} />}
+      {backpack && <Backpack onClose={() => setBackpack(false)} onOpenSettings={() => setSettings(true)} />}
       {cyberdeckOpen && <Cyberdeck onClose={() => setCyberdeckOpen(false)} />}
       {mapOpen && <Map onClose={() => setMapOpen(false)} />}
       {/* Above everything: a sweep can land while any other panel is open. */}

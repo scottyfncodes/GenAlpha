@@ -3,7 +3,6 @@ import { RiskMeter } from './RiskMeter';
 import { Glitch } from './Glitch';
 import { useGame, useSave } from '../state/GameContext';
 import { tierLabel, TIER_ORDER } from '../systems/heat';
-import { coverageLabel, coveragePercent, coverageTier } from '../systems/coverage';
 import { progressOf } from '../systems/mentors';
 import { MENTORS } from '../content/mentors';
 import { deckTier, gpsTier, playerDroneTier } from '../systems/market';
@@ -14,19 +13,21 @@ import { Minimap } from './Minimap';
 import './hud.css';
 
 /**
- * The HUD: the Heat meter, always visible, plus settings, plus a debug drawer.
- * The drawer and the Workbench are gated on `import.meta.env.DEV` and are
- * tree-shaken out of a production build — they are scaffolding, not features.
+ * The HUD: the Heat meter, always visible (the one stat a stealth decision
+ * needs mid-step, so it's the one thing that never waits behind a screen to
+ * open), plus a debug drawer. Coverage, Crew and Settings all moved into the
+ * Cyberdeck — see `ui/Cyberdeck.tsx` — since none of them need to be read at
+ * a glance the way Heat does; Settings keeps one early-game fallback door in
+ * the Backpack, for a player who hasn't built a deck yet and still needs to
+ * mute the game. The drawer and the Workbench are gated on
+ * `import.meta.env.DEV` and are tree-shaken out of a production build —
+ * they are scaffolding, not features.
  */
 export function Hud({
   onOpenWorkbench,
-  onOpenSettings,
-  onOpenCrew,
   onOpenBackpack,
 }: {
   onOpenWorkbench: () => void;
-  onOpenSettings: () => void;
-  onOpenCrew: () => void;
   onOpenBackpack: () => void;
 }) {
   const save = useSave();
@@ -46,11 +47,7 @@ export function Hud({
   const cyberdeckBlinking = hasCyberdeck && Boolean(nearbyHackNode) && canHackStreetNode(save, nearbyHackNode!);
   const [open, setOpen] = useState(false);
   const [heatInfo, setHeatInfo] = useState(false);
-  const [coverageInfo, setCoverageInfo] = useState(false);
   const { current, threshold_tier } = save.heat;
-  const coverage = coveragePercent(save);
-  const covTier = coverageTier(coverage);
-  const { sweeps } = save.world.surveillance;
 
   /*
    * The ten-second "you can be caught right now" window a tier crossing opens
@@ -124,40 +121,6 @@ export function Hud({
         </div>
       </Glitch>
 
-      {/*
-        SafeTrace's own progress bar, sitting under Heat because that's the
-        relationship: Heat is how much attention you've drawn and it eases on
-        its own; this only ever eases because you went out and did something
-        about it. Same RiskMeter every other risk in the game uses, for the
-        Style Guide 07 reason — a player who can read the Heat bar should not
-        have to learn a second grammar to read this one.
-      */}
-      <div className={`hud__coverage hud__coverage--${covTier}`}>
-        <div className="hud__heat-row">
-          {/* `status` is the band name, not the number again — RiskMeter
-              already renders `value`, and Heat right above reads "0 CLEAR"
-              the same way. */}
-          <RiskMeter label="Coverage" value={coverage} max={100} status={covTier} compact />
-          <button
-            className="hud__info"
-            onClick={() => setCoverageInfo((v) => !v)}
-            aria-expanded={coverageInfo}
-            aria-label="What is Coverage?"
-          >
-            ?
-          </button>
-        </div>
-        <p className="hud__tierline">{coverageLabel(covTier)}</p>
-        {coverageInfo && (
-          <p className="hud__heat-explain">
-            How much of town SafeTrace can see. Every camera covers real ground, and every junction box
-            carries the cameras nearest it — cut a box and everything it feeds goes blind until somebody
-            comes out to fix it. New cameras go up as the rollout advances. At 100% they sweep the town.
-            {sweeps > 0 && ` They’ve swept ${sweeps === 1 ? 'once' : `${sweeps} times`}. The lenses reach further now.`}
-          </p>
-        )}
-      </div>
-
       <div className="hud__bar">
         {/*
           Deliberately not gated on a story flag. The physical table behind
@@ -168,20 +131,13 @@ export function Hud({
         */}
         <button className="hud__toggle" onClick={onOpenBackpack}>
           Backpack
-          {/* A ping for the phone's Feed app, one door down — the same
-              unread count Phone.tsx shows on the Feed icon itself, surfaced
-              here too so a new headline doesn't wait to be noticed until
-              the player happens to open the phone for something else. */}
-          {unreadFeed > 0 && (
-            <span className="hud__toggle-badge" aria-label={`${unreadFeed} unread on the feed`}>
-              {unreadFeed}
-            </span>
-          )}
         </button>
         {/* The cyberdeck's own button, separate from the phone the moment
             there's a reason for it to exist — Once built (`content/materials.ts`
             `craft_cyberdeck`), it's the one door into cracking an ATM or a
-            phone line (Cyberdeck.tsx). It blinks exactly when Overworld's own
+            phone line, and now also Little John, Leads, Feed, Coverage, Heat,
+            Crew and Settings (Cyberdeck.tsx) — the command centre, not one
+            more app among several. It blinks exactly when Overworld's own
             proximity check says something in reach is actually hackable right
             now, mirrored up through GameContext's `nearbyHackNodeId` — the
             same "shown, not silent" rule Heat System guardrail 2 already
@@ -192,6 +148,15 @@ export function Hud({
             onClick={() => setCyberdeckOpen(true)}
           >
             Cyberdeck
+            {/* A ping for the Feed app living inside it now — the same unread
+                count Cyberdeck.tsx's own Feed tile shows, surfaced here too so
+                a new headline doesn't wait to be noticed until the player
+                happens to open the deck for something else. */}
+            {unreadFeed > 0 && (
+              <span className="hud__toggle-badge" aria-label={`${unreadFeed} unread on the feed`}>
+                {unreadFeed}
+              </span>
+            )}
           </button>
         )}
         {/* The actual Recon flight / Kamikaze strike panel still renders from
@@ -204,17 +169,6 @@ export function Hud({
             {droneMenuOpen ? 'Close drone' : 'Drone'}
           </button>
         )}
-        {/* Only offered once there is somebody on it. Before the first mentor
-            it would be an empty screen explaining that you're on your own,
-            which the game is already saying perfectly well without a button. */}
-        {Object.values(save.skills).some((s) => s.unlocked) && (
-          <button className="hud__toggle" onClick={onOpenCrew}>
-            Crew
-          </button>
-        )}
-        <button className="hud__toggle" onClick={onOpenSettings}>
-          Settings
-        </button>
         {import.meta.env.DEV && (
           <button className="hud__toggle" onClick={() => setOpen((v) => !v)}>
             {open ? 'Close debug' : 'Debug'}

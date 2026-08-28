@@ -3,7 +3,7 @@ import { prefersReducedMotion } from './env';
 import { backupNameFor, collidingCharacter, NAME_SWAP_FROM_FLAG, NAME_SWAP_TO_FLAG } from '../systems/names';
 import { initialExploration } from '../world/exploration';
 
-export const SAVE_VERSION = '0.9.0';
+export const SAVE_VERSION = '0.10.0';
 
 /**
  * `handle` defaults to `name` when omitted — every existing test and the

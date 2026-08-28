@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useGame, useSave } from '../state/GameContext';
 import { STREET_HACK_NODES, type StreetHackNode } from '../world/streethacks';
 import {
@@ -15,21 +15,60 @@ import { MissionBriefing } from './minigames/MissionBriefing';
 import { TraceMinigame } from './minigames/TraceMinigame';
 import { CipherMinigame } from './minigames/CipherMinigame';
 import { SKINS } from '../content/skins';
-import { deckTier, gpsTier, heatReliefFor, owns } from '../systems/market';
-import { DECK_TIERS, ITEMS_BY_ID } from '../content/economy';
+import {
+  deckTier,
+  gpsTier,
+  heatReliefFor,
+  owns,
+  shdwDirection,
+  shdwHeld,
+  shdwRate,
+  shdwRateOnDay,
+} from '../systems/market';
+import { DECK_TIERS, ITEMS_BY_ID, SHDW } from '../content/economy';
 import type { RunOutcome } from '../systems/missions';
 import { MapView } from './MapView';
+import { RiskMeter } from './RiskMeter';
+import { coverageLabel, coveragePercent, coverageTier } from '../systems/coverage';
+import { tierLabel } from '../systems/heat';
+import { discoveredEntries, undiscoveredCount } from '../systems/casefile';
+import { FEED_LAST_SEEN_FLAG, unreadFeedCount, visibleFeedEntries } from '../systems/feed';
+import { escalationStage } from '../world/escalation';
+import { Crew } from './Crew';
+import { SettingsPanel } from './SettingsPanel';
+import './hud.css';
+import './phone.css';
 import './cyberdeck.css';
 
 /**
  * The cyberdeck: its own device, its own screen, separate from the phone.
- * The phone is the economy (the Table, Salvage, SHDW, Leads) — a burner, the
- * kind of thing a Bellhaven kid already has. This is the thing they built
- * (`content/materials.ts` `craft_cyberdeck`), and the one door into cracking
- * an ATM or a phone line. Same `App`-per-screen shape as `Phone.tsx`, on
- * purpose — the player already knows how to drive this.
+ * The phone is now just the early-game door — Silk Road and Files — the kind
+ * of thing a Bellhaven kid already has. This is the thing Aaron built
+ * (`content/materials.ts` `craft_cyberdeck`), and it's grown into the command
+ * centre: the one door into cracking an ATM or a phone line, plus everything
+ * that used to be scattered across the phone and the HUD — Little John,
+ * Leads, Feed, Coverage, Heat, Crew, and Settings. "Rig" no longer exists as
+ * its own top-level destination; that content lives under Settings → Device
+ * Settings now, since a build's own configuration is part of the deck's
+ * operating system, not a peer of Map or Hack.
+ *
+ * Little John/Leads/Feed reuse `phone.css`'s lang-b classes as-is rather than
+ * a fresh terminal reskin — same components, same behaviour, just opened from
+ * a different door. They're due their own pass once the visual language for
+ * "inside the deck" settles; functionally, moving where a screen lives
+ * shouldn't also require redrawing it.
  */
-type App = 'home' | 'hack' | 'rig' | 'map';
+type App =
+  | 'home'
+  | 'hack'
+  | 'map'
+  | 'littlejohn'
+  | 'leads'
+  | 'feed'
+  | 'coverage'
+  | 'heat'
+  | 'crew'
+  | 'settings';
 
 const LEVEL_LABEL: Record<HackLevel, string> = {
   quick: 'Quick read',
@@ -39,7 +78,7 @@ const LEVEL_LABEL: Record<HackLevel, string> = {
 
 /** The build's own name for a given tier of the deck line — read off
  * `DECK_TIERS`/`ITEMS_BY_ID` rather than hand-duplicated, so a rename in
- * content/economy.ts can't drift out of sync with what the Hack tab says. */
+ * content/economy.ts can't drift out of sync with what Device Settings says. */
 function deckNameForTier(tier: number): string {
   const itemId = DECK_TIERS[tier - 1];
   return itemId ? ITEMS_BY_ID[itemId]?.name ?? itemId : `tier ${tier}`;
@@ -50,8 +89,8 @@ function toolNameFor(itemId: string): string {
   return ITEMS_BY_ID[itemId]?.name ?? itemId;
 }
 
-/** Kinds a given deck tier can reach, worst to best — what the Rig tab shows
- * as the player's own unlock ladder. */
+/** Kinds a given deck tier can reach, worst to best — what Device Settings
+ * shows as the player's own unlock ladder. */
 const HACK_KIND_LABEL: Record<StreetHackNode['kind'], string> = {
   phone: 'Payphones',
   atm: 'ATMs',
@@ -65,8 +104,14 @@ export function Cyberdeck({ onClose }: { onClose: () => void }) {
     <div className="cyberdeck" role="dialog" aria-label="Cyberdeck">
       <div className="cyberdeck__body">
         {app === 'hack' && <HackApp onBack={() => setApp('home')} onDone={onClose} />}
-        {app === 'rig' && <RigApp onBack={() => setApp('home')} />}
         {app === 'map' && <MapApp onBack={() => setApp('home')} />}
+        {app === 'littlejohn' && <LittleJohnApp onBack={() => setApp('home')} />}
+        {app === 'leads' && <LeadsApp onBack={() => setApp('home')} />}
+        {app === 'feed' && <FeedApp onBack={() => setApp('home')} />}
+        {app === 'coverage' && <CoverageApp onBack={() => setApp('home')} />}
+        {app === 'heat' && <HeatApp onBack={() => setApp('home')} />}
+        {app === 'crew' && <CrewApp onBack={() => setApp('home')} />}
+        {app === 'settings' && <SettingsApp onBack={() => setApp('home')} />}
         {app === 'home' && <CyberdeckHome onOpen={setApp} onClose={onClose} />}
       </div>
     </div>
@@ -74,8 +119,12 @@ export function Cyberdeck({ onClose }: { onClose: () => void }) {
 }
 
 function CyberdeckHome({ onOpen, onClose }: { onOpen: (app: App) => void; onClose: () => void }) {
+  const save = useSave();
   const { nearbyHackNodeId } = useGame();
   const nearby = nearbyHackNodeId ? STREET_HACK_NODES.find((n) => n.id === nearbyHackNodeId) : null;
+  const leads = discoveredEntries(save).length;
+  const unread = unreadFeedCount(save);
+  const hasCrew = Object.values(save.skills).some((s) => s.unlocked);
 
   return (
     <div className="cyberdeck__home">
@@ -94,9 +143,38 @@ function CyberdeckHome({ onOpen, onClose }: { onOpen: (app: App) => void; onClos
           <span className="cyberdeck__app-icon">🔓</span>
           <span>Hack{nearby ? ' — in range' : ''}</span>
         </button>
-        <button className="cyberdeck__app" onClick={() => onOpen('rig')}>
-          <span className="cyberdeck__app-icon">🛠️</span>
-          <span>Rig</span>
+        <button className="cyberdeck__app" onClick={() => onOpen('littlejohn')}>
+          <span className="cyberdeck__app-icon">📈</span>
+          <span>{SHDW.name}</span>
+        </button>
+        <button className="cyberdeck__app" onClick={() => onOpen('leads')}>
+          <span className="cyberdeck__app-icon">🗂️</span>
+          <span>Leads{leads > 0 ? ` (${leads})` : ''}</span>
+        </button>
+        <button className="cyberdeck__app" onClick={() => onOpen('feed')}>
+          <span className="cyberdeck__app-icon">
+            📰
+            {unread > 0 && <span className="phone__app-badge">{unread}</span>}
+          </span>
+          <span>Feed</span>
+        </button>
+        <button className="cyberdeck__app" onClick={() => onOpen('coverage')}>
+          <span className="cyberdeck__app-icon">📡</span>
+          <span>Coverage</span>
+        </button>
+        <button className="cyberdeck__app" onClick={() => onOpen('heat')}>
+          <span className="cyberdeck__app-icon">🔥</span>
+          <span>Heat</span>
+        </button>
+        {hasCrew && (
+          <button className="cyberdeck__app" onClick={() => onOpen('crew')}>
+            <span className="cyberdeck__app-icon">🤝</span>
+            <span>Crew</span>
+          </button>
+        )}
+        <button className="cyberdeck__app" onClick={() => onOpen('settings')}>
+          <span className="cyberdeck__app-icon">⚙️</span>
+          <span>Settings</span>
         </button>
       </div>
     </div>
@@ -261,13 +339,317 @@ function HackApp({ onBack, onDone }: { onBack: () => void; onDone: () => void })
 }
 
 /**
+ * Little John — the coin, on its own screen rather than buried at the bottom
+ * of a shop list. Ported unchanged from the phone (`Shadow`, as it used to
+ * be called there) once Little John became something the deck manages
+ * instead of the phone: a store of value and a way to move money that isn't
+ * a pocket, still deliberately not a second minigame, but the one number in
+ * this game that's supposed to read as genuinely live. The bars are the last
+ * several in-fiction days computed straight from `shdwRateOnDay`, not stored
+ * history — nothing new to migrate.
+ */
+function LittleJohnApp({ onBack }: { onBack: () => void }) {
+  const save = useSave();
+  const { dispatch } = useGame();
+  const [note, setNote] = useState<string | null>(null);
+
+  const rate = shdwRate(save);
+  const dir = shdwDirection(save);
+  const held = shdwHeld(save);
+  const cash = save.economy.cashOnHand;
+
+  const history = Array.from({ length: 7 }, (_, i) =>
+    shdwRateOnDay(save, Math.max(1, save.world.day - 6 + i)),
+  );
+  const max = Math.max(...history);
+  const min = Math.min(...history);
+  const span = max - min || 1;
+
+  return (
+    <div className="shadow lang-b">
+      <header className="shadow__head">
+        <div>
+          <p className="shadow__eyebrow">Nobody explains what it is. Everybody uses it.</p>
+          <h2 className="shadow__title">{SHDW.name}</h2>
+        </div>
+        <button className="shadow__back" onClick={onBack}>
+          Done
+        </button>
+      </header>
+
+      <div className={`shadow__rate shadow__rate--${dir}`}>
+        <span className="shadow__rate-value">${rate.toFixed(2)}</span>
+        <i className="shadow__rate-arrow" aria-hidden>
+          {dir === 'up' ? '▲' : dir === 'down' ? '▼' : '·'}
+        </i>
+      </div>
+      <p className="shadow__rate-label">per SHDW, today</p>
+
+      <div className="shadow__chart" role="img" aria-label={`Rate over the last ${history.length} days`}>
+        {history.map((v, i) => (
+          <span key={i} className="shadow__bar" style={{ height: `${8 + ((v - min) / span) * 32}px` }} />
+        ))}
+      </div>
+
+      {note && <p className="shadow__note">{note}</p>}
+
+      <p className="shadow__held">
+        {held > 0 ? `You hold ${held.toFixed(4)} — about $${Math.round(held * rate)}.` : 'You hold none.'}
+      </p>
+
+      <div className="shadow__actions">
+        {[25, 100].map((amount) => (
+          <button
+            key={amount}
+            disabled={cash < amount}
+            onClick={() => {
+              dispatch({ type: 'BUY_SHDW', cash: amount });
+              setNote(`Put $${amount} into it.`);
+            }}
+          >
+            Buy ${amount}
+          </button>
+        ))}
+        {held > 0 && (
+          <button
+            onClick={() => {
+              dispatch({ type: 'SELL_SHDW', amount: held });
+              setNote('Back into cash.');
+            }}
+          >
+            Sell all
+          </button>
+        )}
+      </div>
+
+      <p className="shadow__footnote">
+        Ines takes cash. The rate is the rate; she doesn’t haggle and she doesn’t explain.
+      </p>
+    </div>
+  );
+}
+
+/**
+ * Leads: the mystery, kept as a dossier instead of something the player has
+ * to remember. Every entry here is unlocked by a flag a scene already wrote —
+ * this reads it back, in the order it was found, so a choice that revealed
+ * something has a place to show for it besides forty minutes of dialogue ago.
+ * The undiscovered count is a number, never a list — the point is "there is
+ * more to find," not a spoiler of what it is.
+ */
+function LeadsApp({ onBack }: { onBack: () => void }) {
+  const save = useSave();
+  const found = discoveredEntries(save);
+  const remaining = undiscoveredCount(save);
+
+  return (
+    <div className="leads lang-b">
+      <header className="leads__head">
+        <div>
+          <p className="leads__eyebrow">What you’ve actually got</p>
+          <h2 className="leads__title">Leads</h2>
+        </div>
+        <button className="leads__back" onClick={onBack}>
+          Done
+        </button>
+      </header>
+
+      {found.length === 0 ? (
+        <p className="leads__empty">Nothing on paper yet. Keep pulling on things.</p>
+      ) : (
+        <ul className="leads__list">
+          {found.map((e) => (
+            <li key={e.id} className="leads__row">
+              <b className="leads__row-title">{e.title}</b>
+              <p className="leads__row-entry">{e.entry}</p>
+            </li>
+          ))}
+        </ul>
+      )}
+
+      {remaining > 0 && (
+        <p className="leads__remaining">
+          {remaining} more thread{remaining === 1 ? '' : 's'} out there, unaccounted for.
+        </p>
+      )}
+    </div>
+  );
+}
+
+/**
+ * The news feed — continuous plot points delivered the way a phone actually
+ * delivers them, instead of a cutscene: new cameras, a new data center,
+ * safety propaganda, read straight off `content/feed.ts` at whatever
+ * `EscalationStage` the town's currently at (`world/escalation.ts`), same
+ * stage the patrols/drones/fencing are reading to decide how much of
+ * themselves to put on the map. Opening this marks every headline up to the
+ * current stage as seen, which is what clears the badge on both this app's
+ * own icon and the Cyberdeck button that leads here.
+ */
+function FeedApp({ onBack }: { onBack: () => void }) {
+  const save = useSave();
+  const { dispatch } = useGame();
+  const entries = visibleFeedEntries(save);
+
+  useEffect(() => {
+    dispatch({ type: 'SET_FLAGS', flags: { [FEED_LAST_SEEN_FLAG]: escalationStage(save.world.day) } });
+    // Only ever needs to fire once, on open — re-running this on every
+    // render would just be re-writing the same flag.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  return (
+    <div className="feed lang-b">
+      <header className="feed__head">
+        <div>
+          <p className="feed__eyebrow">What SafeTrace wants the town reading</p>
+          <h2 className="feed__title">Feed</h2>
+        </div>
+        <button className="feed__back" onClick={onBack}>
+          Done
+        </button>
+      </header>
+
+      <ul className="feed__list">
+        {entries.map((e) => (
+          <li key={e.id} className="feed__row">
+            <b className="feed__row-headline">{e.headline}</b>
+            <p className="feed__row-body">{e.body}</p>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
+/**
+ * Coverage, read here instead of off a persistent HUD box — a strategic
+ * number a player checks between moves, not one they need mid-step the way
+ * Heat's compact bar still is. Same figures, same explain text the HUD box
+ * used to carry, just behind a door now instead of parked over the map at
+ * all times.
+ */
+function CoverageApp({ onBack }: { onBack: () => void }) {
+  const save = useSave();
+  const coverage = coveragePercent(save);
+  const covTier = coverageTier(coverage);
+  const { sweeps } = save.world.surveillance;
+
+  return (
+    <div className="cyberdeck__hack">
+      <Header onBack={onBack} title="Coverage" />
+      <div className={`hud__coverage hud__coverage--${covTier}`}>
+        <div className="hud__heat-row">
+          <RiskMeter label="Coverage" value={coverage} max={100} status={covTier} compact />
+        </div>
+        <p className="hud__tierline">{coverageLabel(covTier)}</p>
+        <p className="hud__heat-explain">
+          How much of town SafeTrace can see. Every camera covers real ground, and every junction box
+          carries the cameras nearest it — cut a box and everything it feeds goes blind until somebody
+          comes out to fix it. New cameras go up as the rollout advances. At 100% they sweep the town.
+          {sweeps > 0 && ` They’ve swept ${sweeps === 1 ? 'once' : `${sweeps} times`}. The lenses reach further now.`}
+        </p>
+      </div>
+    </div>
+  );
+}
+
+/**
+ * Heat's fuller view. The compact bar stays live in the HUD — the one stat a
+ * stealth decision needs mid-step — this is the reference screen underneath
+ * it: the same explain text, plus the actual recent history a glance at the
+ * HUD can't show.
+ */
+function HeatApp({ onBack }: { onBack: () => void }) {
+  const save = useSave();
+  const { current, threshold_tier, history } = save.heat;
+  const recent = [...history].slice(-8).reverse();
+
+  return (
+    <div className="cyberdeck__hack">
+      <Header onBack={onBack} title="Heat" />
+      <div className={`hud__heat hud__heat--${threshold_tier}`}>
+        <div className="hud__heat-row">
+          <RiskMeter label="Heat" value={current} max={100} status={threshold_tier} compact />
+        </div>
+        <p className="hud__tierline">{tierLabel(threshold_tier)}</p>
+        <p className="hud__heat-explain">
+          How much attention you’ve drawn. It climbs when you take a risk, and eases on its own day
+          by day — faster if you lie low. Past a threshold, people start looking harder: clear,
+          watched, flagged, hunted.
+        </p>
+      </div>
+      {recent.length > 0 && (
+        <>
+          <p className="cyberdeck__hack-sub" style={{ marginTop: 'calc(var(--step) * 1.5)' }}>
+            Recent
+          </p>
+          <ul className="cyberdeck__unlocks">
+            {recent.map((e, i) => (
+              <li key={i} className="is-unlocked">
+                {e.eventId} <span>· {e.delta > 0 ? '+' : ''}{e.delta}</span>
+              </li>
+            ))}
+          </ul>
+        </>
+      )}
+    </div>
+  );
+}
+
+/** Wraps the existing full-screen Crew overlay inside the deck's own door —
+ * same component, same gate (at least one mentor skill unlocked) the HUD
+ * button used to check before it would even show. */
+function CrewApp({ onBack }: { onBack: () => void }) {
+  return <Crew onClose={onBack} />;
+}
+
+/**
+ * Settings, now living inside the deck rather than floating free — a menu
+ * of two doors: Device Settings (the old "Rig" screen, renamed per the build
+ * note — a build's own configuration is part of the deck's operating system
+ * now, not a peer of Map or Hack) and General Settings (the existing
+ * `SettingsPanel`, unchanged, just opened from here). The Backpack keeps its
+ * own always-available Settings tile too — see `ui/Hud.tsx`'s doc comment —
+ * for a player who hasn't built a deck yet and still needs to mute the game.
+ */
+function SettingsApp({ onBack }: { onBack: () => void }) {
+  const [view, setView] = useState<'menu' | 'device' | 'general'>('menu');
+
+  if (view === 'device') return <DeviceSettingsApp onBack={() => setView('menu')} />;
+  if (view === 'general') return <SettingsPanel onClose={() => setView('menu')} />;
+
+  return (
+    <div className="cyberdeck__hack">
+      <Header onBack={onBack} title="Settings" />
+      <ul className="cyberdeck__levels">
+        <li>
+          <button className="cyberdeck__level" onClick={() => setView('device')}>
+            <span className="cyberdeck__level-name">Device Settings</span>
+            <span className="cyberdeck__level-pay">The build itself — rig tier, what it can reach</span>
+          </button>
+        </li>
+        <li>
+          <button className="cyberdeck__level" onClick={() => setView('general')}>
+            <span className="cyberdeck__level-name">General Settings</span>
+            <span className="cyberdeck__level-pay">Sound, text speed, screen effects</span>
+          </button>
+        </li>
+      </ul>
+    </div>
+  );
+}
+
+/**
  * The build itself, and the ladder it climbs — which kinds of target the
  * current deck tier can actually reach, plus the hacking skill tier (a
  * mentor-taught stat, not a build one) that quietly makes every level
  * easier regardless of kind (`content/hacking.ts`'s +1 pulse/+1 guess at
  * skill tier 2, on top of the deck's own tier-5 version of the same bonus).
+ * Formerly the standalone "Rig" screen — same content, now reached through
+ * Settings instead of sitting as its own tile on the home grid.
  */
-function RigApp({ onBack }: { onBack: () => void }) {
+function DeviceSettingsApp({ onBack }: { onBack: () => void }) {
   const save = useSave();
   const rig = deckTier(save);
   const skillTier = save.skills.hacking.tier;
@@ -275,7 +657,7 @@ function RigApp({ onBack }: { onBack: () => void }) {
 
   return (
     <div className="cyberdeck__hack">
-      <Header onBack={onBack} title="Rig" />
+      <Header onBack={onBack} title="Device Settings" />
       <p className="cyberdeck__hack-sub">
         {rig > 0 ? `${deckNameForTier(rig)} — build ${rig} of 5.` : 'Nothing built yet. Salvage is out there.'}
       </p>
