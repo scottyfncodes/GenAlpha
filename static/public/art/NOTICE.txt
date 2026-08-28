@@ -1,0 +1,13 @@
+Empty by design.
+
+This is where custom art lands once it exists: one file per asset-slot id
+from `src/art/manifest.ts`, named `<id>.png` (e.g. `character.player.png`),
+sized to exactly that slot's declared `width`x`height`.
+
+Until a file is dropped in here, `src/art/assetLoader.ts` draws that slot's
+placeholder instead — see `docs/art/genalpha-art-bible.md` and
+`/assetgallery.html` (`npm run dev`).
+
+No finished custom artwork ships in the asset-pipeline run that added this
+directory (Run 1 — art direction and the slot system only). Nothing in
+`world/draw.ts` reads from this directory yet either way.

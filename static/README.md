@@ -277,7 +277,11 @@ src/
                · SettingsPanel · RiskMeter · Glitch · TitleScreen
                minigames/ TraceMinigame · SabotageMission · MissionBriefing
                Workbench (dev only)
+  art/         manifest (the asset-slot table) · assetLoader (placeholder/
+               real-art draw + load) — see "The custom asset pipeline" below
   styles/      tokens.css (both visual languages) · global.css
+docs/
+  art/         genalpha-art-bible.md — perspective, scale, anchors, layering
 ```
 
 ## Dev scaffolding
@@ -311,6 +315,40 @@ npx tsx scripts/mapshot.mjs --out mapshots    # another terminal
 one that isn't optional: it flood-fills the map and fails on an unreachable
 cell, an overlapping rect or a sealed-off location. Run it after touching any
 coordinate in `world/`.
+
+## The custom asset pipeline
+
+`docs/art/genalpha-art-bible.md` is the visual foundation every future piece
+of custom artwork plugs into — perspective, the player-anchored scale table,
+per-category dimension standards, anchor conventions and the exact paint
+order `drawTown` uses, all measured off the live renderer rather than off a
+design document. Read it before producing or generating any new asset.
+
+`src/art/manifest.ts` turns that bible into data: one typed `AssetSlot` per
+class of thing the game draws (`character.player`, `prop.tree.tall`,
+`building.house`, …), each with its size, anchor, paint layer and a
+`sourceRef` back to the exact `draw.ts` function it documents.
+`src/art/assetLoader.ts` draws a slot — real art from `public/art/<id>.png`
+once it exists, or a correctly-sized, anchor-marked placeholder until it
+does, the same `ensureLoading()`/`ready()`/fallback shape every other image
+source in this game already follows. **Nothing in `world/draw.ts` reads this
+module yet** — the manifest and loader are additive scaffolding; wiring real
+art into the live renderer is separate, later work.
+
+**The asset gallery** is the map inspector's sibling for this system: `npm
+run dev`, then open `/assetgallery.html`. It renders every manifest slot at
+1x/2x/4x, grouped by category, each with its true anchor point marked and its
+id/size/status printed underneath — the page to sanity-check the whole
+manifest at a glance, or to confirm a newly-dropped-in `public/art/*.png`
+lines up before trusting it. Same "own Vite entry, never ships to `dist/`"
+guarantee as `mapshot.html`, and the same query-string-is-the-view pattern.
+
+`node scripts/check-assets.mjs` is the CLI report: every slot, its declared
+size/anchor/layer, and whether real art exists yet or it's still drawing its
+placeholder, plus a check for stray files in `public/art/` that don't match
+any manifest id. `src/art/manifest.test.ts` (part of `npm test`) validates
+the manifest's own self-consistency — unique ids, valid dimensions, a real
+paint layer, sane frame math.
 
 ## Next
 

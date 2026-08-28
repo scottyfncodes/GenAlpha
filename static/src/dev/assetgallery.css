@@ -1,0 +1,77 @@
+/* Dev scaffolding — see `AssetGallery.tsx`. Deliberately not using the
+   game's own token set: this is a tool, and it should never be mistaken for
+   a screen the player could reach. Same look as `mapshot.css` on purpose —
+   they're the same kind of page. */
+.assetgallery {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  background: #10131a;
+  color: #ece2d0;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 12px;
+}
+
+.assetgallery__bar {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: wrap;
+  padding: 6px 10px;
+  background: #181c26;
+  border-bottom: 1px solid #2a3140;
+}
+
+.assetgallery__title {
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: #8f9bb0;
+}
+
+.assetgallery__field {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  color: #8f9bb0;
+}
+
+.assetgallery__field select,
+.assetgallery__field input[type='text'] {
+  background: #232a38;
+  color: #ece2d0;
+  border: 1px solid #333d4f;
+  font: inherit;
+  padding: 2px 4px;
+}
+
+.assetgallery__count {
+  margin-left: auto;
+  color: #8f9bb0;
+}
+
+/* Unlike mapshot's canvas (which always exactly fills the viewport), the
+   gallery's content height depends on how many slots are visible — it can
+   run taller than the window, so this div scrolls rather than the canvas
+   compressing everything to fit. */
+.assetgallery__scroll {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+/* Sized in JS to match its own drawing-buffer resolution 1:1 (see
+   `AssetGallery.tsx`) so the browser never rescales/blurs the pixel art —
+   the same discipline `ctx.imageSmoothingEnabled = false` enforces on the
+   live game's own canvas. */
+.assetgallery__canvas {
+  display: block;
+  image-rendering: pixelated;
+}
+
+.assetgallery__refusal {
+  padding: 40px;
+  max-width: 46ch;
+  line-height: 1.6;
+}
