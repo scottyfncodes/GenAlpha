@@ -6,7 +6,7 @@
      against the viewport itself, which is what every corner reference here
      actually means. */
   position: fixed;
-  right: var(--step);
+  left: var(--step);
   bottom: calc(var(--step) + env(safe-area-inset-bottom, 0px));
   width: 84px;
   height: 84px;
@@ -17,8 +17,10 @@
   cursor: pointer;
   /* A corner clipped off, same shape language the phone/cyberdeck screens
      already use for their own devices — this reads as a piece of hardware,
-     not a browser-chrome map widget. */
-  clip-path: polygon(0 0, 100% 0, 100% 100%, 10px 100%, 0 calc(100% - 10px));
+     not a browser-chrome map widget. Chamfered on the bottom-right, the
+     corner facing into the game view now that the widget itself sits at
+     bottom-left — a mirror of the cut this had when it sat bottom-right. */
+  clip-path: polygon(0 0, 100% 0, 100% 100%, calc(100% - 10px) 100%, 0 calc(100% - 10px));
 }
 
 .minimap:hover,
