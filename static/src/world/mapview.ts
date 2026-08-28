@@ -27,6 +27,8 @@ const LOCATION_DOT_SCOUTED = 'rgba(240, 192, 122, 0.55)';
 const LOCATION_LABEL = '#ece2d0';
 const GRID_LINE = 'rgba(0, 0, 0, 0.18)';
 const OBJECTIVE_RING = '#e6402a';
+const POI_DOT = '#3dff9a';
+const POI_LABEL = 'rgba(61, 255, 154, 0.85)';
 
 export interface MapViewOptions {
   ctx: CanvasRenderingContext2D;
@@ -47,6 +49,17 @@ export interface MapViewOptions {
    * anything of you tonight.
    */
   objectiveLocationId?: string | null;
+  /**
+   * GPS tier 3's own "what's worth investigating" layer, Player-Freedom
+   * Audit item #6 — a name, never what it actually is, and only ever drawn
+   * over ground already `explored`/`scouted`, same as a location's own dot.
+   * The caller (`ui/MapView.tsx`) is what decides a POI's fate once it's
+   * cracked/collected (it stops sending it here at all) and what decides
+   * the tier gate (an empty array below tier 3) — this file only draws
+   * whatever list it's handed, the same "no logic, just paint" rule every
+   * other layer above follows.
+   */
+  pois?: { x: number; y: number; label: string }[];
 }
 
 /** Whichever district's rect a point falls in — no fallback-to-nearest the
@@ -137,6 +150,29 @@ export function drawMapView(opts: MapViewOptions): void {
       ctx.font = '10px var(--font-b, monospace)';
       ctx.textBaseline = 'middle';
       ctx.fillText(loc.label, lx + 6, ly);
+    }
+  }
+
+  // GPS tier 3's POI layer — small, unlabelled-as-to-content dots, only
+  // ever inside ground the fog has already given up. A name that says
+  // there's something here, never what: the whole point is a reason to go
+  // look, not a reason not to have to.
+  for (const poi of opts.pois ?? []) {
+    const gx = Math.floor(poi.x / CELL);
+    const gy = Math.floor(poi.y / CELL);
+    if (cellStatus(snapshot, gx, gy) === 'unknown') continue;
+    const qx = poi.x * sx;
+    const qy = poi.y * sy;
+    ctx.strokeStyle = POI_DOT;
+    ctx.lineWidth = 1.2;
+    ctx.beginPath();
+    ctx.arc(qx, qy, detailed ? 4 : 2.5, 0, Math.PI * 2);
+    ctx.stroke();
+    if (detailed) {
+      ctx.fillStyle = POI_LABEL;
+      ctx.font = '9px var(--font-mono, monospace)';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(poi.label, qx + 6, qy);
     }
   }
 

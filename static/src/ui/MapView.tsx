@@ -5,6 +5,7 @@ import { drawMapView } from '../world/mapview';
 import { gpsTier, playerDroneTier } from '../systems/market';
 import { ALL_SCENES } from '../content/all';
 import { nextObjectiveLocationId } from '../systems/scenes';
+import { poisFor } from '../world/poi';
 import './mapview.css';
 
 /**
@@ -50,6 +51,7 @@ export function MapView() {
         visibleLocations: visibleLocations(save.player.flags),
         detailed: true,
         objectiveLocationId: nextObjectiveLocationId(save, ALL_SCENES),
+        pois: poisFor(save),
       });
     };
 
@@ -81,11 +83,22 @@ export function MapView() {
             <i className="mapview__swatch mapview__swatch--objective" /> Where you’re needed
           </span>
         )}
+        {gps >= 3 && (
+          <span className="mapview__legend-item">
+            <i className="mapview__swatch mapview__swatch--poi" /> Worth a look
+          </span>
+        )}
       </div>
       {gps === 0 && drone === 0 && knownCells < 40 && (
         <p className="mapview__hint">
           This only fills in where you’ve actually walked. A GPS rig would keep filling it in as you go —
           a drone would let you see a lot further out without walking there at all.
+        </p>
+      )}
+      {gps === 2 && (
+        <p className="mapview__hint">
+          Most of the neighbourhood, roughly. A better rig might tell you what’s actually worth
+          walking over there for.
         </p>
       )}
     </div>

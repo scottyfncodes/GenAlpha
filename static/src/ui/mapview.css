@@ -55,6 +55,12 @@
   border-radius: 50%;
 }
 
+.mapview__swatch--poi {
+  background: none;
+  border: 1.5px solid #3dff9a;
+  border-radius: 50%;
+}
+
 .mapview__hint {
   margin: 0;
   font-size: 12px;
