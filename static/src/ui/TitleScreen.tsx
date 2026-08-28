@@ -29,20 +29,27 @@ export function TitleScreen({
   onStart: (name: string, handle: string) => void;
   onContinue: () => void;
 }) {
-  const [name, setName] = useState('');
-  /** Typed, not picked — the player's own hacking handle, what every kid
-   * character (and the player's own narration) calls them from here on.
-   * No collision check the way the real name below needs one: nobody in
-   * Bellhaven already has a handle to bump into, and a hacker name is the
-   * one thing on this screen that's allowed to just be whatever they typed. */
+  /**
+   * The one identity the player builds on this screen — everybody in
+   * Bellhaven calls them this, adults included. There used to be a second,
+   * typed-first "real name" field (what adults call you) with the hacker
+   * name as a second, peer-facing identity underneath it; that distinction
+   * is gone, and `onStart` gets called with this same value for both of its
+   * arguments so `PlayerState.name`/`.handle` — and every scene that reads
+   * either — carry on working unchanged (`systems/scenes.ts`'s own
+   * adult-vs-peer speaker check just resolves to the same string either way
+   * now).
+   */
   const [handle, setHandle] = useState('');
   const [naming, setNaming] = useState(false);
   const canContinue = hasSave();
   /** Live, not just at submit — the player should know *before* they hit
    * Start that this is going to rename somebody, not find out three scenes
-   * in when a stranger called Robyn shows up expecting to be Ellen. */
-  const collision = collidingCharacter(name);
-  const canStart = Boolean(name.trim()) && Boolean(handle.trim());
+   * in when a stranger called Robyn shows up expecting to be Ellen. Still
+   * worth checking even though this is a "hacker name": nothing stops a
+   * player typing an existing character's own name into it. */
+  const collision = collidingCharacter(handle);
+  const canStart = Boolean(handle.trim());
 
   return (
     <main className={`title title--claimed ${naming ? 'title--naming' : ''}`}>
@@ -103,14 +110,15 @@ export function TitleScreen({
             </>
           ) : (
             <div className="title__naming">
-              <label htmlFor="name">What do people call you?</label>
+              <label htmlFor="handle">Hacker name</label>
               <input
-                id="name"
-                value={name}
+                id="handle"
+                className="title__handle-value"
+                value={handle}
                 maxLength={16}
                 autoFocus
-                onChange={(e) => setName(e.target.value)}
-                onKeyDown={(e) => e.key === 'Enter' && canStart && onStart(name.trim(), handle.trim())}
+                onChange={(e) => setHandle(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && canStart && onStart(handle.trim(), handle.trim())}
               />
               {collision && (
                 <p className="title__namenote">
@@ -119,25 +127,10 @@ export function TitleScreen({
                 </p>
               )}
 
-              {/* Adults still use the name above; every kid — and the
-                  player's own narration — uses this instead. Typed, not
-                  picked: this is the one identity on the screen the player
-                  is building on purpose, not the one the world already gave
-                  them. */}
-              <label htmlFor="handle">Hacker name</label>
-              <input
-                id="handle"
-                className="title__handle-value"
-                value={handle}
-                maxLength={16}
-                onChange={(e) => setHandle(e.target.value)}
-                onKeyDown={(e) => e.key === 'Enter' && canStart && onStart(name.trim(), handle.trim())}
-              />
-
               <button
                 className="title__btn title__btn--primary"
                 disabled={!canStart}
-                onClick={() => onStart(name.trim(), handle.trim())}
+                onClick={() => onStart(handle.trim(), handle.trim())}
               >
                 Start
               </button>
