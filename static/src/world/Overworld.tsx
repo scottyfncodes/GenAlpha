@@ -28,7 +28,7 @@ import {
 } from './collectibles';
 import { useGame, useSave } from '../state/GameContext';
 import type { ThresholdTier } from '../state/schema';
-import { LIE_LOW_DECAY, lieLowBlocked } from '../systems/heat';
+import { LIE_LOW_DECAY, lieLowBlocked, TIER_ORDER, tierLabel } from '../systems/heat';
 import { safehouseBlocked, safehouseDecay } from '../systems/safehouse';
 import {
   canCollectHidden,
@@ -298,6 +298,28 @@ export function Overworld() {
       setPicked((p) => (p?.id === id ? null : p));
     }, durationMs);
   };
+  /**
+   * Player-Freedom Audit item #3: Heat made legible, the moment it actually
+   * changes — not just read off the HUD's own small tierline if a player
+   * happens to look. `HEAT_TIERS`' own labels (`systems/heat.ts`) already say
+   * exactly this ("Someone's talking about you," "Doors are closing") — they
+   * were just never surfaced anywhere louder than a compact bar's second
+   * line. Reuses the same pickup toast a found item gets, so a Heat rise
+   * reads as a real event the world just did to the player, not a stat
+   * ticking over. Same "only a rise is a rupture" rule the HUD's own glitch
+   * effect already follows (Hud.tsx) — dropping a tier is relief, it doesn't
+   * need an announcement. Initialised to the save's own starting tier so
+   * loading a save already at `hunted` doesn't fire a toast for nothing
+   * having just happened.
+   */
+  const prevHeatTierRef = useRef(save.heat.threshold_tier);
+  useEffect(() => {
+    const tier = save.heat.threshold_tier;
+    if (TIER_ORDER.indexOf(tier) > TIER_ORDER.indexOf(prevHeatTierRef.current)) {
+      showPickup(tier.toUpperCase(), tierLabel(tier), 3200);
+    }
+    prevHeatTierRef.current = tier;
+  }, [save.heat.threshold_tier]);
   /** The camera close enough to dismantle right now, if any — this one keeps
    * its prompt, since spending Heat on purpose is a decision, not a walk. */
   const [nearbyCamera, setNearbyCamera] = useState<CameraNode | null>(null);
