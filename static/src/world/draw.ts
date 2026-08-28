@@ -104,6 +104,13 @@ const PALETTE = {
   roadLineFaint: 'rgba(107, 116, 136, 0.32)',
   river: '#2a4a5c',
   riverRipple: 'rgba(180, 220, 230, 0.16)',
+  // The Old Market/Southside waterfront's own dock — weathered planking
+  // and a piling a shade darker, same wood family `bench` already uses.
+  dockPlank: '#5a4530',
+  dockPlankDark: '#453520',
+  dockPiling: '#2e2418',
+  boatHull: '#6b5a42',
+  boatTrim: '#8fa9c9',
   rail: '#2a2620',
   railTie: 'rgba(180, 170, 150, 0.28)',
   roofA: '#2f3a4d',
@@ -176,6 +183,9 @@ const PALETTE = {
   boxcarWheel: '#1c1815',
   craneBody: '#4a4a3e',
   craneCable: 'rgba(20, 20, 16, 0.6)',
+  // Fenwick Lot's own market tarp — drab canvas, not a shop's clean awning.
+  tarp: '#5a5638',
+  tarpDark: '#403d28',
   // Casey's House's own yard props (`drawHouseYardProps`) — a weathered
   // realtor sign and a bare swing frame, both meant to read as slightly
   // sun-bleached rather than freshly painted.
@@ -231,6 +241,14 @@ const PALETTE = {
   pavingDark: '#4c5568',
   bandstandRoof: '#c8532e',
   bandstandPost: '#232935',
+  // Town Square's clock tower — warm terracotta brick, deliberately nothing
+  // like the SafeTrace Tower's cold steel-blue (`towerPanel`) or the
+  // Scrapyard's weathered brown (`smokestack`): Bellhaven's three skyline
+  // landmarks should read as three different things before a player is
+  // close enough to tell which district they're actually standing in.
+  clockTower: '#8a5a42',
+  clockTowerDark: '#6b4433',
+  clockFace: '#e8dcc0',
   bench: '#5a4530',
   banner: '#e8dcc0',
   bannerText: '#c8532e',
@@ -238,6 +256,11 @@ const PALETTE = {
   // a roll-up door, roof vents.
   corrugated: '#3a2620',
   corrugatedLine: 'rgba(20, 12, 8, 0.4)',
+  // The Scrapyard's own smokestack — a weathered brick-brown, distinct
+  // from the tower's cold steel palette on purpose (two silhouettes should
+  // never read as the same landmark from a distance).
+  smokestack: '#5c4a3e',
+  smokestackDark: '#3e3129',
   rollDoor: '#8a7460',
   rollDoorLine: 'rgba(30, 20, 12, 0.5)',
   vent: '#2a3242',
@@ -268,6 +291,12 @@ const PALETTE = {
   lawnBase: '#46705c',
   lawnAlt: '#40684f',
   pathFill: '#c9b98a',
+  // The Green's own community garden bed — turned soil and a brighter,
+  // tended green, distinct from the lawn's own two flat tones so a patch
+  // somebody is actively growing something in doesn't read as more grass.
+  gardenSoil: '#4a3a2c',
+  gardenSoilDark: '#382c20',
+  gardenLeaf: '#5a9a54',
   pondWater: '#4fb5a8',
   // The treehouse — reuses the tree palette above for trunk/canopy, adds
   // its own plank platform, rope and ladder.
@@ -289,6 +318,11 @@ const PALETTE = {
   droneLight: '#e84ac9',
   droneRing: 'rgba(232, 74, 201, 0.18)',
   droneShadow: 'rgba(0, 0, 0, 0.22)',
+  // The player's own drone, mid-flight — a cooler body and a cyan light
+  // instead of a FLACK unit's warning pink, so the one drone actually under
+  // the player's control never reads as one more thing hunting them.
+  playerDroneBody: '#2f5d6b',
+  playerDroneLight: '#7dd3ff',
   // The surveillance hardware the 3x3 redesign adds beside the cameras: a
   // plate scanner's grey mast and its red read-light, and a security
   // gate's yellow-and-black arm. Both deliberately share the camera's own
@@ -386,6 +420,16 @@ export function drawTown(
   now: number,
   boardTier: number,
   confinedToHome: boolean,
+  /**
+   * ADDED for the real-flight drone recon/kamikaze redesign. When true,
+   * `player` is the drone's own live position (`Overworld.tsx` redirects
+   * movement input there instead of the walker's for the duration of a
+   * flight) and the sprite drawn at it is the drone, not the kid — the
+   * camera-follow math above this comment reads `player` either way, which
+   * is the one line of code that actually makes "the same view, just
+   * flying" true.
+   */
+  renderAsDrone = false,
 ) {
   ensureSpriteSheetLoading();
 
@@ -468,7 +512,12 @@ export function drawTown(
   for (const drone of drones) drawDroneShadow(ctx, drone.x, drone.y);
   for (const drone of drones) drawDroneRing(ctx, drone);
 
-  drawPlayer(ctx, player, facing, playerSize, moving, now, boardTier);
+  if (renderAsDrone) {
+    drawDroneShadow(ctx, player.x, player.y);
+    drawDrone(ctx, player, now, false, 'player');
+  } else {
+    drawPlayer(ctx, player, facing, playerSize, moving, now, boardTier);
+  }
 
   // The drone bodies themselves render above the player, not under —
   // they're in the air, not on the street, and the one thing everything
@@ -919,16 +968,106 @@ function drawHedge(ctx: CanvasRenderingContext2D, o: Obstacle) {
  * background layer that never competes with an actual, interactive
  * location for the eye. `noise` keyed on the obstacle's own id, same as
  * every other obstacle, so it doesn't reshuffle every frame.
+ *
+ * Only a dozen of these exist, but a street with two or three in view used
+ * to render them as the exact same box — same tint, same flat roofline —
+ * which is the literal wallpaper the map redesign brief calls out: filler
+ * that reads as "buildings placed on a grid" rather than a town. Wall tone
+ * and roof shape now come off the same per-id `rand()` the windows already
+ * used, so neighbours on the same street stop matching. The palette stays
+ * inside `bgWall`'s own desaturated dusk range on purpose — these still
+ * have to lose to an actual location's own detail, not compete with it.
+ *
+ * The seed folds in `o.w`/`o.h`, not just `o.id`: three of these sit in a
+ * row in The Blocks with near-identical ids (`blocks_terrace_s1`..`s3`),
+ * and an id-only seed rolled the same palette entry for all three often
+ * enough to put the wallpaper right back — id-only hashes of near-identical
+ * strings land in the same slice of a small palette more often than chance
+ * alone suggests. Every real instance already has a different width or
+ * height, so folding both in for free is what actually decorrelates
+ * neighbours instead of just widening the palette and hoping.
  */
-function drawDecorativeBuilding(ctx: CanvasRenderingContext2D, o: Obstacle) {
-  const roofH = 12;
-
-  ctx.fillStyle = PALETTE.bgWall;
+/**
+ * A corrugated storage shed — the same wall/roof fallback tones
+ * `drawWarehouse` uses, so this reads as kin to The Works' real warehouses
+ * rather than another house. A roll-up door band stands in for a doorway
+ * (there isn't one — this is still background, no name, no prompt) and a
+ * roof vent breaks up the roofline. Reserved for Southside's own two
+ * "stores building" fillers — see the call site's own comment.
+ */
+function drawDepotShed(ctx: CanvasRenderingContext2D, o: Obstacle) {
+  const roofH = 8;
+  ctx.fillStyle = PALETTE.wallB;
   ctx.fillRect(o.x, o.y + roofH, o.w, o.h - roofH);
-  ctx.fillStyle = PALETTE.bgRoof;
-  ctx.fillRect(o.x + 3, o.y, o.w - 6, roofH);
+  ctx.fillStyle = PALETTE.corrugated;
+  ctx.fillRect(o.x, o.y, o.w, roofH);
+  ctx.strokeStyle = PALETTE.corrugatedLine;
+  ctx.lineWidth = 1;
+  for (let x = o.x + 3; x < o.x + o.w; x += 5) {
+    ctx.beginPath();
+    ctx.moveTo(px(x), o.y);
+    ctx.lineTo(px(x), o.y + roofH);
+    ctx.stroke();
+  }
 
-  const rand = noise(`deco:${o.id}`);
+  const doorW = o.w * 0.6;
+  const doorX = o.x + (o.w - doorW) / 2;
+  const doorY = o.y + roofH + 4;
+  const doorH = o.h - roofH - 8;
+  ctx.fillStyle = PALETTE.rollDoor;
+  ctx.fillRect(px(doorX), px(doorY), doorW, doorH);
+  ctx.strokeStyle = PALETTE.rollDoorLine;
+  ctx.lineWidth = 1;
+  for (let y = doorY + 4; y < doorY + doorH; y += 4) {
+    ctx.beginPath();
+    ctx.moveTo(px(doorX), px(y));
+    ctx.lineTo(px(doorX + doorW), px(y));
+    ctx.stroke();
+  }
+
+  ctx.fillStyle = PALETTE.vent;
+  ctx.fillRect(px(o.x + o.w * 0.75), o.y - 3, 5, 4);
+}
+function drawDecorativeBuilding(ctx: CanvasRenderingContext2D, o: Obstacle) {
+  // Southside's own two: "the stores building" the district's doc comment
+  // describes, not another anonymous house — the maintenance compound's
+  // whole point is that it could plausibly run the surveillance rollout's
+  // physical side, and a building that reads as a house undercuts that on
+  // sight before a player reads a word of it.
+  if (o.id === 'filler_100' || o.id === 'southside_unit_a') return drawDepotShed(ctx, o);
+
+  const rand = noise(`deco:${o.id}:${o.w}:${o.h}`);
+
+  const palette = [
+    { wall: PALETTE.bgWall, roof: PALETTE.bgRoof },
+    { wall: '#413a48', roof: '#302a37' }, // violet-grey
+    { wall: '#3f4538', roof: '#2e3329' }, // olive-grey
+    { wall: '#463b34', roof: '#332a25' }, // warm brown-grey
+    { wall: '#39424a', roof: '#293138' }, // slate-grey
+    { wall: '#40382e', roof: '#2e2820' }, // dark ochre
+  ];
+  const { wall, roof } = palette[Math.floor(rand() * palette.length)];
+  // A pitched roof for anything tall enough to carry one, so the skyline
+  // isn't every flat inset roofline in a row — gated on height rather than
+  // rolled independently, since a gable on a 34px-tall unit has no wall
+  // left under it.
+  const gabled = o.h >= 50 && rand() < 0.5;
+  const roofH = gabled ? Math.min(16, Math.round(o.h * 0.22)) : 12;
+
+  ctx.fillStyle = wall;
+  ctx.fillRect(o.x, o.y + roofH, o.w, o.h - roofH);
+  ctx.fillStyle = roof;
+  if (gabled) {
+    ctx.beginPath();
+    ctx.moveTo(o.x, o.y + roofH);
+    ctx.lineTo(o.x + o.w / 2, o.y);
+    ctx.lineTo(o.x + o.w, o.y + roofH);
+    ctx.closePath();
+    ctx.fill();
+  } else {
+    ctx.fillRect(o.x + 3, o.y, o.w - 6, roofH);
+  }
+
   const w = 7;
   const h = 9;
   const gap = 9;
@@ -1005,9 +1144,13 @@ function drawSafeTraceTower(ctx: CanvasRenderingContext2D, o: Obstacle, tier: Th
   ctx.globalAlpha = 1;
 
   // The mast and its beacon — the silhouette detail that reads from across
-  // the map, long before the panels or the screen resolve at all.
+  // the map, long before the panels or the screen resolve at all. Taller
+  // than the panels alone would justify on purpose: this is the map's one
+  // unmistakable landmark, and a beacon a player can find from the far
+  // side of Bellhaven is worth more than a mast proportioned "correctly"
+  // to the roofline under it.
   const mastX = towerX + towerW / 2;
-  const mastTopY = o.y - 22;
+  const mastTopY = o.y - 38;
   ctx.strokeStyle = PALETTE.towerMast;
   ctx.lineWidth = 1.5;
   ctx.beginPath();
@@ -1357,8 +1500,20 @@ function drawDroneShadow(ctx: CanvasRenderingContext2D, x: number, y: number) {
  * and a status light that blinks whether or not the player is close enough
  * to act on it. `takeable` adds the same soft-glow "you can act on this"
  * treatment every other point object on the map gets once it's in reach.
+ *
+ * `variant` swaps the body/light colour only — a FLACK interceptor
+ * (`'safetrace'`, the default) and the player's own airframe mid-flight
+ * (`'player'`) are the same silhouette, since they're the same kind of
+ * object; the colour is the only thing that has to say which one is
+ * whose.
  */
-function drawDrone(ctx: CanvasRenderingContext2D, drone: { x: number; y: number }, now: number, takeable: boolean) {
+function drawDrone(
+  ctx: CanvasRenderingContext2D,
+  drone: { x: number; y: number },
+  now: number,
+  takeable: boolean,
+  variant: 'safetrace' | 'player' = 'safetrace',
+) {
   const cx = px(drone.x);
   const cy = px(drone.y) - DRONE_ALTITUDE;
   const armR = 6;
@@ -1386,7 +1541,7 @@ function drawDrone(ctx: CanvasRenderingContext2D, drone: { x: number; y: number 
   ctx.lineTo(cx - armR, cy + armR);
   ctx.stroke();
 
-  ctx.fillStyle = PALETTE.droneBody;
+  ctx.fillStyle = variant === 'player' ? PALETTE.playerDroneBody : PALETTE.droneBody;
   ctx.fillRect(cx - 4, cy - 3, 8, 6);
   ctx.strokeStyle = PALETTE.outline;
   ctx.strokeRect(cx - 4.5, cy - 3.5, 9, 7);
@@ -1394,7 +1549,7 @@ function drawDrone(ctx: CanvasRenderingContext2D, drone: { x: number; y: number 
   // A blink, not a steady glow — same on/off read as a camera's own status
   // light elsewhere, so "watching" always looks like the same thing.
   if (Math.floor(now / 500) % 2 === 0) {
-    ctx.fillStyle = PALETTE.droneLight;
+    ctx.fillStyle = variant === 'player' ? PALETTE.playerDroneLight : PALETTE.droneLight;
     ctx.fillRect(cx - 1, cy - 1, 2, 2);
   }
 }
@@ -1951,6 +2106,8 @@ function drawEdgeGeography(ctx: CanvasRenderingContext2D) {
     ctx.fillRect(riverX + rand() * (riverW - w), y, w, 2);
   }
 
+  drawWaterfrontPier(ctx);
+
   /*
    * The rail line: along the north edge, then down the map's own eastern
    * margin to the Rail Spur's latitude in The Works. It used to run down
@@ -1966,6 +2123,55 @@ function drawEdgeGeography(ctx: CanvasRenderingContext2D) {
   ctx.fillStyle = PALETTE.railTie;
   for (let x = 8; x < MAP_WIDTH; x += 16) ctx.fillRect(x, 3, 4, 12);
   for (let y = 26; y < 658; y += 16) ctx.fillRect(1583, y, 14, 4);
+}
+
+/**
+ * A short pier at the one stretch of riverbank with nothing built against
+ * it — the seam between Old Market and Southside, y728–784, where neither
+ * district's own frontage reaches the water. Planking out from the bank,
+ * two pilings, and a single moored rowboat: enough for "somebody comes
+ * down here" without turning open water into a location to manage. Same
+ * layer as the river itself — decorative ground texture, no collision.
+ */
+function drawWaterfrontPier(ctx: CanvasRenderingContext2D) {
+  const deckX = 6;
+  const deckY = 746;
+  const deckW = 30; // stops just short of the bank at x=36
+  const deckH = 10;
+
+  ctx.fillStyle = PALETTE.dockPlankDark;
+  ctx.fillRect(px(deckX), px(deckY + deckH), deckW + 4, 2);
+  ctx.fillStyle = PALETTE.dockPlank;
+  ctx.fillRect(px(deckX), px(deckY), deckW, deckH);
+  ctx.strokeStyle = PALETTE.dockPlankDark;
+  ctx.lineWidth = 1;
+  for (let x = deckX + 4; x < deckX + deckW; x += 5) {
+    ctx.beginPath();
+    ctx.moveTo(px(x), px(deckY));
+    ctx.lineTo(px(x), px(deckY + deckH));
+    ctx.stroke();
+  }
+
+  // Two pilings, standing proud of the deck either side of it.
+  ctx.fillStyle = PALETTE.dockPiling;
+  ctx.fillRect(px(deckX - 2), px(deckY - 3), 3, deckH + 8);
+  ctx.fillRect(px(deckX + deckW - 1), px(deckY - 3), 3, deckH + 8);
+
+  // A single rowboat, moored off the pier's own outer (west) end.
+  const boatX = deckX - 2;
+  const boatY = deckY + deckH + 10;
+  ctx.fillStyle = PALETTE.boatHull;
+  ctx.beginPath();
+  ctx.moveTo(px(boatX), px(boatY + 4));
+  ctx.lineTo(px(boatX + 3), px(boatY));
+  ctx.lineTo(px(boatX + 16), px(boatY));
+  ctx.lineTo(px(boatX + 19), px(boatY + 4));
+  ctx.lineTo(px(boatX + 16), px(boatY + 8));
+  ctx.lineTo(px(boatX + 3), px(boatY + 8));
+  ctx.closePath();
+  ctx.fill();
+  ctx.fillStyle = PALETTE.boatTrim;
+  ctx.fillRect(px(boatX + 4), px(boatY + 2), 12, 2);
 }
 
 /**
@@ -2747,6 +2953,12 @@ function drawHouse(ctx: CanvasRenderingContext2D, loc: OverworldLocation, tier: 
   ctx.fillStyle = rand() < 0.7 ? PALETTE.windowLit : PALETTE.windowDark;
   ctx.fillRect(win.win2X, win.winY, win.winSize, win.winSize);
 
+  // Kestrel Row only — see `drawFireEscape`'s own doc comment for why it
+  // isn't every house on the block.
+  if (loc.id === 'blocks_terrace') {
+    drawFireEscape(ctx, loc.x + loc.w - 16, bodyY + 2, loc.y + loc.h - 8);
+  }
+
   drawGlitchTear(ctx, loc, tier, roofH);
   drawHouseYardProps(ctx, loc);
 }
@@ -2758,12 +2970,107 @@ function drawHouse(ctx: CanvasRenderingContext2D, loc: OverworldLocation, tier: 
  * text — the one lone house in that whole district was reading as any
  * other house instead of the specific abandoned one the writing means.
  * Same id-keyed, collision-free approach as `drawWarehouseYardProps`.
+ *
+ * `nova_house` gets a different kind of flourish for a different reason:
+ * The Heights is deliberately the quietest block on the map (home turf, no
+ * camera at stage 0), which is right for the story but leaves it with
+ * nothing a player would specifically remember about the street itself.
+ * A little free library out front is the map-redesign brief's own example
+ * of a "weird little neighbourhood landmark" — no narrative weight, no
+ * blurb, just a reason to notice this one front yard on the way past.
  */
 function drawHouseYardProps(ctx: CanvasRenderingContext2D, loc: OverworldLocation) {
-  if (loc.id !== 'casey_house') return;
+  if (loc.id === 'casey_house') {
+    drawForSaleSign(ctx, loc.x - 14, loc.y + loc.h - 4);
+    drawSwingSet(ctx, loc.x + loc.w + 20, loc.y + loc.h - 2);
+  } else if (loc.id === 'nova_house') {
+    drawLittleLibrary(ctx, loc.x - 16, loc.y + loc.h - 4);
+  }
+}
 
-  drawForSaleSign(ctx, loc.x - 14, loc.y + loc.h - 4);
-  drawSwingSet(ctx, loc.x + loc.w + 20, loc.y + loc.h - 2);
+/**
+ * A little free library: a post, a birdhouse-sized box with a peaked roof,
+ * and a shelf of books behind its own glass front. See `drawHouseYardProps`
+ * for why Ellen's is the one yard on the block that gets one.
+ */
+function drawLittleLibrary(ctx: CanvasRenderingContext2D, x: number, groundY: number) {
+  const postH = 22;
+  const boxW = 14;
+  const boxH = 16;
+  const boxY = groundY - postH - boxH;
+
+  ctx.fillStyle = 'rgba(0,0,0,0.18)';
+  ctx.beginPath();
+  ctx.ellipse(px(x), px(groundY + 1), 5, 2, 0, 0, Math.PI * 2);
+  ctx.fill();
+
+  ctx.strokeStyle = PALETTE.porchPost;
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(px(x), px(groundY));
+  ctx.lineTo(px(x), px(boxY + boxH));
+  ctx.stroke();
+
+  ctx.fillStyle = PALETTE.plank;
+  ctx.fillRect(px(x - boxW / 2), px(boxY), boxW, boxH);
+  ctx.fillStyle = PALETTE.pitchRoofB;
+  ctx.beginPath();
+  ctx.moveTo(px(x - boxW / 2 - 2), px(boxY));
+  ctx.lineTo(px(x), px(boxY - 6));
+  ctx.lineTo(px(x + boxW / 2 + 2), px(boxY));
+  ctx.closePath();
+  ctx.fill();
+
+  // The glass front, and a row of tiny book spines behind it — the detail
+  // that makes it a library and not just a nesting box.
+  ctx.fillStyle = PALETTE.windowDark;
+  ctx.fillRect(px(x - boxW / 2 + 2), px(boxY + 3), boxW - 4, boxH - 6);
+  const spineColors = [PALETTE.bandstandRoof, PALETTE.towerScreenCalm, PALETTE.forSaleSign, PALETTE.gardenLeaf];
+  for (let i = 0; i < 4; i++) {
+    ctx.fillStyle = spineColors[i % spineColors.length];
+    ctx.fillRect(px(x - boxW / 2 + 3 + i * 2.5), px(boxY + 4), 2, boxH - 8);
+  }
+}
+
+/**
+ * An exterior fire escape: two rails and a handful of switchback landings,
+ * bolted to a wall rather than free-standing. This is texture, not a new
+ * way to move — the overworld has no vertical collision plane, so it reads
+ * as "somebody has a way up that isn't the front door" rather than
+ * offering one. Reserved for the two buildings whose own writing already
+ * implies somebody uses one: the Data Centre's roof chillers ("loud enough
+ * to hear from the street") and Kestrel Row's six stacked front doors,
+ * rather than stuck on every tall silhouette in town for its own sake.
+ */
+function drawFireEscape(ctx: CanvasRenderingContext2D, x: number, topY: number, bottomY: number) {
+  const levels = 3;
+  const landingW = 12;
+  const stepH = (bottomY - topY) / levels;
+
+  ctx.strokeStyle = PALETTE.towerMast;
+  ctx.lineWidth = 1;
+  for (let i = 0; i <= levels; i++) {
+    const y = topY + i * stepH;
+    // The landing rail itself.
+    ctx.beginPath();
+    ctx.moveTo(px(x), px(y));
+    ctx.lineTo(px(x + landingW), px(y));
+    ctx.stroke();
+    // A short railing post at its outer corner.
+    ctx.beginPath();
+    ctx.moveTo(px(x + landingW), px(y));
+    ctx.lineTo(px(x + landingW), px(y - 3));
+    ctx.stroke();
+    if (i < levels) {
+      // The diagonal flight down to the next landing, alternating which
+      // corner it starts from so it reads as a switchback, not a ladder.
+      const fromRight = i % 2 === 0;
+      ctx.beginPath();
+      ctx.moveTo(px(x + (fromRight ? landingW : 0)), px(y));
+      ctx.lineTo(px(x + (fromRight ? 0 : landingW)), px(y + stepH));
+      ctx.stroke();
+    }
+  }
 }
 
 /** A post-and-panel yard sign — two thin legs and a rectangle, small enough
@@ -3011,14 +3318,54 @@ function drawPlaza(ctx: CanvasRenderingContext2D, loc: OverworldLocation) {
   }
 
   const bx = loc.x + loc.w / 2;
-  const by = loc.y + loc.h * 0.4;
-  const bw = 36;
-  const bh = 8;
-  ctx.fillStyle = PALETTE.bandstandPost;
-  ctx.fillRect(px(bx - bw / 2 + 2), px(by - 2), 3, 20);
-  ctx.fillRect(px(bx + bw / 2 - 5), px(by - 2), 3, 20);
-  ctx.fillStyle = PALETTE.bandstandRoof;
-  ctx.fillRect(px(bx - bw / 2), px(by - bh), bw, bh);
+
+  // The clock tower — Main Street's own skyline landmark, standing where
+  // the bandstand used to. Downtown had no answer to the SafeTrace Tower
+  // or the Scrapyard's smokestack: every other district a player can name
+  // from across the map by its own silhouette, and this was the one gap.
+  // Warm brick rather than either of those two, and short enough that the
+  // Tower still reads as the tallest thing in Bellhaven — this is
+  // Downtown's landmark, not a rival to the Civic Zone's.
+  const towerBaseY = loc.y + loc.h * 0.46;
+  const towerW = 20;
+  const towerH = 58;
+  const capH = 9;
+  const towerTopY = towerBaseY - towerH;
+
+  ctx.fillStyle = 'rgba(0,0,0,0.2)';
+  ctx.beginPath();
+  ctx.ellipse(px(bx), px(towerBaseY + 2), towerW / 2 + 3, 4, 0, 0, Math.PI * 2);
+  ctx.fill();
+
+  ctx.fillStyle = PALETTE.clockTower;
+  ctx.fillRect(px(bx - towerW / 2), px(towerTopY), towerW, towerH);
+  ctx.fillStyle = PALETTE.clockTowerDark;
+  ctx.fillRect(px(bx - towerW / 2), px(towerTopY), towerW * 0.28, towerH);
+
+  ctx.fillStyle = PALETTE.clockTowerDark;
+  ctx.beginPath();
+  ctx.moveTo(px(bx - towerW / 2 - 3), px(towerTopY));
+  ctx.lineTo(px(bx), px(towerTopY - capH));
+  ctx.lineTo(px(bx + towerW / 2 + 3), px(towerTopY));
+  ctx.closePath();
+  ctx.fill();
+
+  // The clock face, high on the shaft — a pale disc with two hands fixed
+  // at ten past six, the one clock in Bellhaven that always agrees with
+  // itself.
+  const clockY = towerTopY + 16;
+  ctx.fillStyle = PALETTE.clockFace;
+  ctx.beginPath();
+  ctx.arc(px(bx), px(clockY), 6, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.strokeStyle = PALETTE.clockTowerDark;
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(px(bx), px(clockY));
+  ctx.lineTo(px(bx), px(clockY - 4));
+  ctx.moveTo(px(bx), px(clockY));
+  ctx.lineTo(px(bx + 3), px(clockY));
+  ctx.stroke();
 
   ctx.strokeStyle = PALETTE.bandstandPost;
   ctx.lineWidth = 2;
@@ -3081,6 +3428,35 @@ function drawHedgeBorder(ctx: CanvasRenderingContext2D, x: number, y: number, w:
   drawHedge(ctx, { id: `${seed}:s`, x, y: y + h - t, w, h: t, kind: 'hedge' });
   drawHedge(ctx, { id: `${seed}:w`, x, y: y + t, w: t, h: h - t * 2, kind: 'hedge' });
   drawHedge(ctx, { id: `${seed}:e`, x: x + w - t, y: y + t, w: t, h: h - t * 2, kind: 'hedge' });
+}
+
+/**
+ * The Green's own community garden bed — three or four raised rows in
+ * turned soil, a low wood frame, and every other row already growing.
+ * Liberty Park's less-obvious point of interest: nothing marks it, no
+ * blurb explains it, it's just proof somebody comes back to the same
+ * patch of ground on purpose, which a park that's only a fountain and a
+ * lawn can't say on its own. Purely decorative, same as `drawHedgeBorder`.
+ */
+function drawGardenBed(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number) {
+  ctx.fillStyle = PALETTE.plankDark;
+  ctx.fillRect(px(x - 2), px(y - 2), w + 4, h + 4);
+  ctx.fillStyle = PALETTE.gardenSoilDark;
+  ctx.fillRect(px(x), px(y), w, h);
+
+  const rows = Math.max(2, Math.floor(h / 10));
+  const rowH = h / rows;
+  for (let r = 0; r < rows; r++) {
+    const ry = y + r * rowH + 1;
+    ctx.fillStyle = PALETTE.gardenSoil;
+    ctx.fillRect(px(x + 1), px(ry), w - 2, rowH - 2);
+    if (r % 2 === 0) {
+      ctx.fillStyle = PALETTE.gardenLeaf;
+      for (let gx = x + 3; gx < x + w - 3; gx += 6) {
+        ctx.fillRect(px(gx), px(ry + rowH * 0.25), 3, 3);
+      }
+    }
+  }
 }
 
 /**
@@ -3184,16 +3560,30 @@ function drawCommonsBanner(ctx: CanvasRenderingContext2D, x0: number, x1: number
 }
 
 /**
- * THE GREEN, and the fountain at the middle of the map.
+ * THE GREEN, and the fountain at the exact middle of the map.
  *
  * Liberty Park is the centre cell of the 3x3 and this is the centre of
- * Liberty Park, which makes the fountain the thing a player orients the
- * whole town by — so it is drawn as a real basin with a tiered head and
- * moving water rather than the flat pond tile it used to be. Everything
- * else is arranged around it: a spine path from the west entrance through
- * a gazebo to the basin, two hedge-bordered lawn panels mirrored north and
- * south, and the COMMUNITY NOT SURVEILLANCE banner strung across the path
- * on the fountain's own axis.
+ * Liberty Park, so the fountain sits at the Green's own true centre rather
+ * than off on one side of a single path — the one point a player can
+ * orient the whole town by. Four paths run out from it to all four edges
+ * of the rect, matching the park's four outside entrances (`ROAD_SEGMENTS`'s
+ * path tier), so the cross a player stands on in here is the same cross
+ * the roads outside are already making. That cross also cuts the lawn into
+ * four quarters, and rather than repeat one hedge-bordered panel four
+ * times, each quarter gets its own reason to exist:
+ *
+ *  - NW, the formal quarter: hedge-bordered lawn, the gazebo on its own
+ *    western arm — the first landmark reached from the Old Market entrance.
+ *  - NE, deliberately bare. Liberty Park is the one block the surveillance
+ *    gradient falls away toward (`locations.ts`'s own district note), and
+ *    the corner facing the Civic Zone is the one place that should be
+ *    *visible* rather than just written down — no hedge, no canopy,
+ *    nothing between a player standing here and the SafeTrace Tower two
+ *    blocks away.
+ *  - SW, the hidden corner: bushes and a rock the mower goes around, and a
+ *    bench about the business of not being seen from the path.
+ *  - SE, the less-obvious point of interest: a community garden bed
+ *    nothing marks and no blurb explains — just proof somebody comes back.
  *
  * The banner is the one piece of lettering on this canvas that isn't a
  * shape standing in for type, and it earns that: it is the only sentence
@@ -3212,43 +3602,78 @@ function drawGreen(ctx: CanvasRenderingContext2D, loc: OverworldLocation, now: n
     }
   }
 
-  const spineY = loc.y + loc.h * 0.52;
-  const pathH = 14;
-  const pathW = loc.w * 0.84;
+  const cx = loc.x + loc.w / 2;
+  const cy = loc.y + loc.h / 2;
+  const pathW = 16;
 
   if (spriteSheetReady()) {
-    drawNineSliceRect(ctx, PATH_KIT, loc.x, spineY - pathH / 2, pathW, pathH);
+    drawNineSliceRect(ctx, PATH_KIT, loc.x, cy - pathW / 2, loc.w, pathW);
+    drawNineSliceRect(ctx, PATH_KIT, cx - pathW / 2, loc.y, pathW, loc.h);
   } else {
     ctx.fillStyle = PALETTE.pathFill;
-    ctx.fillRect(loc.x, spineY - pathH / 2, pathW, pathH);
+    ctx.fillRect(loc.x, cy - pathW / 2, loc.w, pathW);
+    ctx.fillRect(cx - pathW / 2, loc.y, pathW, loc.h);
   }
 
-  const panelX = loc.x + loc.w * 0.12;
-  const panelW = loc.w * 0.6;
-  const panelTop = loc.y + 14;
-  const panelBottom = spineY - pathH / 2 - 6;
-  drawHedgeBorder(ctx, panelX, panelTop, panelW, panelBottom - panelTop, `${loc.id}:n`);
-  const panelTop2 = spineY + pathH / 2 + 6;
-  const panelBottom2 = loc.y + loc.h - 14;
-  drawHedgeBorder(ctx, panelX, panelTop2, panelW, panelBottom2 - panelTop2, `${loc.id}:s`);
+  // Four quadrants, symmetric around the cross — margin from the Green's
+  // own edge, gap from the path, wide enough to leave the fountain's own
+  // plaza room to breathe at the centre.
+  const margin = 10;
+  const gap = 22;
+  const qW = cx - pathW / 2 - gap - (loc.x + margin);
+  const qH = cy - pathW / 2 - gap - (loc.y + margin);
+  const nwX = loc.x + margin;
+  const nwY = loc.y + margin;
+  const neX = cx + pathW / 2 + gap;
+  const neY = loc.y + margin;
+  const swX = loc.x + margin;
+  const swY = cy + pathW / 2 + gap;
+  const seX = cx + pathW / 2 + gap;
+  const seY = cy + pathW / 2 + gap;
 
-  drawGazebo(ctx, loc.x + loc.w * 0.14, spineY);
+  drawHedgeBorder(ctx, nwX, nwY, qW, qH, `${loc.id}:nw`);
 
-  drawFountain(ctx, loc.x + loc.w * 0.62, spineY, Math.min(loc.w, loc.h) * 0.3, loc.id, now);
-  drawCommonsBanner(ctx, loc.x + loc.w * 0.22, loc.x + loc.w * 0.5, spineY - 30);
+  // The open sightline: a worn-ground tint rather than more lawn, so the
+  // one quarter with nothing planted in it still reads as a place, not a
+  // rendering gap.
+  ctx.fillStyle = PALETTE.pathFill;
+  ctx.globalAlpha = 0.3;
+  ctx.fillRect(px(neX), px(neY), qW, qH);
+  ctx.globalAlpha = 1;
 
-  ctx.fillStyle = PALETTE.bench;
-  ctx.fillRect(px(panelX + panelW - 20), px(panelBottom - 6), 16, 4);
-  ctx.fillRect(px(panelX + 4), px(panelTop2 + 2), 16, 4);
-  ctx.fillRect(px(loc.x + loc.w - 34), px(spineY - 2), 16, 4);
+  const swRand = noise(`${loc.id}:sw`);
+  for (let i = 0; i < 5; i++) {
+    const bx = swX + swRand() * (qW - 16);
+    const by = swY + swRand() * (qH - 24);
+    drawBush(ctx, { id: `${loc.id}:sw:bush:${i}`, x: bx, y: by, w: 16, h: 24, kind: 'bush' });
+  }
+  drawRock(ctx, { id: `${loc.id}:sw:rock`, x: swX + qW * 0.6, y: swY + qH * 0.1, w: 22, h: 18, kind: 'rock' });
+  drawParkBench(ctx, { id: `${loc.id}:sw:bench`, x: swX + qW * 0.12, y: swY + qH * 0.5, w: 8, h: 22, kind: 'bench' });
 
-  for (const [cx, cy] of [
+  drawGardenBed(ctx, seX + qW * 0.12, seY + qH * 0.2, qW * 0.76, qH * 0.6);
+
+  drawGazebo(ctx, loc.x + loc.w * 0.12, cy);
+
+  const fountainSize = Math.min(loc.w, loc.h) * 0.24;
+  drawFountain(ctx, cx, cy, fountainSize, loc.id, now);
+
+  // A ring of benches facing the water — the plaza's own obvious point of
+  // interest, the one nobody has to be told is there.
+  const kerb = fountainSize / 2 + 8;
+  drawParkBench(ctx, { id: `${loc.id}:ring:n`, x: cx - 11, y: cy - kerb - 9, w: 22, h: 8, kind: 'bench' });
+  drawParkBench(ctx, { id: `${loc.id}:ring:s`, x: cx - 11, y: cy + kerb + 1, w: 22, h: 8, kind: 'bench' });
+
+  drawCommonsBanner(ctx, loc.x + loc.w * 0.16, loc.x + loc.w * 0.4, cy - 34);
+
+  // Canopy everywhere but the open north-east quarter: the three outer
+  // corners, and a pair flanking the north path's own mouth.
+  for (const [tx, ty] of [
     [loc.x + 14, loc.y + 14],
-    [loc.x + loc.w - 14, loc.y + 14],
     [loc.x + 14, loc.y + loc.h - 14],
     [loc.x + loc.w - 14, loc.y + loc.h - 14],
+    [cx - 20, loc.y + 14],
   ]) {
-    drawTree(ctx, { id: `green:${loc.id}:${cx}:${cy}`, x: cx - 10, y: cy - 20, w: 20, h: 40, kind: 'tree' });
+    drawTree(ctx, { id: `green:${loc.id}:${tx}:${ty}`, x: tx - 10, y: ty - 20, w: 20, h: 40, kind: 'tree' });
   }
 }
 
@@ -3405,6 +3830,11 @@ function drawWarehouseYardProps(ctx: CanvasRenderingContext2D, loc: OverworldLoc
       for (let i = 0; i < 3; i++) {
         drawBin(ctx, { id: `${loc.id}-bin-${i}`, x: loc.x + 10 + i * (binW + 6), y: yardY, w: binW, h: binH, kind: 'bin' });
       }
+      // The table the market's own trust ambience keeps describing
+      // ("busier... a second chair and a flask") and that nothing on the
+      // canvas had ever drawn. The market screen is a menu; this is the
+      // one place the economy has a body.
+      drawMarketStall(ctx, loc.x + loc.w * 0.5, yardY + 4, 42);
       break;
     }
     case 'annex_fence': {
@@ -3428,9 +3858,106 @@ function drawWarehouseYardProps(ctx: CanvasRenderingContext2D, loc: OverworldLoc
       drawCrate(ctx, { id: `${loc.id}-stack-b`, x: loc.x + 12, y: yardY - 9, w: 16, h: 11, kind: 'crate' });
       drawBarrel(ctx, { id: `${loc.id}-barrel`, x: loc.x + 36, y: yardY + 2, w: 10, h: 10, kind: 'barrel' });
       drawCrane(ctx, loc.x + loc.w - 30, loc.y + loc.h);
+      drawSmokestack(ctx, loc.x + 24, loc.y + 10, 80);
       break;
     }
   }
+}
+
+/**
+ * Fenwick Lot's own market table — a lean-to tarp on one pole over a
+ * folding table, two stools underneath. The black market has always been a
+ * full-screen menu (`Market.tsx`), which means the economy has never had a
+ * body in the world it's supposed to be part of; this is that body, drawn
+ * where the lot's own trust ambience already says it stands. Improvised on
+ * purpose — a single pole and an angled tarp, not the park's own gazebo —
+ * because this table was never meant to be found.
+ */
+function drawMarketStall(ctx: CanvasRenderingContext2D, x: number, groundY: number, w: number) {
+  const poleH = 18;
+  const tableH = 7;
+
+  ctx.fillStyle = 'rgba(0,0,0,0.2)';
+  ctx.fillRect(px(x), px(groundY + tableH - 1), w, 2);
+
+  ctx.strokeStyle = PALETTE.craneBody;
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(px(x + w - 3), px(groundY));
+  ctx.lineTo(px(x + w - 3), px(groundY - poleH));
+  ctx.stroke();
+
+  // The tarp: a lean-to plane from the one pole down to the ground on the
+  // open side, not a symmetric awning — this is one pole holding up
+  // whatever was on hand, not a structure somebody built to last.
+  ctx.fillStyle = PALETTE.tarp;
+  ctx.beginPath();
+  ctx.moveTo(px(x - 2), px(groundY - 3));
+  ctx.lineTo(px(x + w - 3), px(groundY - poleH));
+  ctx.lineTo(px(x + w + 3), px(groundY - poleH));
+  ctx.lineTo(px(x + 6), px(groundY - 5));
+  ctx.closePath();
+  ctx.fill();
+  ctx.fillStyle = PALETTE.tarpDark;
+  ctx.beginPath();
+  ctx.moveTo(px(x + w - 3), px(groundY - poleH));
+  ctx.lineTo(px(x + w + 3), px(groundY - poleH));
+  ctx.lineTo(px(x + w - 8), px(groundY - poleH * 0.6));
+  ctx.closePath();
+  ctx.fill();
+
+  ctx.fillStyle = PALETTE.bench;
+  ctx.fillRect(px(x + 2), px(groundY - tableH), w - 10, tableH);
+  ctx.fillStyle = PALETTE.plankDark;
+  ctx.fillRect(px(x + 4), px(groundY + 1), 6, 4);
+  ctx.fillRect(px(x + w - 20), px(groundY + 1), 6, 4);
+}
+
+/**
+ * The Scrapyard's own smokestack — The Works' competing skyline landmark
+ * against the Civic Zone's SafeTrace Tower, on the same "recognise where
+ * you are before you read a label" principle applied to the map's own
+ * silhouette: from zoomed out, Bellhaven now has two tall things, on
+ * opposite sides of town, and neither one is a building with a paint job.
+ * Drawn well clear of the crane (this file's own `scrapyard` case, below),
+ * which already claims the building's south-east corner — this one rises
+ * from the north-west instead, taller than the crane by a wide margin.
+ * No animation (nothing here reads `now`); the two static puffs are enough
+ * to say "lit" without needing a per-frame drift.
+ */
+function drawSmokestack(ctx: CanvasRenderingContext2D, cx: number, baseY: number, h: number) {
+  const w = 16;
+  const capW = w + 6;
+
+  ctx.fillStyle = 'rgba(0,0,0,0.2)';
+  ctx.beginPath();
+  ctx.ellipse(px(cx), px(baseY + 2), capW / 2, 4, 0, 0, Math.PI * 2);
+  ctx.fill();
+
+  ctx.fillStyle = PALETTE.smokestack;
+  ctx.fillRect(px(cx - w / 2), px(baseY - h), w, h);
+  ctx.fillStyle = PALETTE.smokestackDark;
+  ctx.fillRect(px(cx - w / 2), px(baseY - h), w * 0.3, h);
+
+  ctx.strokeStyle = PALETTE.smokestackDark;
+  ctx.lineWidth = 1;
+  for (let y = baseY - h + 10; y < baseY - 6; y += 14) {
+    ctx.beginPath();
+    ctx.moveTo(px(cx - w / 2), px(y));
+    ctx.lineTo(px(cx + w / 2), px(y));
+    ctx.stroke();
+  }
+
+  ctx.fillStyle = PALETTE.smokestackDark;
+  ctx.fillRect(px(cx - capW / 2), px(baseY - h - 4), capW, 5);
+
+  ctx.fillStyle = 'rgba(200, 200, 196, 0.22)';
+  ctx.beginPath();
+  ctx.ellipse(px(cx + 4), px(baseY - h - 16), 8, 6, 0, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.beginPath();
+  ctx.ellipse(px(cx + 10), px(baseY - h - 28), 12, 8, 0, 0, Math.PI * 2);
+  ctx.fill();
 }
 
 /** A cable reel on its side — two concentric rings and a hub, the shape a
@@ -4145,6 +4672,10 @@ function drawDataCenter(ctx: CanvasRenderingContext2D, loc: OverworldLocation, n
   ctx.fillRect(px(loc.x + 6), px(loc.y + loc.h - 12), 3, 3);
   ctx.fillRect(px(loc.x + loc.w - 9), px(loc.y + loc.h - 12), 3, 3);
   ctx.globalAlpha = 1;
+
+  // The way up to the roof chillers the blurb already says are up there —
+  // on the west wall, clear of the dish array and the door plate.
+  drawFireEscape(ctx, loc.x + 4, loc.y + roofH + 4, loc.y + loc.h - 6);
 }
 
 /**
@@ -5000,9 +5531,14 @@ function drawPlayer(
 
   drawBoard(ctx, cx, feetY, boardTier, now);
 
+  // Riding, not walking — a board tier means the feet are planted on a
+  // deck, not stepping, so the leg animation holds the same neutral frame
+  // standing still uses regardless of how fast the board itself is moving.
+  const onBoard = boardTier > 0;
+
   if (spriteSheetReady()) {
     const direction = facingDirection(facing);
-    const frame = CHARACTERS[0][direction][walkFrame(now, moving)];
+    const frame = CHARACTERS[0][direction][walkFrame(now, moving && !onBoard)];
     drawSpriteTile(ctx, frame, cx, feetY - CHARACTER_DRAW_SIZE.h / 2, CHARACTER_DRAW_SIZE.w, CHARACTER_DRAW_SIZE.h);
     return;
   }
@@ -5012,7 +5548,7 @@ function drawPlayer(
   const neckY = headCy + headR;
   const hipY = feetY - 6;
 
-  const stride = moving ? (Math.floor(now / 220) % 2 === 0 ? 1 : -1) : 0;
+  const stride = moving && !onBoard ? (Math.floor(now / 220) % 2 === 0 ? 1 : -1) : 0;
 
   // A backpack behind the spine — chunkier than a bare "holdover" bag on
   // purpose, with its own strap line, since a skater's backpack is half the

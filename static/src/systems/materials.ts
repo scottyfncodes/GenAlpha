@@ -1,6 +1,7 @@
 import type { SaveState } from '../state/schema';
 import { JUNCTION_BOX_SALVAGE, MATERIALS_BY_ID, RECIPES } from '../content/materials';
 import { BLUEPRINTS } from '../content/blueprints';
+import { isBlueprintUnlocked, unlockBlueprint } from './blueprints';
 import { mulberry32, seedFrom } from './rng';
 import { BOLT_CUTTERS, PLAYER_DRONE_TIERS } from '../content/economy';
 import {
@@ -190,7 +191,7 @@ export type JunctionBoxLoot =
  * it can name the find in the toast without a second source of truth.
  */
 export function rollJunctionBoxLoot(save: SaveState, node: { id: string; tier: 1 | 2 | 3 | 4 | 5 }): JunctionBoxLoot {
-  const unfound = BLUEPRINTS.filter((b) => b.tier === node.tier && !owns(save, b.itemId));
+  const unfound = BLUEPRINTS.filter((b) => b.tier === node.tier && !isBlueprintUnlocked(save, b.itemId));
   const rand = mulberry32(seedFrom(`${node.id}:${save.world.day}:${unfound.length}`));
 
   if (unfound.length > 0) {
@@ -219,7 +220,10 @@ export function destroyJunctionBox(save: SaveState, nodeId: string): SaveState {
   const risk = JUNCTION_BOX_RISK[node.tier];
   const loot = rollJunctionBoxLoot(save, node);
 
-  const withItem = grantItem(save, loot.itemId, loot.quantity, 'theft');
+  // Knowledge, not cargo — a blueprint unlocks a flag; anything else still
+  // lands in the inventory the way it always has.
+  const withItem =
+    loot.kind === 'blueprint' ? unlockBlueprint(save, loot.itemId) : grantItem(save, loot.itemId, loot.quantity, 'theft');
   const withHeat = {
     ...withItem,
     heat: applyHeat(withItem.heat, {
@@ -288,28 +292,47 @@ function ownedDroneItemId(save: SaveState): string | undefined {
 }
 
 /** A recon flight needs an airframe built. Nothing else — no cooldown, no
- * target — because the minigame itself (`ui/minigames/DroneFlight.tsx`) is
- * the actual gate: a player can only fly as often as they're willing to
- * play it, and a scrubbed flight already costs Heat. */
+ * target, no location gate: `Overworld.tsx`'s own flight loop is the actual
+ * gate, since a player can only fly as far and as long as the battery and
+ * their own piloting let them. */
 export function canFlyRecon(save: SaveState): boolean {
   return playerDroneTier(save) >= 1;
 }
 
 /**
- * `hit` is the flight minigame's own outcome — a clean run pays Heat
- * relief scaled by which airframe made it up there, a scrubbed one costs a
- * flat penalty instead. The drone always comes home; this is the one drone
- * action that never touches the inventory.
+ * `hit` is whichever way the flight actually ended: `true` for a landed
+ * run (back within range of wherever it launched from before the battery
+ * died), `false` for one the battery caught first. The fog itself is
+ * already revealed by the time this runs — `Overworld.tsx` dispatches
+ * `REVEAL_AREA` continuously along the real flight path, not as a single
+ * circle here — so this function only ever settles what the flight *costs*.
+ *
+ * A landed flight pays Heat relief scaled by tier, same as ever. One the
+ * battery caught costs the airframe itself: SafeTrace picks up whatever's
+ * sitting dead on a rooftop somewhere, and the player is back to whatever
+ * tier they can rebuild — a real, permanent loss, unlike a scrubbed flight
+ * ever cost before this.
  */
 export function flyRecon(save: SaveState, hit: boolean): SaveState {
   if (!canFlyRecon(save)) return save;
   const tier = playerDroneTier(save) as PlayerDroneTier;
-  const delta = hit ? -RECON_SUCCESS_HEAT_RELIEF[tier] : RECON_FAIL_HEAT_PENALTY;
+  if (hit) {
+    return {
+      ...save,
+      heat: applyHeat(save.heat, {
+        eventId: 'recon_flight_clean',
+        delta: -RECON_SUCCESS_HEAT_RELIEF[tier],
+        logToHistory: true,
+      }),
+    };
+  }
+  const droneItemId = ownedDroneItemId(save);
+  const withoutDrone = droneItemId ? removeItem(save, droneItemId) : save;
   return {
-    ...save,
-    heat: applyHeat(save.heat, {
-      eventId: hit ? 'recon_flight_clean' : 'recon_flight_scrubbed',
-      delta,
+    ...withoutDrone,
+    heat: applyHeat(withoutDrone.heat, {
+      eventId: 'recon_flight_confiscated',
+      delta: RECON_FAIL_HEAT_PENALTY,
       logToHistory: true,
     }),
   };
@@ -364,9 +387,10 @@ export function kamikazeStrike(save: SaveState, target: KamikazeTarget, hit: boo
     s = grantItem(s, camera.itemId, 2, 'theft');
   } else {
     // Same roll an on-foot crack would make — flying a drone into a box is a
-    // different way in, not a different box.
+    // different way in, not a different box. Same knowledge-vs-cargo split
+    // destroyJunctionBox uses, too.
     const loot = rollJunctionBoxLoot(s, junction!);
-    s = grantItem(s, loot.itemId, loot.quantity, 'theft');
+    s = loot.kind === 'blueprint' ? unlockBlueprint(s, loot.itemId) : grantItem(s, loot.itemId, loot.quantity, 'theft');
   }
 
   const withHeat = {
@@ -386,14 +410,17 @@ export function sellMaterial(save: SaveState, itemId: string): SaveState {
   return addShdw(removeItem(save, itemId), material.sellValueShdw);
 }
 
-/** A recipe needs its file before it needs its parts — knowing salvage will
- * eventually make a Rebuilt Deck isn't the same as having the diagram for
- * one. `blueprintItemId` is checked with plain `owns`, same as any other
- * item; the file itself never gets consumed by building, only found. */
+/** A recipe needs its blueprint before it needs its parts — knowing salvage
+ * will eventually make a Rebuilt Deck isn't the same as having the diagram
+ * for one. `blueprintItemId` is checked as unlocked knowledge
+ * (`systems/blueprints.ts`), never consumed by building, only found. */
 export function canCraft(save: SaveState, recipeId: string): boolean {
   const recipe = RECIPES.find((r) => r.id === recipeId);
   if (!recipe) return false;
-  return owns(save, recipe.blueprintItemId) && recipe.inputs.every((i) => quantityOf(save, i.itemId) >= i.quantity);
+  return (
+    isBlueprintUnlocked(save, recipe.blueprintItemId) &&
+    recipe.inputs.every((i) => quantityOf(save, i.itemId) >= i.quantity)
+  );
 }
 
 export function craft(save: SaveState, recipeId: string): SaveState {

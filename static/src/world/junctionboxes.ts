@@ -78,4 +78,15 @@ export const JUNCTION_BOX_NODES: JunctionBoxNode[] = [
   // beyond a bus timetable.
   { id: 'junction_17', x: 1552, y: 736, tier: 5 },
   { id: 'junction_18', x: 424, y: 918, tier: 5 },
+  /*
+   * Added for the GPS line's three build plans — one per tier the plans
+   * actually occupy, so `junctionboxes.test.ts`'s own counting argument
+   * ("at least as many boxes as plans") still holds. Placed in the three
+   * districts that were carrying the thinnest coverage of their own tier:
+   * Southside had exactly one box in the whole district; The Heights had
+   * none above tier 1; Old Market had one at tier 2 and none at tier 3.
+   */
+  { id: 'junction_19', x: 60, y: 960, tier: 1 },
+  { id: 'junction_20', x: 420, y: 290, tier: 2 },
+  { id: 'junction_21', x: 150, y: 510, tier: 3 },
 ];

@@ -90,6 +90,38 @@
   font-size: 28px;
 }
 
+/* The Map app — unlike Hack/Rig this isn't a scroll screen, it's a canvas
+   that needs a real height all the way down to it, so the header stays a
+   fixed-size flex child instead of just sitting above scrollable content. */
+.cyberdeck__map {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  padding: calc(var(--step) * 2);
+  padding-bottom: var(--step);
+  color: var(--term-text);
+  font-family: var(--font-mono);
+}
+
+.cyberdeck__map .cyberdeck__head {
+  flex: none;
+}
+
+.cyberdeck__map-body {
+  flex: 1;
+  min-height: 0;
+  padding-top: var(--step);
+}
+
+.cyberdeck__map-locked {
+  margin: 0;
+  padding-top: calc(var(--step) * 2);
+  font-size: 13px;
+  line-height: 1.5;
+  opacity: 0.7;
+  text-align: center;
+}
+
 /* Hack and Rig — both plain scroll screens under the same header. */
 .cyberdeck__hack {
   height: 100%;
@@ -223,6 +255,52 @@
   font-size: 11px;
   opacity: 0.7;
   margin-left: 4px;
+}
+
+/* Files — a longer-form list than `.cyberdeck__unlocks`, since each row
+   carries real body copy instead of one line plus a tier tag. Locked rows
+   stay in the list (dimmed, title withheld) so the list itself reads as a
+   map of what's still out there. */
+.cyberdeck__files {
+  list-style: none;
+  margin: 8px 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.cyberdeck__file {
+  border: 1px solid var(--term-dim);
+  background: rgba(61, 255, 154, 0.04);
+  padding: 8px 10px;
+  opacity: 0.5;
+}
+
+.cyberdeck__file.is-unlocked {
+  opacity: 1;
+  border-color: rgba(61, 255, 154, 0.5);
+}
+
+.cyberdeck__file-category {
+  display: block;
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  opacity: 0.6;
+  margin-bottom: 2px;
+}
+
+.cyberdeck__file-title {
+  display: block;
+  font-size: 13px;
+}
+
+.cyberdeck__file-body {
+  margin: 4px 0 0;
+  font-size: 12px;
+  line-height: 1.5;
+  opacity: 0.85;
 }
 
 /*

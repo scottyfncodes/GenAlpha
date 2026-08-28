@@ -304,22 +304,9 @@
   opacity: 0.75;
 }
 
-.title__handle-label {
-  margin: 0;
-  font-size: 13px;
-  opacity: 0.8;
-}
-
-/* Same visual weight as `.title__naming input` above — a generated value
-   reads as a real field, not a lesser one, even though there's nothing to
-   type into it. */
-.title__handle {
-  display: flex;
-  gap: 8px;
-}
-
+/* Same visual weight as `.title__naming input` above, plus the bolder,
+   letter-spaced treatment a handle gets everywhere else it's shown. */
 .title__handle-value {
-  flex: 1;
   background: rgba(236, 226, 208, 0.08);
   border: 2px solid rgba(236, 226, 208, 0.5);
   color: var(--b-paper);
@@ -328,21 +315,7 @@
   font-weight: 700;
   text-align: center;
   letter-spacing: 0.04em;
-}
-
-.title__handle-shuffle {
-  flex: none;
-  background: transparent;
-  border: 2px solid rgba(236, 226, 208, 0.5);
-  color: var(--b-paper);
-  padding: 10px 12px;
-  font: inherit;
-  cursor: pointer;
-}
-
-.title__handle-shuffle:hover,
-.title__handle-shuffle:focus-visible {
-  border-color: var(--b-paper);
+  width: 100%;
 }
 
 /* "Gen" and "Alpha" each on their own line, and each line is exactly one

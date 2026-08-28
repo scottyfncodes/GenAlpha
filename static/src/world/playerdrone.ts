@@ -1,56 +1,75 @@
 /**
- * The player's own drone, and the two things it's for. Both are flown —
- * `ui/minigames/DroneFlight.tsx`, `systems/droneflight.ts` — rather than
- * resolved off a stat check, same "the tool decides how forgiving it is,
- * the player still has to fly it" shape `systems/droneshoot.ts` set for the
- * anti-drone tools.
+ * The player's own drone, and the two things it's for. Both are flown live,
+ * in the same town the character walks — see `Overworld.tsx`'s own frame
+ * loop, which redirects movement input at the drone's position instead of
+ * the player's whenever a flight is active, and reuses the exact same
+ * `drawTown` render pass (just with a drone body standing in for the
+ * player's own sprite). There is no separate minigame screen any more: what
+ * the drone finds is whatever ground its pilot actually flies it over.
  *
- * RECON: launch from anywhere, any time (no target, no location gate). A
- * clean flight pays Heat relief — you now know where they are, so a close
- * call you didn't have yet doesn't happen. The airframe comes home either
- * way; nothing here risks losing it, because a scouting run isn't supposed
- * to fly into anything.
+ * RECON: launch from anywhere, any time (no target, no location gate). Free
+ * flight, revealing `scouted` fog continuously along the flight path — a
+ * much richer read of the town than any fixed reveal circle, because the
+ * player is the one choosing where to look. The only risk is the battery:
+ * it drains the whole flight, and the drone has to make it back within
+ * range of wherever it launched from before it hits zero. Land it and it
+ * pays Heat relief, same as ever. Run the battery out mid-flight and SafeTrace
+ * picks up whatever's left on the ground — the airframe is gone for good,
+ * whatever tier it was.
  *
  * KAMIKAZE: only at a camera or junction box already in reach (same nearby
  * detection Overworld.tsx already runs for `SABOTAGE_CAMERA`/
- * `DESTROY_JUNCTION_BOX`). It's a one-way trip regardless of outcome — the
- * whole point of the word — so the drone is always consumed, win or lose. A
- * landed run is the best single payout either economy has: a camera pays
- * its featured part at double quantity for no Heat at all, a junction box
- * pays its blueprint the same way. A crashed run pays out nothing and costs
- * real Heat, because a drone that didn't make it still got found.
+ * `DESTROY_JUNCTION_BOX`). Same free flight, aimed at a fixed point instead
+ * of open exploration — reach the target before the battery dies and it's a
+ * hit, don't and it's a miss. Either way the airframe is gone: a kamikaze
+ * run was never coming home to begin with.
  */
 
 export type PlayerDroneTier = 1 | 2 | 3;
 
-export interface PlayerDroneTuning {
-  /** Hits the airframe can absorb before the flight ends in a crash. */
-  maxHits: number;
-  /** How often the drone's auto-fire launches a shot, in ms — lower is
-   * faster, so a better tier clears more of what's in front of it. */
-  fireIntervalMs: number;
-  /** Max lateral speed in the flight minigame's own play field, px/s. */
-  speed: number;
-}
+/**
+ * World units per second while flying — faster than anything the player
+ * can be on foot (Overworld.tsx's own `SPEED`), the one thing that has to
+ * stay true for "you're not walking any more, you're flying" to actually
+ * read at the controls. Trimmed alongside that same walking speed: the
+ * whole point of continuous, real flight is a town that takes real time to
+ * actually know, and a flight fast enough to see it all on one battery
+ * defeats that as thoroughly as fast walking did.
+ */
+export const DRONE_FLIGHT_SPEED: Record<PlayerDroneTier, number> = { 1: 125, 2: 150, 3: 175 };
 
-const TUNING: Record<PlayerDroneTier, PlayerDroneTuning> = {
-  1: { maxHits: 2, fireIntervalMs: 600, speed: 130 },
-  2: { maxHits: 3, fireIntervalMs: 420, speed: 165 },
-  3: { maxHits: 4, fireIntervalMs: 280, speed: 200 },
-};
+/** Total flight time before the battery dies, in ms. A better airframe
+ * flies longer, not just faster — the real reward for investing past tier
+ * 1 is range, since a round trip is what a recon flight actually spends
+ * its battery on. */
+export const DRONE_BATTERY_MS: Record<PlayerDroneTier, number> = { 1: 26000, 2: 40000, 3: 58000 };
 
-export function playerDroneTuning(tier: PlayerDroneTier): PlayerDroneTuning {
-  return TUNING[tier];
-}
+/** A kamikaze target is already in reach by the time the button's even
+ * offered (same proximity gate a camera/junction box prompt needs), so the
+ * battery here is generous headroom rather than a real range constraint —
+ * it exists so a flight that goes wide of the target can still run out and
+ * crash, not so tier matters much for reaching something already this
+ * close. */
+export const KAMIKAZE_BATTERY_MS = 10000;
 
-/** Flight length in ms — long enough to feel like an actual sortie, short
- * enough to fit in the same beat as everything else on this map. */
-export const RECON_FLIGHT_MS = 14000;
-export const KAMIKAZE_FLIGHT_MS = 16000;
+/** How far the scouted-fog reveal reaches around the drone while it flies,
+ * continuously — see `world/exploration.ts`'s `revealArea`. Wider than a
+ * walking foot's own `FOOT_REVEAL_RADIUS`, since a camera looking straight
+ * down sees more street than a kid looking sideways does. */
+export const DRONE_FLIGHT_REVEAL_RADIUS: Record<PlayerDroneTier, number> = { 1: 130, 2: 160, 3: 200 };
 
-/** Heat relief on a clean recon flight, and the cost of a scrubbed one —
- * scaled by tier, since a better sensor package is worth more once it's
- * actually up there. */
+/** How close the drone has to get back to its own launch point before
+ * landing is possible — a real spot to put down in, not a pixel-exact
+ * return. */
+export const DRONE_LANDING_RADIUS = 50;
+
+/** How close a kamikaze flight has to get to its target before it counts as
+ * a hit. */
+export const KAMIKAZE_IMPACT_RADIUS = 40;
+
+/** Heat relief on a landed recon flight, and the cost of one the battery
+ * caught first — scaled by tier, since a better sensor package is worth
+ * more once it's actually up there. */
 export const RECON_SUCCESS_HEAT_RELIEF: Record<PlayerDroneTier, number> = { 1: 6, 2: 9, 3: 13 };
 export const RECON_FAIL_HEAT_PENALTY = 3;
 

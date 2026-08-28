@@ -5,7 +5,7 @@ import { HIDDEN_PICKUP_OBSTACLE_IDS } from './collectibles';
 import { JUNCTION_BOX_NODES } from './junctionboxes';
 import { BLUEPRINTS } from '../content/blueprints';
 import { rollJunctionBoxLoot } from '../systems/materials';
-import { grantItem } from '../systems/market';
+import { unlockBlueprint } from '../systems/blueprints';
 import { createNewSave } from '../state/defaults';
 
 /**
@@ -83,7 +83,7 @@ describe('every blueprint stays obtainable', () => {
       expect(loot.kind, `tier ${tier} ran out of plans after ${i} of ${expected.length}`).toBe('blueprint');
       expect(found, `${loot.itemId} was handed out twice`).not.toContain(loot.itemId);
       found.push(loot.itemId);
-      save = grantItem(save, loot.itemId, 1, 'theft');
+      save = unlockBlueprint(save, loot.itemId);
     }
 
     expect(found.sort()).toEqual([...expected].sort());

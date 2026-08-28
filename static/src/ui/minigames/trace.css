@@ -118,6 +118,15 @@
 
 .node--target { outline: 2px solid #ffcc66; outline-offset: -4px; }
 
+/* A player's own mark, not the system's — a different hue from the target's
+   gold, the trap's red and the safe fill's green, so a flagged guess never
+   reads as any of the three things the game itself is telling you. */
+.node--flagged {
+  border-color: #66ccff;
+  box-shadow: 0 0 6px rgba(102, 204, 255, 0.4);
+  color: #9fe0ff;
+}
+
 .node:disabled { cursor: default; }
 
 .trace__event {

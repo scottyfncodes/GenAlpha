@@ -1,6 +1,28 @@
 import type { MarketEventInstance, SaveState } from './schema';
 import { SAVE_VERSION, createNewSave } from './defaults';
 import { prefersReducedMotion } from './env';
+import { districtsFromExploration } from '../world/districtlock';
+import { BLUEPRINTS_BY_ID } from '../content/blueprints';
+
+/**
+ * 0.9.0 -> 0.10.0: a blueprint stopped being an inventory item and became a
+ * flag (`systems/blueprints.ts`). A save from before that carries any
+ * `bp_*` entries sitting in `economy.inventory` — this pulls them back out
+ * as the equivalent flags and drops them from the inventory array, so nothing
+ * a player already found goes missing, it just moves to where it lives now.
+ */
+function migrateBlueprintInventory(inventory: SaveState['economy']['inventory']): {
+  inventory: SaveState['economy']['inventory'];
+  flags: Record<string, boolean>;
+} {
+  const flags: Record<string, boolean> = {};
+  const kept = inventory.filter((entry) => {
+    if (!(entry.itemId in BLUEPRINTS_BY_ID)) return true;
+    flags[`${entry.itemId}_unlocked`] = true;
+    return false;
+  });
+  return { inventory: kept, flags };
+}
 
 const KEY = 'static.save';
 
@@ -51,12 +73,17 @@ export function migrate(save: SaveState, prefersReduced = false): SaveState {
 
   const base = createNewSave(save.player?.name ?? 'unset');
   const day = save.world?.day ?? base.world.day;
+  const blueprintMigration = migrateBlueprintInventory(save.economy?.inventory ?? []);
 
   return {
     ...base,
     ...save,
     meta: { ...base.meta, ...save.meta, saveVersion: SAVE_VERSION },
-    player: { ...base.player, ...save.player, flags: { ...save.player?.flags } },
+    player: {
+      ...base.player,
+      ...save.player,
+      flags: { ...save.player?.flags, ...blueprintMigration.flags },
+    },
     /*
      * Rebuilt field by field rather than spread, so `lastDecayAt` — the
      * wall-clock timestamp 0.3.0 replaced — doesn't ride along as dead weight
@@ -78,6 +105,7 @@ export function migrate(save: SaveState, prefersReduced = false): SaveState {
     economy: {
       ...base.economy,
       ...save.economy,
+      inventory: blueprintMigration.inventory,
       /*
        * 0.4.0 -> 0.5.0: `activeEvents` was a bare list of ids with no way to
        * expire. There is no honest conversion — an old entry has no start day
@@ -110,6 +138,34 @@ export function migrate(save: SaveState, prefersReduced = false): SaveState {
       ...save.world,
       day,
       surveillance: { ...base.world.surveillance, ...save.world?.surveillance },
+      /*
+       * 0.7.0 -> 0.8.0 adds `exploration`. A save from before it existed
+       * gets `base`'s own starting patch around Home rather than an empty
+       * grid — nobody's map goes backwards, the same rule `reducedFlicker`
+       * follows for a pre-existing player. `explored`/`scouted` are merged
+       * as their own arrays (not spread) so a save that somehow carries only
+       * one of the two subtree keys still gets a whole, valid shape out.
+       */
+      exploration: {
+        explored: save.world?.exploration?.explored ?? base.world.exploration.explored,
+        scouted: save.world?.exploration?.scouted ?? base.world.exploration.scouted,
+      },
+      /*
+       * 0.8.0 -> 0.9.0 adds `unlockedDistricts`. A save from before district
+       * locking existed already stood on ground the new wall would otherwise
+       * spring up around, so it starts unlocked everywhere the fog-of-war
+       * grid already says the player has been — the same "nobody's map goes
+       * backwards" rule `exploration` itself follows above, applied to
+       * walkability instead of visibility. Home is unioned in regardless,
+       * same as a brand-new save.
+       */
+      unlockedDistricts: Array.from(
+        new Set([
+          ...base.world.unlockedDistricts,
+          ...(save.world?.unlockedDistricts ?? []),
+          ...districtsFromExploration(save.world?.exploration ?? base.world.exploration),
+        ]),
+      ),
     },
     settings: {
       ...base.settings,

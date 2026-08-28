@@ -396,6 +396,16 @@ export function pendingScenes(save: SaveState, scenes: Scene[]): Scene[] {
 }
 
 /**
+ * The location the overworld's own "what's asking something of you" hint is
+ * already naming (`Overworld.tsx`'s `pending[0]`) — pulled out so the map can
+ * point at the same place instead of computing its own idea of "next" that
+ * could drift out of sync with the hint text.
+ */
+export function nextObjectiveLocationId(save: SaveState, scenes: Scene[]): string | null {
+  return pendingScenes(save, scenes)[0]?.locationId ?? null;
+}
+
+/**
  * A terminal node has to move the state its own scene is gated on, or the
  * scene stays offered and a reload walks back into it. Act content moves the
  * chapter; mentor content moves its mission's beat cursor. Either closes the
