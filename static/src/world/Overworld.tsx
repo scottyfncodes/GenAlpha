@@ -82,7 +82,14 @@ import './overworld.css';
  * board tier roughly gets a player back to what walking used to feel like;
  * everything past that is the actual payoff.
  */
-const SPEED = 80; // world units per second
+/*
+ * Trimmed again — 80 still crossed the whole 1600x1100 town in well under a
+ * minute on foot, which made a real 3x3 town feel like a single block: the
+ * fog-of-war/GPS/drone redesign's whole point (a town that takes actual
+ * time to actually know) doesn't land if walking alone gets there almost
+ * immediately.
+ */
+const SPEED = 58; // world units per second
 /**
  * Walking (index 0, implicit — nothing to look up) up through the Hoverboard
  * at tier 5. `boardTier` (systems/market.ts) reads which one's owned; this is

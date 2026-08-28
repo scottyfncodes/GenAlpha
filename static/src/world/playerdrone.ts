@@ -27,10 +27,16 @@
 
 export type PlayerDroneTier = 1 | 2 | 3;
 
-/** World units per second while flying — faster than anything the player
- * can be on foot, the one thing that has to be true for "you're not walking
- * any more, you're flying" to actually read at the controls. */
-export const DRONE_FLIGHT_SPEED: Record<PlayerDroneTier, number> = { 1: 190, 2: 230, 3: 270 };
+/**
+ * World units per second while flying — faster than anything the player
+ * can be on foot (Overworld.tsx's own `SPEED`), the one thing that has to
+ * stay true for "you're not walking any more, you're flying" to actually
+ * read at the controls. Trimmed alongside that same walking speed: the
+ * whole point of continuous, real flight is a town that takes real time to
+ * actually know, and a flight fast enough to see it all on one battery
+ * defeats that as thoroughly as fast walking did.
+ */
+export const DRONE_FLIGHT_SPEED: Record<PlayerDroneTier, number> = { 1: 125, 2: 150, 3: 175 };
 
 /** Total flight time before the battery dies, in ms. A better airframe
  * flies longer, not just faster — the real reward for investing past tier
