@@ -29,7 +29,7 @@ Verified against every automated gate in `scripts/check-character-art-quality.mj
 [PASS] Dimensions                                        48x88 -> cell 16x22 (expected aspect 16:22 = 0.7273, got 0.7273)
 [PASS] Grid/cell count                                   3x4 = 12 cells (manifest expects 12: 3 frames x 4 directions)
 [PASS] Transparency behavior                             every pixel is alpha 0 or 255; every cell has both transparent and opaque pixels
-[PASS] Unique color count                                11 unique opaque colors (ceiling: 24)
+[PASS] Unique color count                                10 unique opaque colors (ceiling: 24)
 [PASS] Color-run characteristics                         median horizontal same-color run length: 2px (floor: 2px, n=1601 runs)
 [PASS] Palette consistency                               0 of 12 cells contain a color no other cell uses (0-1 expected; skin/hair-only cells can legitimately be unique)
 [PASS] Anchor consistency                                lowest-opaque-pixel row varies by 0px across cells (expect 0) and sits at row 21 of 22 (expect the last row, 21 — on the anchor edge); idle-column horizontal centroid within 1px of center (cell center x=7.5)
@@ -41,9 +41,17 @@ All gates passed.
 
 This is the proof-of-viability the decision document's §7 next-step called
 for: the chosen method can produce a full 3×4 sheet that is genuinely
-discrete pixel data by construction (11 unique opaque colors, binary alpha,
+discrete pixel data by construction (10 unique opaque colors, binary alpha,
 multi-pixel color runs), not the ~87,000–93,000-color (or ~50,000-color)
 continuous-tone output the rejected submissions and reference produced.
+
+**Hoodie color:** black, per request — pure black for the main body (reused
+from the `shoe` color already in the palette, not a new hex), with the
+existing `world/draw.ts` `PALETTE.copUniform` navy as the hem/accent step.
+A pure-navy main fill was tried first but sat only ~21 RGB-distance from
+`PALETTE.ground`, and the torso visibly thinned into the background in a
+gameplay-scale render — demoting it to the accent step fixed that while
+keeping the two-tone read.
 
 **A bug the anchor gate initially missed, fixed in the same pass:** the
 first iteration's leg shape used an exclusive upper bound that never

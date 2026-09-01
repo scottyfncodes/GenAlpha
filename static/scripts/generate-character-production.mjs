@@ -53,24 +53,30 @@ const outFile = process.argv[2] ?? defaultOut;
 
 // ---------------------------------------------------------------------
 // Palette — pulled from `world/draw.ts`'s PALETTE wherever a suitable
-// value exists (production brief §7). Two additions, both following the
-// same precedent the R&D pass set (a documented, justified new shade
-// where the existing palette genuinely has no suitable value):
-//   - jacketShade: reused verbatim from `generate-character-rnd.mjs`'s own
-//     `aJacketShade` (a shadow step for the `sun` jacket color; already an
-//     established precedent, not a fresh addition).
+// value exists (production brief §7). One genuinely new hex:
 //   - jeans: a new mid-saturation denim blue. The existing palette's
 //     nearest blues (`skyMid` #54617f, `skyHigh` #2b3a55) are desaturated
 //     blue-grays close enough in hue to `ground`/`groundAlt`/`outline`
 //     that they weaken the brief §6 hard limb-contrast minimum; a
 //     genuinely blue (not blue-gray) denim clears that minimum by a much
 //     wider margin. This is the one new hex this script introduces.
+// Everything else — including the black hoodie below — reuses an existing
+// `world/draw.ts` value or an already-declared color in this file (`shoe`
+// for the hoodie's shadow step), never a fresh addition just for looks.
 // ---------------------------------------------------------------------
 const PALETTE = {
   skin: [0xe8, 0xc8, 0xa8, 255],
   hair: [0x3a, 0x2c, 0x22, 255],
-  hoodie: [0xd9, 0x9a, 0x6c, 255],       // world/draw.ts PALETTE.sun
-  hoodieShade: [0xb9, 0x7c, 0x50, 255],  // precedent shadow step (see above)
+  // Black hoodie: pure black (= `shoe` below, reused — not a fresh hex)
+  // reads as unambiguously "black" and holds real contrast against
+  // `world/draw.ts`'s `PALETTE.ground` (#3d4759). copUniform, a dark navy
+  // already in the palette, first sat in as the *main* fill, but at
+  // (46,58,82) it's only ~21 RGB-distance from ground itself — the torso
+  // nearly disappeared into the ground fill in a gameplay-scale render.
+  // Demoted to the hem/accent step instead, where a smaller area blending
+  // slightly is a minor cost, not the whole silhouette losing separation.
+  hoodie: [0x00, 0x00, 0x00, 255],       // = shoe, reused
+  hoodieShade: [0x2e, 0x3a, 0x52, 255],  // world/draw.ts PALETTE.copUniform
   jeans: [0x4a, 0x5a, 0x8a, 255],        // new — see note above
   bag: [0x8a, 0x6b, 0x4a, 255],          // world/draw.ts PALETTE.spriteBag
   bagStrap: [0x5c, 0x46, 0x30, 255],     // world/draw.ts PALETTE.spriteBagStrap
