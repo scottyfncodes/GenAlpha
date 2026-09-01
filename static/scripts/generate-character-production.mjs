@@ -114,20 +114,32 @@ function inRoundedRect(px, py, x0, y0, x1, y1, r) {
   return true;
 }
 
+/** Deterministic 0..1 pseudo-random value from an index and a salt — jitter
+ * without a seeded RNG dependency, and without ever producing a gradient
+ * (it only perturbs where a discrete circle test is centered). */
+function hash(i, salt) {
+  const n = Math.sin(i * 12.9898 + salt * 78.233 + 4.1) * 43758.5453;
+  return n - Math.floor(n);
+}
+
 /**
- * A curlier hair edge (style-reference cue: an afro-like bumpy silhouette
- * instead of a smooth arc) — several small bump circles unioned along an
- * angular arc range around the head's perimeter. Still a union of circles
- * (no gradient, no new color), so it stays exactly as discrete as a single
- * circle; it just makes the hair's outer edge irregular instead of smooth.
+ * A messy, uneven hair edge — several bump circles unioned along an
+ * angular arc range around the head's perimeter, each jittered in angle,
+ * radial distance, and size so they read as unruly tufts rather than a
+ * neat, evenly-spaced afro. `salt` differs per call site (down/up/left)
+ * so their jitter patterns don't coincidentally line up. Still a union of
+ * circles — no gradient, no new color — so it stays exactly as discrete as
+ * a single circle; it just makes the edge irregular instead of smooth.
  */
-function inHairBumps(x, y, headCx, headCy, headR, angleFrom, angleTo, count) {
-  const bumpR = 1.6;
+function inHairBumps(x, y, headCx, headCy, headR, angleFrom, angleTo, count, salt = 0) {
   for (let i = 0; i < count; i++) {
     const t = count === 1 ? 0 : i / (count - 1);
-    const angle = angleFrom + (angleTo - angleFrom) * t;
-    const bcx = headCx + Math.cos(angle) * headR * 0.85;
-    const bcy = headCy + Math.sin(angle) * headR * 0.85;
+    const angleJitter = (hash(i, salt) - 0.5) * 0.5; // +/- ~0.25 rad
+    const angle = angleFrom + (angleTo - angleFrom) * t + angleJitter;
+    const radiusFactor = 0.7 + hash(i, salt + 1) * 0.7; // 0.7x .. 1.4x
+    const bumpR = 1.1 + hash(i, salt + 2) * 1.3; // 1.1px .. 2.4px, uneven tuft sizes
+    const bcx = headCx + Math.cos(angle) * headR * radiusFactor;
+    const bcy = headCy + Math.sin(angle) * headR * radiusFactor;
     if (dist2(x + 0.5, y + 0.5, bcx, bcy) <= bumpR * bumpR) return true;
   }
   return false;
@@ -264,8 +276,16 @@ function buildDirectFrame(dir, frame) {
     for (let y = 0; y < H; y++) {
       for (let x = 0; x < W; x++) {
         const inCap = dist2(x + 0.5, y + 0.5, headCx, headCy) <= headR * headR && y <= headCy - 1;
-        const inBump = inHairBumps(x, y, headCx, headCy, headR, -Math.PI * 0.7, -Math.PI * 0.3, 3);
+        const inBump = inHairBumps(x, y, headCx, headCy, headR, -Math.PI * 0.75, -Math.PI * 0.25, 5, 1);
         if (inCap || inBump) set(x, y, 'hair');
+      }
+    }
+    // A couple of stray spikes sticking up past the fringe — an unkempt
+    // cowlick, longer and more isolated than the tuft bumps above.
+    for (let y = 0; y < H; y++) {
+      for (let x = 0; x < W; x++) {
+        if (dist2(x + 0.5, y + 0.5, headCx - 2, headCy - headR - 0.5) <= 1.3 * 1.3) set(x, y, 'hair');
+        if (dist2(x + 0.5, y + 0.5, headCx + 3, headCy - headR + 0.3) <= 1.1 * 1.1) set(x, y, 'hair');
       }
     }
     // Positioned lower than left/right's side-wedge (which sits at
@@ -291,8 +311,14 @@ function buildDirectFrame(dir, frame) {
     for (let y = 0; y < H; y++) {
       for (let x = 0; x < W; x++) {
         const inMass = dist2(x + 0.5, y + 0.5, headCx, headCy) <= (headR + 1.8) ** 2;
-        const inBump = inHairBumps(x, y, headCx, headCy, headR + 1.8, -Math.PI, Math.PI, 12);
+        const inBump = inHairBumps(x, y, headCx, headCy, headR + 1.8, -Math.PI, Math.PI, 16, 2);
         if (inMass || inBump) set(x, y, 'hair');
+      }
+    }
+    for (let y = 0; y < H; y++) {
+      for (let x = 0; x < W; x++) {
+        if (dist2(x + 0.5, y + 0.5, headCx - 4, headCy - headR - 0.8) <= 1.2 * 1.2) set(x, y, 'hair');
+        if (dist2(x + 0.5, y + 0.5, headCx + 4.5, headCy - headR - 0.5) <= 1.1 * 1.1) set(x, y, 'hair');
       }
     }
     for (let y = headCy + 2; y <= headCy + 6; y++) {
@@ -307,13 +333,19 @@ function buildDirectFrame(dir, frame) {
     for (let y = 0; y < H; y++) {
       for (let x = 0; x < W; x++) {
         const inCap = dist2(x + 0.5, y + 0.5, headCx, headCy) <= headR * headR && x >= headCx - 1;
-        const inBump = inHairBumps(x, y, headCx, headCy, headR, -Math.PI / 2, Math.PI / 2, 6);
+        const inBump = inHairBumps(x, y, headCx, headCy, headR, -Math.PI / 2, Math.PI / 2, 8, 3);
         if (inCap || inBump) set(x, y, 'hair');
       }
     }
     for (let y = headCy - 5; y <= headCy + 1; y++) {
       for (let x = headCx + 3; x <= headCx + 7; x++) {
         if (dist2(x + 0.5, y + 0.5, headCx, headCy) <= (headR + 2.2) ** 2) set(x, y, 'hair');
+      }
+    }
+    // One stray spike off the top — unkempt, not the clean side-swoop alone.
+    for (let y = 0; y < H; y++) {
+      for (let x = 0; x < W; x++) {
+        if (dist2(x + 0.5, y + 0.5, headCx + 2, headCy - headR - 0.5) <= 1.2 * 1.2) set(x, y, 'hair');
       }
     }
     // Eye and nose kept well-separated (vertically and horizontally) so

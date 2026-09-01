@@ -30,7 +30,7 @@ Verified against every automated gate in `scripts/check-character-art-quality.mj
 [PASS] Grid/cell count                                   3x4 = 12 cells (manifest expects 12: 3 frames x 4 directions)
 [PASS] Transparency behavior                             every pixel is alpha 0 or 255; every cell has both transparent and opaque pixels
 [PASS] Unique color count                                10 unique opaque colors (ceiling: 24)
-[PASS] Color-run characteristics                         median horizontal same-color run length: 2px (floor: 2px, n=1602 runs)
+[PASS] Color-run characteristics                         median horizontal same-color run length: 2px (floor: 2px, n=1539 runs)
 [PASS] Palette consistency                               0 of 12 cells contain a color no other cell uses (0-1 expected; skin/hair-only cells can legitimately be unique)
 [PASS] Anchor consistency                                lowest-opaque-pixel row varies by 0px across cells (expect 0) and sits at row 21 of 22 (expect the last row, 21 — on the anchor edge); idle-column horizontal centroid within 1px of center (cell center x=7.5)
 [PASS] Accidental anti-aliasing / near-duplicate colors  no two palette colors within 24 RGB distance of each other
@@ -70,6 +70,15 @@ or the four-direction/mirror requirements — it's confined to the idle pose
 construction, the same place the brief's own §9 already calls for
 deliberate design ("a deliberate standing pose... not a mathematical
 midpoint"). All 8 automated gates still pass.
+
+**Messier hair:** the bump circles that give the hair its edge texture
+(`inHairBumps`) were evenly spaced and identically sized — read as a neat,
+round afro rather than unkempt. Each bump's angle, radial distance, and
+size are now jittered by a small deterministic hash (still just perturbing
+where a discrete circle is centered — no gradient, no new color), and each
+direction adds one or two longer, more isolated "stray spike" circles
+sticking up past the main mass for a cowlick/unkempt look. All 8 gates
+still pass.
 
 **A bug the anchor gate initially missed, fixed in the same pass:** the
 first iteration's leg shape used an exclusive upper bound that never
