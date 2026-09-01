@@ -275,12 +275,19 @@ for (let row = 0; row < rows; row++) {
 }
 const definedLowest = lowestOpaqueRow.filter((v) => v >= 0);
 const anchorRowSpread = definedLowest.length > 0 ? Math.max(...definedLowest) - Math.min(...definedLowest) : 0;
+// Consistency across cells isn't enough on its own — every cell could
+// agree on a lowest row that still floats above the frame's actual bottom
+// edge (exactly what happened here: an off-by-one in a generator's shape
+// bound left every cell's feet 1px short of row actualCellH-1, and every
+// cell agreed on the wrong row, so a spread-only check passed anyway).
+const expectedLowestRow = actualCellH - 1;
+const lowestRowOk = definedLowest.length > 0 && definedLowest[0] === expectedLowestRow;
 const expectedCenterX = (actualCellW - 1) / 2;
 const centeringOk = idleCentroidX.every((cx) => cx === null || Math.abs(cx - expectedCenterX) <= 1);
 report(
   'Anchor consistency',
-  anchorRowSpread === 0 && centeringOk,
-  `lowest-opaque-pixel row varies by ${anchorRowSpread}px across cells (expect 0); idle-column horizontal centroid ${centeringOk ? 'within 1px of center' : 'off-center'} (cell center x=${expectedCenterX.toFixed(1)})`
+  anchorRowSpread === 0 && lowestRowOk && centeringOk,
+  `lowest-opaque-pixel row varies by ${anchorRowSpread}px across cells (expect 0) and sits at row ${definedLowest[0] ?? 'n/a'} of ${actualCellH} (expect the last row, ${expectedLowestRow} — ${lowestRowOk ? 'on the anchor edge' : 'floating above it'}); idle-column horizontal centroid ${centeringOk ? 'within 1px of center' : 'off-center'} (cell center x=${expectedCenterX.toFixed(1)})`
 );
 
 // ---------- Gate: Accidental anti-aliasing / near-duplicate colors ----------

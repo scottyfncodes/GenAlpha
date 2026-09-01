@@ -28,6 +28,18 @@
  * reference-only convention. Promotion to `public/art/<slot-id>.png` is a
  * separate, later, explicitly human step.
  *
+ * Iteration 2 folds in style cues from a user-supplied "style reference"
+ * image (afro-style curly hair, a defined outline stroke, two-tone shoes,
+ * a hoodie drawstring seam) — measured first, per the same discipline this
+ * whole file exists to enforce: that reference PNG was ~38.5% partial-alpha
+ * pixels, ~50,000 unique colors, and non-integer 3x4 cell dimensions,
+ * i.e. the same continuous-tone failure as the two rejected submissions,
+ * just styled convincingly enough to look like pixel art at a glance. It is
+ * used here purely as a language reference (silhouette bumpiness, an
+ * outline stroke, a shoe color block, a drawstring seam) — never as a
+ * pixel source, and never past what the approved brief's facial-vocabulary
+ * cap (§8: dot eyes, 1x1 to 2x1) actually allows.
+ *
  * Usage: node scripts/generate-character-production.mjs [outfile]
  */
 import { PNG } from 'pngjs';
@@ -63,6 +75,9 @@ const PALETTE = {
   bag: [0x8a, 0x6b, 0x4a, 255],          // world/draw.ts PALETTE.spriteBag
   bagStrap: [0x5c, 0x46, 0x30, 255],     // world/draw.ts PALETTE.spriteBagStrap
   eye: [0x14, 0x11, 0x0f, 255],          // world/draw.ts PALETTE.sprite
+  outline: [0x20, 0x26, 0x2f, 255],      // world/draw.ts PALETTE.outline — style-reference cue: a defined edge stroke
+  shoe: [0x00, 0x00, 0x00, 255],         // new — a small two-tone shoe accent, style-reference cue
+  sole: [0xec, 0xe2, 0xd0, 255],         // world/draw.ts PALETTE.spriteShirt, reused as the shoe's sole highlight
 };
 
 // Reference contrast values this design is checked against (brief §6):
@@ -94,6 +109,25 @@ function inRoundedRect(px, py, x0, y0, x1, y1, r) {
 }
 
 /**
+ * A curlier hair edge (style-reference cue: an afro-like bumpy silhouette
+ * instead of a smooth arc) — several small bump circles unioned along an
+ * angular arc range around the head's perimeter. Still a union of circles
+ * (no gradient, no new color), so it stays exactly as discrete as a single
+ * circle; it just makes the hair's outer edge irregular instead of smooth.
+ */
+function inHairBumps(x, y, headCx, headCy, headR, angleFrom, angleTo, count) {
+  const bumpR = 1.6;
+  for (let i = 0; i < count; i++) {
+    const t = count === 1 ? 0 : i / (count - 1);
+    const angle = angleFrom + (angleTo - angleFrom) * t;
+    const bcx = headCx + Math.cos(angle) * headR * 0.85;
+    const bcy = headCy + Math.sin(angle) * headR * 0.85;
+    if (dist2(x + 0.5, y + 0.5, bcx, bcy) <= bumpR * bumpR) return true;
+  }
+  return false;
+}
+
+/**
  * Build one 16x22 cell's pixel grid as an array of PALETTE keys or null
  * (transparent). `dir` is one of the four canonical directions; `frame` is
  * 0/1/2 (stride A / idle / stride B). Built for `down`, `up`, and `left`
@@ -111,7 +145,9 @@ function buildDirectFrame(dir, frame) {
   const stride = frame === 0 ? -1 : frame === 2 ? 1 : 0;
   const horizontal = dir === 'left' || dir === 'right';
 
-  // Legs — two rounded 3-wide nubs, 1px gap between them (brief §6).
+  // Legs — two rounded 3-wide nubs, 1px gap between them (brief §6), with a
+  // small two-tone shoe (a dark body, a light sole row) at the very bottom —
+  // a style-reference cue that reads as "feet," not a proportion change.
   let lx0 = 5, rx0 = 9;
   if (horizontal) { lx0 += stride; rx0 += stride; } else { lx0 -= Math.abs(stride); rx0 += Math.abs(stride); }
   // Feet stay planted on the anchor row regardless of the idle bounce —
@@ -119,18 +155,34 @@ function buildDirectFrame(dir, frame) {
   // on the same row in every frame).
   for (let y = 0; y < H; y++) {
     for (let x = 0; x < W; x++) {
-      if (inRoundedRect(x, y, lx0, 16, lx0 + 3, 21, 1)) set(x, y, 'jeans');
-      if (inRoundedRect(x, y, rx0, 16, rx0 + 3, 21, 1)) set(x, y, 'jeans');
+      // y1=22 (exclusive), not 21 — inRoundedRect's bound is exclusive, so
+      // 21 would have left row 21 (the cell's actual last row) untouched by
+      // the leg shape entirely, floating the feet 1px above the true
+      // anchor edge (brief §13: the lowest opaque pixel must sit exactly on
+      // the frame's bottom row). The addOutlineStroke pass was masking this
+      // by adding an outline pixel under the gap, which is exactly why the
+      // QA gate's anchor check needed strengthening too (see below).
+      const inLeftLeg = inRoundedRect(x, y, lx0, 16, lx0 + 3, 22, 1);
+      const inRightLeg = inRoundedRect(x, y, rx0, 16, rx0 + 3, 22, 1);
+      if (!inLeftLeg && !inRightLeg) continue;
+      const key = y === 21 ? 'sole' : y === 20 ? 'shoe' : 'jeans';
+      set(x, y, key);
     }
   }
 
-  // Torso — soft capsule, two-tone (brief §5).
+  // Torso — soft capsule, two-tone (brief §5). A 2px-wide drawstring seam
+  // down the center (style-reference cue) — 2px, not 1, because the cell's
+  // true center (x=7.5) falls between columns, so a single-column seam
+  // would not survive left/right mirroring symmetrically.
   for (let y = 0; y < H; y++) {
     for (let x = 0; x < W; x++) {
       if (inRoundedRect(x, y, 3, 8 + bounce, 13, 17 + bounce, 3)) {
         set(x, y, y >= 13 + bounce ? 'hoodieShade' : 'hoodie');
       }
     }
+  }
+  if (dir === 'down') {
+    for (let y = 9 + bounce; y <= 12 + bounce; y++) { set(7, y, 'outline'); set(8, y, 'outline'); }
   }
 
   // Backpack — worn on the back; a clear rounded bump behind the torso on
@@ -178,14 +230,20 @@ function buildDirectFrame(dir, frame) {
   // itself differs — recoloring skin to hair inside the same head circle is
   // invisible to that test).
   if (dir === 'down') {
-    // Front fringe: the top half of the head, plus two ear-flap locks that
-    // protrude past the bare head circle on both sides.
+    // Front fringe: the top half of the head, bumpy-edged (style-reference
+    // cue), plus two ear-flap locks that protrude past the bare head
+    // circle on both sides.
     for (let y = 0; y < H; y++) {
       for (let x = 0; x < W; x++) {
-        if (dist2(x + 0.5, y + 0.5, headCx, headCy) <= headR * headR && y <= headCy - 1) set(x, y, 'hair');
+        const inCap = dist2(x + 0.5, y + 0.5, headCx, headCy) <= headR * headR && y <= headCy - 1;
+        const inBump = inHairBumps(x, y, headCx, headCy, headR, -Math.PI * 0.7, -Math.PI * 0.3, 3);
+        if (inCap || inBump) set(x, y, 'hair');
       }
     }
-    for (let y = headCy - 1; y <= headCy + 3; y++) {
+    // Positioned lower than left/right's side-wedge (which sits at
+    // headCy-5..headCy+1) specifically so the two directions' hair pixels
+    // don't spatially coincide and understate how different they are.
+    for (let y = headCy + 2; y <= headCy + 4; y++) {
       set(headCx - 7, y, 'hair');
       set(headCx - 6, y, 'hair');
       set(headCx + 5, y, 'hair');
@@ -204,7 +262,9 @@ function buildDirectFrame(dir, frame) {
     // head shape. No facial detail at all (brief §8).
     for (let y = 0; y < H; y++) {
       for (let x = 0; x < W; x++) {
-        if (dist2(x + 0.5, y + 0.5, headCx, headCy) <= (headR + 1.6) ** 2) set(x, y, 'hair');
+        const inMass = dist2(x + 0.5, y + 0.5, headCx, headCy) <= (headR + 1.8) ** 2;
+        const inBump = inHairBumps(x, y, headCx, headCy, headR + 1.8, -Math.PI, Math.PI, 12);
+        if (inMass || inBump) set(x, y, 'hair');
       }
     }
     for (let y = headCy + 2; y <= headCy + 6; y++) {
@@ -218,7 +278,9 @@ function buildDirectFrame(dir, frame) {
     // near eye dot (brief §3, §8).
     for (let y = 0; y < H; y++) {
       for (let x = 0; x < W; x++) {
-        if (dist2(x + 0.5, y + 0.5, headCx, headCy) <= headR * headR && x >= headCx - 1) set(x, y, 'hair');
+        const inCap = dist2(x + 0.5, y + 0.5, headCx, headCy) <= headR * headR && x >= headCx - 1;
+        const inBump = inHairBumps(x, y, headCx, headCy, headR, -Math.PI / 2, Math.PI / 2, 6);
+        if (inCap || inBump) set(x, y, 'hair');
       }
     }
     for (let y = headCy - 5; y <= headCy + 1; y++) {
@@ -234,6 +296,32 @@ function buildDirectFrame(dir, frame) {
     set(headCx - 6, headCy + 1, 'eye'); // profile nose-tip, protrudes past the head circle, lower-forward
   }
 
+  return addOutlineStroke(grid);
+}
+
+/**
+ * Outward outline stroke (style-reference cue): any transparent pixel
+ * adjacent to an opaque one becomes an outline pixel. Deliberately outward
+ * (growing into the transparent margin) rather than inset (eating into the
+ * existing fill) — at 16x22 the legs and arms are only 2-3px wide, and an
+ * inset stroke on both sides would erase the jeans/hoodie color the brief
+ * §6 limb-contrast rule depends on almost entirely. Growing outward instead
+ * costs margin pixels, not limb-color pixels, and never moves the lowest
+ * opaque row (feet already sit on the cell's last row, y=21, which has no
+ * row below it to grow into) — so anchor consistency (brief §13) is
+ * unaffected.
+ */
+function addOutlineStroke(grid) {
+  const additions = [];
+  for (let y = 0; y < H; y++) {
+    for (let x = 0; x < W; x++) {
+      if (grid[y][x]) continue;
+      const neighbors = [[x - 1, y], [x + 1, y], [x, y - 1], [x, y + 1]];
+      const touchesOpaque = neighbors.some(([nx, ny]) => nx >= 0 && nx < W && ny >= 0 && ny < H && grid[ny][nx]);
+      if (touchesOpaque) additions.push([x, y]);
+    }
+  }
+  for (const [x, y] of additions) grid[y][x] = 'outline';
   return grid;
 }
 
