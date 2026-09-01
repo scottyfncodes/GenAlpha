@@ -30,7 +30,7 @@ Verified against every automated gate in `scripts/check-character-art-quality.mj
 [PASS] Grid/cell count                                   3x4 = 12 cells (manifest expects 12: 3 frames x 4 directions)
 [PASS] Transparency behavior                             every pixel is alpha 0 or 255; every cell has both transparent and opaque pixels
 [PASS] Unique color count                                10 unique opaque colors (ceiling: 24)
-[PASS] Color-run characteristics                         median horizontal same-color run length: 2px (floor: 2px, n=1601 runs)
+[PASS] Color-run characteristics                         median horizontal same-color run length: 2px (floor: 2px, n=1602 runs)
 [PASS] Palette consistency                               0 of 12 cells contain a color no other cell uses (0-1 expected; skin/hair-only cells can legitimately be unique)
 [PASS] Anchor consistency                                lowest-opaque-pixel row varies by 0px across cells (expect 0) and sits at row 21 of 22 (expect the last row, 21 — on the anchor edge); idle-column horizontal centroid within 1px of center (cell center x=7.5)
 [PASS] Accidental anti-aliasing / near-duplicate colors  no two palette colors within 24 RGB distance of each other
@@ -52,6 +52,24 @@ A pure-navy main fill was tried first but sat only ~21 RGB-distance from
 `PALETTE.ground`, and the torso visibly thinned into the background in a
 gameplay-scale render — demoting it to the accent step fixed that while
 keeping the two-tone read.
+
+**Personality (idle frame only):** the brief caps facial detail at bare
+dot-eyes (§8 — no eyebrows, no blush, no expression lines), so "curiosity,
+coolness, shyness" is expressed through the standing pose instead, on frame
+1 only (the walk-cycle stride stays clean and symmetric):
+- a 1px sideways head tilt on the down-facing idle frame — a curious,
+  quizzical lean
+- a small skin-toned hand resting near the front hem, down-facing only —
+  the other arm stays relaxed at the side; the asymmetry between a relaxed
+  arm and a tucked one is the actual cue, not either arm's shape alone
+- shoulders raised slightly toward the ears on every direction's idle frame
+  — a shy, drawn-in posture
+
+None of this touches the locked proportions, palette discipline, dimensions,
+or the four-direction/mirror requirements — it's confined to the idle pose
+construction, the same place the brief's own §9 already calls for
+deliberate design ("a deliberate standing pose... not a mathematical
+midpoint"). All 8 automated gates still pass.
 
 **A bug the anchor gate initially missed, fixed in the same pass:** the
 first iteration's leg shape used an exclusive upper bound that never

@@ -150,6 +150,15 @@ function buildDirectFrame(dir, frame) {
   const bounce = frame === 1 ? -1 : 0; // idle frame springs up 1px (brief §9)
   const stride = frame === 0 ? -1 : frame === 2 ? 1 : 0;
   const horizontal = dir === 'left' || dir === 'right';
+  // The idle frame is the one a player actually looks at (brief §9: "the
+  // pose a player sees more than any other... deserves to be designed
+  // deliberately"). With facial detail capped to bare dot-eyes (brief §8 —
+  // no eyebrows, no blush, no expression lines), personality has to come
+  // from stance, not the face: a curious head tilt, a casual one-arm-tucked
+  // asymmetry, and shoulders raised slightly toward the ears (shy/cold-
+  // shoulder read). Applied only on frame 1, so the walk-cycle stride stays
+  // the clean, symmetric motion the brief's §10 requires.
+  const idle = frame === 1;
 
   // Legs — two rounded 3-wide nubs, 1px gap between them (brief §6), with a
   // small two-tone shoe (a dark body, a light sole row) at the very bottom —
@@ -219,9 +228,22 @@ function buildDirectFrame(dir, frame) {
       if (inRoundedRect(x, y, 13, 10 + bounce + armSwing, 15, 15 + bounce + armSwing, 1)) set(x, y, 'hoodie');
     }
   }
+  // On the idle frame, a small skin-toned hand rests near the front hem —
+  // one arm reads as relaxed, the other as tucked in, a cool/casual/shy
+  // asymmetry that a same-color arm shift alone can't show (the torso fill
+  // would just swallow it): a hand only reads against the hoodie because
+  // it's a genuinely different color, not a different position.
+  if (idle && dir === 'down') {
+    set(10, 15 + bounce, 'skin');
+    set(11, 15 + bounce, 'skin');
+    set(10, 16 + bounce, 'skin');
+  }
 
-  // Head — large, round (brief §2: close to half total height).
-  const headCx = 8, headCy = 5 + bounce, headR = 5.4;
+  // Head — large, round (brief §2: close to half total height). A 1px
+  // sideways tilt on the down-facing idle frame only — a curious,
+  // quizzical lean, distinct from the walk-cycle's upright stride poses.
+  const headTilt = idle && dir === 'down' ? -1 : 0;
+  const headCx = 8 + headTilt, headCy = 5 + bounce, headR = 5.4;
   for (let y = 0; y < H; y++) {
     for (let x = 0; x < W; x++) {
       if (dist2(x + 0.5, y + 0.5, headCx, headCy) <= headR * headR) set(x, y, 'skin');
@@ -300,6 +322,15 @@ function buildDirectFrame(dir, frame) {
     // both eyes on a profile view).
     set(headCx - 2, headCy - 2, 'eye'); // single near eye dot, upper-face
     set(headCx - 6, headCy + 1, 'eye'); // profile nose-tip, protrudes past the head circle, lower-forward
+  }
+
+  // Shoulders raised toward the ears on the idle frame — a shy, drawn-in
+  // posture, cheap in silhouette terms (a couple of pixels at the collar).
+  // Painted last, after the head/hair, so it isn't swallowed by either.
+  if (idle) {
+    for (let y = headCy + Math.round(headR) - 1; y <= headCy + Math.round(headR); y++) {
+      set(3, y, 'hoodie'); set(12, y, 'hoodie');
+    }
   }
 
   return addOutlineStroke(grid);
