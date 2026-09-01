@@ -1,0 +1,272 @@
+#!/usr/bin/env node
+/**
+ * CHARACTER ART PRODUCTION GENERATOR — first controlled run under the
+ * production method chosen in
+ * `docs/art/genalpha-character-art-production-decision.md`: procedural,
+ * vector-free pixel construction from a defined palette and silhouette
+ * specification (that document's §3 approach C, §4 recommendation).
+ *
+ * Deliberately does NOT use `<canvas>` (unlike `generate-character-rnd.mjs`/
+ * `generate-pilot-art.mjs`). Canvas path-fill anti-aliases shape edges
+ * regardless of `imageSmoothingEnabled` (that flag only affects
+ * `drawImage` scaling) — exactly the mechanism that let two independent
+ * image-generation submissions ship continuous-tone data disguised as
+ * "pixel art." This script instead computes every pixel directly: each of
+ * a cell's 16x22 pixels is tested analytically (is this pixel's center
+ * inside this circle/rounded-rect?) against a small set of shape
+ * definitions and assigned exactly one palette RGBA value or left fully
+ * transparent. There is no blending step anywhere in this file, so there
+ * is no way for it to produce anti-aliased edges or a continuous color
+ * ramp — discrete pixel data is a structural property of the approach, not
+ * a hoped-for outcome to measure afterward.
+ *
+ * Output is NOT written to `public/art/` — per the proposed pipeline
+ * (decision doc §5), a generated sheet is a QA *candidate* until it passes
+ * both the automated gate (`check-character-art-quality.mjs`) and the
+ * production brief's §14-16 human/gameplay-scale review. Candidates land in
+ * `docs/art/candidates/`, parallel to `docs/art/rnd/`'s existing
+ * reference-only convention. Promotion to `public/art/<slot-id>.png` is a
+ * separate, later, explicitly human step.
+ *
+ * Usage: node scripts/generate-character-production.mjs [outfile]
+ */
+import { PNG } from 'pngjs';
+import { writeFileSync, mkdirSync } from 'node:fs';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+const here = path.dirname(fileURLToPath(import.meta.url));
+const defaultOut = path.join(here, '..', 'docs', 'art', 'candidates', 'character.player.candidate1.png');
+const outFile = process.argv[2] ?? defaultOut;
+
+// ---------------------------------------------------------------------
+// Palette — pulled from `world/draw.ts`'s PALETTE wherever a suitable
+// value exists (production brief §7). Two additions, both following the
+// same precedent the R&D pass set (a documented, justified new shade
+// where the existing palette genuinely has no suitable value):
+//   - jacketShade: reused verbatim from `generate-character-rnd.mjs`'s own
+//     `aJacketShade` (a shadow step for the `sun` jacket color; already an
+//     established precedent, not a fresh addition).
+//   - jeans: a new mid-saturation denim blue. The existing palette's
+//     nearest blues (`skyMid` #54617f, `skyHigh` #2b3a55) are desaturated
+//     blue-grays close enough in hue to `ground`/`groundAlt`/`outline`
+//     that they weaken the brief §6 hard limb-contrast minimum; a
+//     genuinely blue (not blue-gray) denim clears that minimum by a much
+//     wider margin. This is the one new hex this script introduces.
+// ---------------------------------------------------------------------
+const PALETTE = {
+  skin: [0xe8, 0xc8, 0xa8, 255],
+  hair: [0x3a, 0x2c, 0x22, 255],
+  hoodie: [0xd9, 0x9a, 0x6c, 255],       // world/draw.ts PALETTE.sun
+  hoodieShade: [0xb9, 0x7c, 0x50, 255],  // precedent shadow step (see above)
+  jeans: [0x4a, 0x5a, 0x8a, 255],        // new — see note above
+  bag: [0x8a, 0x6b, 0x4a, 255],          // world/draw.ts PALETTE.spriteBag
+  bagStrap: [0x5c, 0x46, 0x30, 255],     // world/draw.ts PALETTE.spriteBagStrap
+  eye: [0x14, 0x11, 0x0f, 255],          // world/draw.ts PALETTE.sprite
+};
+
+// Reference contrast values this design is checked against (brief §6):
+//   PALETTE.outline #20262f = (32,38,47)
+//   PALETTE.ground  #3d4759 = (61,71,89)
+//   PALETTE.groundAlt #434e61 = (67,78,97)
+// jeans (74,90,138) is >100 RGB-distance from outline and >40 from both
+// ground tones — comfortably clear of the hard minimum.
+
+const W = 16, H = 22;
+const COLS = 3, ROWS = 4;
+const DIRECTIONS = ['left', 'down', 'up', 'right']; // manifest.ts row order — do not reorder
+
+function dist2(x, y, cx, cy) {
+  return (x - cx) ** 2 + (y - cy) ** 2;
+}
+
+/** Point-in-rounded-rect test using pixel centers; corners are quarter-circles. */
+function inRoundedRect(px, py, x0, y0, x1, y1, r) {
+  if (px < x0 || px >= x1 || py < y0 || py >= y1) return false;
+  const cx = Math.max(x0 + r, Math.min(px, x1 - r));
+  const cy = Math.max(y0 + r, Math.min(py, y1 - r));
+  // Only apply the rounding test near a corner region; elsewhere the box
+  // bound above already suffices.
+  if ((px < x0 + r || px >= x1 - r) && (py < y0 + r || py >= y1 - r)) {
+    return dist2(px, py, cx, cy) <= r * r;
+  }
+  return true;
+}
+
+/**
+ * Build one 16x22 cell's pixel grid as an array of PALETTE keys or null
+ * (transparent). `dir` is one of the four canonical directions; `frame` is
+ * 0/1/2 (stride A / idle / stride B). Built for `down`, `up`, and `left`
+ * directly; `right` is produced by mirroring `left` (see `buildCell`),
+ * which makes the brief §3 "left/right must be true mirror images"
+ * requirement a structural guarantee rather than a drawing-discipline hope.
+ */
+function buildDirectFrame(dir, frame) {
+  const grid = Array.from({ length: H }, () => Array(W).fill(null));
+  const set = (x, y, key) => {
+    if (x >= 0 && x < W && y >= 0 && y < H) grid[y][x] = key;
+  };
+
+  const bounce = frame === 1 ? -1 : 0; // idle frame springs up 1px (brief §9)
+  const stride = frame === 0 ? -1 : frame === 2 ? 1 : 0;
+  const horizontal = dir === 'left' || dir === 'right';
+
+  // Legs — two rounded 3-wide nubs, 1px gap between them (brief §6).
+  let lx0 = 5, rx0 = 9;
+  if (horizontal) { lx0 += stride; rx0 += stride; } else { lx0 -= Math.abs(stride); rx0 += Math.abs(stride); }
+  // Feet stay planted on the anchor row regardless of the idle bounce —
+  // only the upper body lifts (brief §13: the lowest opaque pixel must sit
+  // on the same row in every frame).
+  for (let y = 0; y < H; y++) {
+    for (let x = 0; x < W; x++) {
+      if (inRoundedRect(x, y, lx0, 16, lx0 + 3, 21, 1)) set(x, y, 'jeans');
+      if (inRoundedRect(x, y, rx0, 16, rx0 + 3, 21, 1)) set(x, y, 'jeans');
+    }
+  }
+
+  // Torso — soft capsule, two-tone (brief §5).
+  for (let y = 0; y < H; y++) {
+    for (let x = 0; x < W; x++) {
+      if (inRoundedRect(x, y, 3, 8 + bounce, 13, 17 + bounce, 3)) {
+        set(x, y, y >= 13 + bounce ? 'hoodieShade' : 'hoodie');
+      }
+    }
+  }
+
+  // Backpack — worn on the back; a clear rounded bump behind the torso on
+  // the "up" (back-facing) row, and a single strap sliver crossing the
+  // torso on left/right profile. Not drawn on "down" (a backpack isn't
+  // visible from the front).
+  if (dir === 'up') {
+    for (let y = 0; y < H; y++) {
+      for (let x = 0; x < W; x++) {
+        if (inRoundedRect(x, y, 4, 9 + bounce, 12, 16 + bounce, 2)) set(x, y, 'bag');
+      }
+    }
+  } else if (horizontal) {
+    const strapX = dir === 'left' ? 5 : 10;
+    for (let y = 9 + bounce; y < 15 + bounce; y++) set(strapX, y, 'bagStrap');
+  }
+
+  // Arms — short rounded stubs at the torso's sides (brief §6). No swing
+  // on horizontal-facing rows (only one arm is visible in profile and its
+  // position is already implied by the stride); swing opposes the
+  // vertical-row leg stride otherwise.
+  const armSwing = horizontal ? 0 : stride;
+  for (let y = 0; y < H; y++) {
+    for (let x = 0; x < W; x++) {
+      if (inRoundedRect(x, y, 1, 10 + bounce - armSwing, 3, 15 + bounce - armSwing, 1)) set(x, y, 'hoodie');
+      if (inRoundedRect(x, y, 13, 10 + bounce + armSwing, 15, 15 + bounce + armSwing, 1)) set(x, y, 'hoodie');
+    }
+  }
+
+  // Head — large, round (brief §2: close to half total height).
+  const headCx = 8, headCy = 5 + bounce, headR = 5.4;
+  for (let y = 0; y < H; y++) {
+    for (let x = 0; x < W; x++) {
+      if (dist2(x + 0.5, y + 0.5, headCx, headCy) <= headR * headR) set(x, y, 'skin');
+    }
+  }
+
+  // Hair — the primary directional signal (brief §4), drawn last over the
+  // head so it can occlude skin pixels per direction.
+  // Each direction's hair is built to change the flattened silhouette's
+  // *outline*, not just its interior coloring (brief §3/§14.1: a solid-black
+  // flatten test can only tell directions apart if the opaque footprint
+  // itself differs — recoloring skin to hair inside the same head circle is
+  // invisible to that test).
+  if (dir === 'down') {
+    // Front fringe: the top half of the head, plus two ear-flap locks that
+    // protrude past the bare head circle on both sides.
+    for (let y = 0; y < H; y++) {
+      for (let x = 0; x < W; x++) {
+        if (dist2(x + 0.5, y + 0.5, headCx, headCy) <= headR * headR && y <= headCy - 1) set(x, y, 'hair');
+      }
+    }
+    for (let y = headCy - 1; y <= headCy + 3; y++) {
+      set(headCx - 7, y, 'hair');
+      set(headCx - 6, y, 'hair');
+      set(headCx + 5, y, 'hair');
+      set(headCx + 6, y, 'hair');
+    }
+    // Face: two dot eyes + a short mouth mark (brief §8) — down-facing only.
+    set(headCx - 2, headCy, 'eye');
+    set(headCx + 1, headCy, 'eye');
+    set(headCx - 1, headCy + 2, 'eye');
+    set(headCx, headCy + 2, 'eye');
+  } else if (dir === 'up') {
+    // Unbroken solid mass covering the entire back of the head (brief §3),
+    // sized and extended well past the bare head circle — including a
+    // downward nape extension — so the outline itself, not just its color,
+    // is unmistakably "hair from behind" rather than any other direction's
+    // head shape. No facial detail at all (brief §8).
+    for (let y = 0; y < H; y++) {
+      for (let x = 0; x < W; x++) {
+        if (dist2(x + 0.5, y + 0.5, headCx, headCy) <= (headR + 1.6) ** 2) set(x, y, 'hair');
+      }
+    }
+    for (let y = headCy + 2; y <= headCy + 6; y++) {
+      for (let x = headCx - 4; x <= headCx + 4; x++) set(x, y, 'hair');
+    }
+  } else {
+    // left (right is mirrored from this): a real hair wedge on the side
+    // away from the facing direction — wide enough to change the outline,
+    // not a 1px detail nudge (the pilot's own documented failure) — plus a
+    // profile nose-tip pixel that protrudes past the head circle and one
+    // near eye dot (brief §3, §8).
+    for (let y = 0; y < H; y++) {
+      for (let x = 0; x < W; x++) {
+        if (dist2(x + 0.5, y + 0.5, headCx, headCy) <= headR * headR && x >= headCx - 1) set(x, y, 'hair');
+      }
+    }
+    for (let y = headCy - 5; y <= headCy + 1; y++) {
+      for (let x = headCx + 3; x <= headCx + 7; x++) {
+        if (dist2(x + 0.5, y + 0.5, headCx, headCy) <= (headR + 2.2) ** 2) set(x, y, 'hair');
+      }
+    }
+    set(headCx - 6, headCy, 'eye');     // profile nose-tip, protrudes past the head circle
+    set(headCx - 3, headCy - 1, 'eye'); // single near eye dot — never both (brief §8)
+  }
+
+  return grid;
+}
+
+function mirrorGrid(grid) {
+  return grid.map((row) => [...row].reverse());
+}
+
+function buildCell(dir, frame) {
+  if (dir === 'right') return mirrorGrid(buildDirectFrame('left', frame));
+  return buildDirectFrame(dir, frame);
+}
+
+// ---------------------------------------------------------------------
+// Assemble the 3x4 sheet (48x88px, native 1x authoring per brief §12).
+// ---------------------------------------------------------------------
+const sheetW = W * COLS, sheetH = H * ROWS;
+const png = new PNG({ width: sheetW, height: sheetH });
+png.data.fill(0); // fully transparent by default (RGBA all-zero)
+
+for (let row = 0; row < ROWS; row++) {
+  const dir = DIRECTIONS[row];
+  for (let col = 0; col < COLS; col++) {
+    const grid = buildCell(dir, col);
+    const ox = col * W, oy = row * H;
+    for (let y = 0; y < H; y++) {
+      for (let x = 0; x < W; x++) {
+        const key = grid[y][x];
+        if (!key) continue; // stays transparent
+        const [r, g, b, a] = PALETTE[key];
+        const i = ((oy + y) * sheetW + (ox + x)) * 4;
+        png.data[i] = r;
+        png.data[i + 1] = g;
+        png.data[i + 2] = b;
+        png.data[i + 3] = a;
+      }
+    }
+  }
+}
+
+mkdirSync(path.dirname(outFile), { recursive: true });
+writeFileSync(outFile, PNG.sync.write(png));
+console.log(`Wrote ${outFile} (${sheetW}x${sheetH}, candidate — not production art until it passes check-character-art-quality.mjs and human/gameplay-scale review).`);
