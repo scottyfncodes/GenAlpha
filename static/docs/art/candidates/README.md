@@ -30,7 +30,7 @@ Verified against every automated gate in `scripts/check-character-art-quality.mj
 [PASS] Grid/cell count                                   3x4 = 12 cells (manifest expects 12: 3 frames x 4 directions)
 [PASS] Transparency behavior                             every pixel is alpha 0 or 255; every cell has both transparent and opaque pixels
 [PASS] Unique color count                                10 unique opaque colors (ceiling: 24)
-[PASS] Color-run characteristics                         median horizontal same-color run length: 2px (floor: 2px, n=1539 runs)
+[PASS] Color-run characteristics                         median horizontal same-color run length: 2px (floor: 2px, n=1574 runs)
 [PASS] Palette consistency                               0 of 12 cells contain a color no other cell uses (0-1 expected; skin/hair-only cells can legitimately be unique)
 [PASS] Anchor consistency                                lowest-opaque-pixel row varies by 0px across cells (expect 0) and sits at row 21 of 22 (expect the last row, 21 — on the anchor edge); idle-column horizontal centroid within 1px of center (cell center x=7.5)
 [PASS] Accidental anti-aliasing / near-duplicate colors  no two palette colors within 24 RGB distance of each other
@@ -79,6 +79,21 @@ where a discrete circle is centered — no gradient, no new color), and each
 direction adds one or two longer, more isolated "stray spike" circles
 sticking up past the main mass for a cowlick/unkempt look. All 8 gates
 still pass.
+
+**Backwards navy cap:** worn over the hair (`hat` color — the same navy
+already used for the hoodie's hem step, reused rather than a new hex),
+drawn after the hair so the crown covers the top of the head while the
+existing ear-flap/nape hair blocks (unaffected, since they already sit
+below the crown's cutoff) peek out at the sides and nape. A backwards
+cap's own logic does most of the direction-signal work for free: the brim
+is hidden from the front (`down` gets a plain rounded crown, no brim) and
+visible everywhere else — jutting toward the camera on `up`, and out the
+back of the head in profile on `left`/`right`. First pass made the crown
+larger than the bare head, which swallowed enough of the messy-hair
+silhouette that `left`/`up` and `down`/`up` dropped under the direction-
+completeness threshold; shrinking the crown back to the head's own radius
+and enlarging the brims instead fixed it — the brim, not the crown, is
+what should carry the difference. All 8 gates still pass.
 
 **A bug the anchor gate initially missed, fixed in the same pass:** the
 first iteration's leg shape used an exclusive upper bound that never

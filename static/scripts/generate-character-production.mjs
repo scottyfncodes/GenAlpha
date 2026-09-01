@@ -84,6 +84,7 @@ const PALETTE = {
   outline: [0x20, 0x26, 0x2f, 255],      // world/draw.ts PALETTE.outline — style-reference cue: a defined edge stroke
   shoe: [0x00, 0x00, 0x00, 255],         // new — a small two-tone shoe accent, style-reference cue
   sole: [0xec, 0xe2, 0xd0, 255],         // world/draw.ts PALETTE.spriteShirt, reused as the shoe's sole highlight
+  hat: [0x2e, 0x3a, 0x52, 255],          // world/draw.ts PALETTE.copUniform — same navy as hoodieShade, reused
 };
 
 // Reference contrast values this design is checked against (brief §6):
@@ -355,6 +356,45 @@ function buildDirectFrame(dir, frame) {
     set(headCx - 2, headCy - 2, 'eye'); // single near eye dot, upper-face
     set(headCx - 6, headCy + 1, 'eye'); // profile nose-tip, protrudes past the head circle, lower-forward
   }
+
+  // Backwards navy cap, worn over the hair — drawn after it so the crown
+  // occludes the top of the messy hair, leaving it peeking out at the
+  // sides/nape (the ear-flap tufts and nape block already sit below this
+  // cutoff for every direction, so they survive as "hair under the cap"
+  // without any change to the hair-drawing code above). A backwards cap's
+  // own silhouette is inherently direction-revealing — the brim is hidden
+  // from the front and visible from the back/sides — which happens to
+  // reinforce the brief §3/§14.1 flattened-silhouette requirement the same
+  // way the hair-outline trick did, just with a different accessory.
+  // Crown radius matches the bare head (not larger) so it doesn't itself
+  // swallow the messy hair's bump/spike silhouette — the brim below is the
+  // feature actually meant to carry the per-direction difference.
+  for (let y = 0; y < H; y++) {
+    for (let x = 0; x < W; x++) {
+      if (dist2(x + 0.5, y + 0.5, headCx, headCy) <= headR * headR && y <= headCy + 1) set(x, y, 'hat');
+    }
+  }
+  if (dir === 'up') {
+    // Facing the viewer here — the brim juts out from the back of the
+    // crown, toward the camera. Sized to be an unmistakable protrusion,
+    // not a subtle one.
+    for (let y = headCy + 1; y <= headCy + 4; y++) {
+      for (let x = headCx - 4; x <= headCx + 4; x++) {
+        if (dist2(x + 0.5, y + 0.5, headCx, headCy + 1) <= 4.2 * 4.2) set(x, y, 'hat');
+      }
+    }
+  } else if (dir !== 'down') {
+    // left (right mirrors it): the brim sticks out the back of the head —
+    // the side away from the face, same side the hair wedge already uses.
+    // Flatter and narrower than the first pass, which read as a slab
+    // rather than a bill.
+    for (let y = headCy - 1; y <= headCy + 1; y++) {
+      for (let x = headCx + 4; x <= headCx + 8; x++) set(x, y, 'hat');
+    }
+  }
+  // 'down' gets no brim at all — worn backwards, it's hidden behind the
+  // head from a front view. That absence is itself part of the
+  // direction signal: only 'down' has a brim-free, rounded cap outline.
 
   // Shoulders raised toward the ears on the idle frame — a shy, drawn-in
   // posture, cheap in silhouette terms (a couple of pixels at the collar).
