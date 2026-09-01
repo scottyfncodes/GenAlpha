@@ -144,8 +144,10 @@ function buildDirectFrame(dir, frame) {
       }
     }
   } else if (horizontal) {
-    const strapX = dir === 'left' ? 5 : 10;
-    for (let y = 9 + bounce; y < 15 + bounce; y++) set(strapX, y, 'bagStrap');
+    // 2px wide so it stays legible at gameplay scale (a 1px sliver was
+    // borderline visible in the gameplay-scale review render).
+    const strapX = dir === 'left' ? 5 : 9;
+    for (let y = 9 + bounce; y < 15 + bounce; y++) { set(strapX, y, 'bagStrap'); set(strapX + 1, y, 'bagStrap'); }
   }
 
   // Arms — short rounded stubs at the torso's sides (brief §6). No swing
@@ -224,8 +226,12 @@ function buildDirectFrame(dir, frame) {
         if (dist2(x + 0.5, y + 0.5, headCx, headCy) <= (headR + 2.2) ** 2) set(x, y, 'hair');
       }
     }
-    set(headCx - 6, headCy, 'eye');     // profile nose-tip, protrudes past the head circle
-    set(headCx - 3, headCy - 1, 'eye'); // single near eye dot — never both (brief §8)
+    // Eye and nose kept well-separated (vertically and horizontally) so
+    // they read as two different facial landmarks rather than a pair of
+    // adjacent dots that could be mistaken for two eyes (brief §8: never
+    // both eyes on a profile view).
+    set(headCx - 2, headCy - 2, 'eye'); // single near eye dot, upper-face
+    set(headCx - 6, headCy + 1, 'eye'); // profile nose-tip, protrudes past the head circle, lower-forward
   }
 
   return grid;

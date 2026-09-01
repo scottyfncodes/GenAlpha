@@ -23,7 +23,7 @@ step anywhere in the pipeline). Verified against every automated gate in
 [PASS] Grid/cell count                                   3x4 = 12 cells (manifest expects 12: 3 frames x 4 directions)
 [PASS] Transparency behavior                             every pixel is alpha 0 or 255; every cell has both transparent and opaque pixels
 [PASS] Unique color count                                8 unique opaque colors (ceiling: 24)
-[PASS] Color-run characteristics                         median horizontal same-color run length: 3px (floor: 2px, n=1189 runs)
+[PASS] Color-run characteristics                         median horizontal same-color run length: 3px (floor: 2px, n=1183 runs)
 [PASS] Palette consistency                               0 of 12 cells contain a color no other cell uses (0-1 expected; skin/hair-only cells can legitimately be unique)
 [PASS] Anchor consistency                                lowest-opaque-pixel row varies by 0px across cells (expect 0); idle-column horizontal centroid within 1px of center (cell center x=7.5)
 [PASS] Accidental anti-aliasing / near-duplicate colors  no two palette colors within 24 RGB distance of each other
